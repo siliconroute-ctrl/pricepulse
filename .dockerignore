@@ -1,0 +1,7 @@
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+backend/data
+backend/debug
+backend/.env
+backend/tests/fixtures/live

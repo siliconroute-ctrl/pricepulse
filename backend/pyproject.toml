@@ -1,0 +1,21 @@
+[project]
+name = "pricepulse"
+version = "1.0.0"
+description = "PricePulse ZA: compare South African store prices"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.black]
+line-length = 110
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["B008"]  # FastAPI uses function calls in argument defaults by design

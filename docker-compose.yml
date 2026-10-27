@@ -1,0 +1,27 @@
+# Run everything:   docker compose up -d --build
+# Logs:             docker compose logs -f
+# The API and the scraper share one data folder (SQLite database + JSON files).
+services:
+  api:
+    build: { context: ., dockerfile: Dockerfile.api }
+    env_file: backend/.env
+    environment:
+      PP_DATA_DIR: /data
+    volumes:
+      - ppdata:/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  scraper:
+    build: { context: ., dockerfile: Dockerfile.scraper }
+    env_file: backend/.env
+    environment:
+      PP_DATA_DIR: /data
+    volumes:
+      - ppdata:/data
+    restart: unless-stopped
+    depends_on: [api]
+
+volumes:
+  ppdata:

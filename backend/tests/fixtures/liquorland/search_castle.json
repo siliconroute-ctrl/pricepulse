@@ -1,0 +1,5 @@
+[{"_comment": "SYNTHETIC fixture shaped like the WooCommerce Store API. Not a real response.",
+  "id": 501, "name": "Castle Lite 24 x 340ml Cans", "permalink": "https://www.liquorland.co.za/product/castle-lite-24-cans/",
+  "prices": {"price": "33999", "regular_price": "33999", "sale_price": "33999", "currency_minor_unit": 2}},
+ {"id": 502, "name": "Klipdrift Premium Brandy 750ml", "permalink": "https://www.liquorland.co.za/product/klipdrift-premium/",
+  "prices": {"price": "17999", "regular_price": "19499", "sale_price": "17999", "currency_minor_unit": 2}}]

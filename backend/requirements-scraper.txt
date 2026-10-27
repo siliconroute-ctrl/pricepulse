@@ -1,0 +1,4 @@
+# Scraper = everything the API needs, plus a browser driver.
+# After installing, also run:  python -m playwright install chromium
+-r requirements.txt
+playwright==1.64.1

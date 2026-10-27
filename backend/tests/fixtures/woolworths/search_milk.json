@@ -1,0 +1,7 @@
+{"_comment": "SYNTHETIC fixture shaped like our guess of the Woolworths search JSON. Not a real response.",
+ "contents": [{"mainContent": [{"contents": [{"records": [
+   {"attributes": {"p_displayName": "Full Cream Fresh Milk 2 L", "p_SKU": "6009"},
+    "startingPrice": {"p_pl10": 31.99}, "detailPageURL": "/prod/Food/Milk/Full-Cream-Fresh-Milk-2-L/_/A-6009"},
+   {"attributes": {"p_displayName": "Clover Full Cream Milk 2 L"},
+    "startingPrice": {"p_pl10": 41.99}, "detailPageURL": "/prod/_/A-6010"}
+ ]}]}]}]}

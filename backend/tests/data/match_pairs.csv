@@ -1,0 +1,58 @@
+expected,name_a,size_a,name_b,size_b,note
+match,Clover Full Cream Milk 2L,,Clover Fresh Full Cream Milk,2 l,marketing word + size spelling
+match,Clover Full Cream Fresh Milk,2ltr,CLOVER FULL CREAM MILK 2L,,case and ltr
+match,Albany Superior White Bread,700g,Albany Superior White Bread 700 g,,size in name
+match,White Star Super Maize Meal 5kg,,White Star Super Maize Meal,5 kg,
+match,Tastic Long Grain Parboiled Rice,2kg,Tastic Parboiled Long Grain Rice 2kg,,word order
+match,Koo Baked Beans in Tomato Sauce,410g,KOO Baked Beans In Tomato Sauce 410G,,
+match,Sunfoil Sunflower Oil 2L,,Sunfoil Pure Sunflower Oil,2L,extra descriptive word
+match,Castle Lite Beer Cans,24 x 340ml,Castle Lite 24 x 340ml,,cans is marketing
+match,Castle Lite Can 340ml x 24,,Castle Lite Beer 24x340ml,,reversed pack notation
+match,Savanna Dry Cider,6 x 330ml NRB,Savanna Dry Premium Cider NRB 6 x 330ml,,
+match,Klipdrift Premium Brandy,750ml,Klipdrift Brandy 750ml,,brand alias
+match,Klipdrift Brandy 75cl,,Klipdrift Premium Brandy 750ml,,cl vs ml
+match,Jameson Irish Whiskey 750ml,,Jameson Irish Whiskey Bottle,750 ml,
+match,Fat Bastard Chardonnay,750ml,Fat Bastard Chardonnay White Wine 750ml,,
+match,Panado Tablets 500mg,24 tablets,Panado Paracetamol Tablets 24s,,strength in name + count
+match,Colgate Total Toothpaste,100ml,Colgate Total Original Toothpaste 100ml,,
+match,Dettol Antiseptic Liquid 500ml,,Dettol Liquid Antiseptic,500 ml,
+match,Nivea Roll-on Deodorant,50ml,Nivea Deodorant Roll On 50ml,,hyphen
+match,Large Eggs,18 pack,Pick n Pay Large Eggs 18s,,generic commodity across brands
+match,Bananas,per kg,Bananas Loose per kg,,generic loose
+match,Coca-Cola Original 2L,,Coke Original Bottle 2L,,brand alias coke
+match,Huggies Gold Nappies Size 4,62s,Huggies Gold Size 4 Nappies 62 pack,,
+match,Five Roses Tea Bags 100s,,Five Roses Teabags 100 pack,,
+match,Joko Tagless Tea Bags 100s,,Joko Tagless Tea 100s,,
+match,Ricoffy Instant Coffee 250g,,Ricoffy Coffee Instant 250g Tin,,
+match,Lucky Star Pilchards in Tomato Sauce,400g,Lucky Star Pilchards In Tomato Sauce 400g,,
+match,Huletts White Sugar 2.5kg,,"Huletts Sugar White 2,5kg",,comma decimal
+match,OMO Auto Washing Powder 2kg,,Omo Auto Washing Powder,2 kg,
+match,Purity Baby Food Butternut 125ml,,Purity Butternut Baby Food 125ml,,
+match,NAN Optipro 1 Infant Formula 800g,,NAN OPTIPRO 1 Infant Formula 800g,,case only
+nomatch,Clover Full Cream Milk,2L,Clover Full Cream Milk,1L,different size
+nomatch,Clover Full Cream Milk,2L,Parmalat Full Cream Milk,2L,different brand
+nomatch,Clover Full Cream Milk 2L,,Clover Low Fat Milk 2L,,different variant
+nomatch,Castle Lite 24 x 340ml,,Castle Lite 6 x 340ml,,different pack
+nomatch,Castle Lite 6 x 330ml,,Castle Lite 1.98L,,pack vs single
+nomatch,Castle Lager 24 x 340ml,,Castle Lite 24 x 340ml,,lager vs lite
+nomatch,Albany Superior White Bread 700g,,Albany Superior Brown Bread 700g,,white vs brown
+nomatch,Albany Superior White Bread 700g,,Sasko White Bread 700g,,brand
+nomatch,Tastic Rice 2kg,,Spekko Rice 2kg,,brand
+nomatch,Tastic Rice 2kg,,Tastic Rice 1kg,,size
+nomatch,Large Eggs 18 pack,,Large Eggs 30 pack,,generic but size differs
+nomatch,Large Eggs 18 pack,,Bananas 18 pack,,different generics
+nomatch,Bananas per kg,,Apples per kg,,different generics
+nomatch,Panado Tablets 24s,,Panado Capsules 24s,,form
+nomatch,Panado Tablets 24s,,Panado Tablets 48s,,count
+nomatch,Colgate Total Toothpaste 100ml,,Colgate Max Fresh Toothpaste 100ml,,variant
+nomatch,Coca-Cola Original 2L,,Coca-Cola No Sugar 2L,,variant
+nomatch,Coca-Cola Original 2L,,Pepsi Cola 2L,,brand
+nomatch,Savanna Dry Cider 6 x 330ml,,Savanna Light Cider 6 x 330ml,,variant
+nomatch,Jameson Irish Whiskey 750ml,,Jameson Irish Whiskey 1L,,size
+nomatch,Jameson Irish Whiskey 750ml,,Bells Scotch Whisky 750ml,,brand
+nomatch,Fat Bastard Chardonnay 750ml,,Fat Bastard Sauvignon Blanc 750ml,,cultivar
+nomatch,Huggies Gold Size 4 62s,,Huggies Gold Size 5 62s,,nappy size
+nomatch,OMO Auto Washing Powder 2kg,,OMO Hand Washing Powder 2kg,,auto vs hand
+nomatch,Sunfoil Sunflower Oil 2L,,Sunfoil Sunflower Oil 750ml,,size
+nomatch,White Star Super Maize Meal 5kg,,White Star Special Maize Meal 5kg,,super vs special
+nomatch,Mystery Product,,Mystery Product,,no size: never auto-match

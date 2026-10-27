@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PricePulse ZA</title>
+<meta name="description" content="Compare grocery, liquor and pharmacy prices across South African stores.">
+<meta name="theme-color" content="#b00d27">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<script src="config.js"></script>
+<style>
+/* Layout: phone-first app shell. Sticky red header, scrolling content, fixed bottom nav.
+   Sizes are in rem so the app follows the phone's text-size setting (1rem = 17px by default). */
+:root{
+  --bg:#f6f2f1; --card:#ffffff; --ink:#1d1415; --muted:#5a4d4e; --line:#d9cecd;
+  --brand:#b00d27; --brand-ink:#ffffff; --brand-text:#b00d27; --best:#08532a; --best-bg:#e1f2e6; --warn:#7a4f00; --warn-bg:#fff3d6;
+  --chip:#ece4e3; --chip-on:#1d1415; --chip-on-ink:#ffffff; --focus:#1d1415;
+  --font-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --font-body:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#150f10; --card:#221819; --ink:#f7eeee; --muted:#cdbdbe; --line:#46383a;
+  --brand:#a3142a; --brand-ink:#ffffff; --brand-text:#ff8595; --best:#7fe7a6; --best-bg:#12301e; --warn:#ffd27a; --warn-bg:#3a2a08;
+  --chip:#2f2324; --chip-on:#f7eeee; --chip-on-ink:#150f10; --focus:#ffffff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#150f10; --card:#221819; --ink:#f7eeee; --muted:#cdbdbe; --line:#46383a;
+  --brand:#a3142a; --brand-ink:#ffffff; --brand-text:#ff8595; --best:#7fe7a6; --best-bg:#12301e; --warn:#ffd27a; --warn-bg:#3a2a08;
+  --chip:#2f2324; --chip-on:#f7eeee; --chip-on-ink:#150f10; --focus:#ffffff; color-scheme:dark}
+*{box-sizing:border-box}
+html{font-size:106.25%;-webkit-text-size-adjust:100%}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:1rem;line-height:1.45;
+  padding:0 max(16px,env(safe-area-inset-right,0px)) 7rem max(16px,env(safe-area-inset-left,0px))}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.skip{position:absolute;left:-9999px}.skip:focus{left:16px;top:8px;z-index:50;background:var(--card);padding:.5rem 1rem}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:40rem;margin:0 auto}
+header{position:sticky;top:0;z-index:10;background:var(--brand);color:var(--brand-ink);
+  margin-inline:calc(-1*max(16px,env(safe-area-inset-left,0px)));
+  padding:calc(.6rem + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) .7rem max(16px,env(safe-area-inset-left,0px))}
+header :focus-visible{outline-color:#fff}
+header .row{max-width:40rem;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
+h1{font-family:var(--font-display);font-size:1.9rem;line-height:1;margin:0;font-weight:700}
+.where{display:flex;align-items:center;gap:.4rem;font-weight:600}
+.where select{background:#fff;color:#1d1415;border:2px solid #fff;border-radius:.5rem;padding:.3rem .5rem;min-height:3rem;max-width:11rem}
+.locbtn{min-height:3rem;min-width:3rem;border-radius:.5rem;border:2px solid #fff;background:transparent;color:#fff;font-weight:700;padding:0 .6rem;display:inline-flex;align-items:center;gap:.3rem}
+.locbtn svg{width:1.3rem;height:1.3rem;stroke:currentColor;fill:none;stroke-width:2}
+.search{margin:.6rem auto 0;max-width:40rem}
+.search input{width:100%;min-height:3rem;padding:.5rem .8rem;border-radius:.6rem;border:2px solid transparent;background:#fff;color:#1d1415;font-size:1.06rem}
+.fresh{max-width:40rem;margin:.6rem auto 0;font-size:.94rem;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.banner{border-radius:.7rem;padding:.6rem .8rem;margin:.7rem 0;border:2px solid var(--line);background:var(--card)}
+.banner.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--ink)}
+.banner b{display:block}
+.pills{display:flex;gap:.5rem;overflow-x:auto;padding:.8rem 0 .3rem;scrollbar-width:none}
+.pills::-webkit-scrollbar{display:none}
+.pill{flex:none;min-height:3rem;padding:.4rem 1rem;border-radius:999px;border:2px solid var(--line);background:var(--chip);font-weight:600}
+.pill[aria-pressed="true"]{background:var(--chip-on);color:var(--chip-on-ink);border-color:var(--chip-on)}
+.grid{display:flex;flex-direction:column;gap:.85rem;margin-top:.6rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:.85rem;padding:.85rem;min-width:0}
+.card h3{margin:0;font-size:1.12rem;line-height:1.25;font-weight:650}
+.card h3 a{text-decoration:none}.card h3 a:hover{text-decoration:underline}
+.size{color:var(--muted);font-size:.94rem}
+.top{display:flex;justify-content:space-between;gap:.7rem;align-items:flex-start}
+.add{flex:none;min-width:3rem;min-height:3rem;border-radius:.7rem;border:2px solid var(--brand-text);background:transparent;color:var(--brand-text);font-weight:700;padding:0 .75rem}
+.add[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+.best{margin-top:.6rem;display:flex;align-items:center;gap:.6rem;background:var(--best-bg);border-radius:.6rem;padding:.6rem .7rem;flex-wrap:wrap}
+.price{font-family:var(--font-display);font-weight:700;font-size:2.1rem;line-height:1;font-variant-numeric:tabular-nums}
+.tag{font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--best)}
+.tag::before{content:"\2713\00a0"}
+.unit{font-size:.94rem;color:var(--ink);font-weight:600}
+.was{font-size:.94rem;color:var(--muted);text-decoration:line-through}
+.badge{display:inline-block;padding:.2rem .6rem;border-radius:.4rem;color:#fff;font-weight:700;font-size:.88rem;white-space:nowrap}
+.others{margin:.5rem 0 0;padding:0;list-style:none}
+.others li{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.5rem .1rem;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.others .p{font-weight:700;font-size:1.06rem}
+.others .diff{color:var(--warn);font-weight:600;font-size:.94rem}
+.old{color:var(--warn);font-weight:700;font-size:.88rem}
+.h2{font-family:var(--font-display);font-size:1.65rem;margin:1.1rem 0 .25rem;font-weight:700}
+.sub{color:var(--muted);margin:0 0 .6rem}
+.seg{display:flex;gap:.5rem;margin:.6rem 0}
+.seg button{flex:1;min-height:3rem;border-radius:.6rem;border:2px solid var(--line);background:var(--chip);font-weight:700;padding:0 .3rem}
+.seg button[aria-pressed="true"]{background:var(--chip-on);color:var(--chip-on-ink);border-color:var(--chip-on)}
+.town{display:grid;grid-template-columns:1fr auto;gap:.25rem .7rem;padding:.7rem 0;border-top:1px solid var(--line)}
+.town:first-child{border-top:0}
+.town .name{font-weight:650;font-size:1.06rem}
+.town .km{color:var(--muted);font-size:.94rem}
+.town .tot{font-family:var(--font-display);font-weight:700;font-size:1.75rem;font-variant-numeric:tabular-nums;text-align:right}
+.bar{grid-column:1/-1;height:.8rem;border-radius:.4rem;background:var(--chip);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--muted);border-radius:.4rem}
+.town.cheap .bar i{background:var(--best)}
+.li{display:flex;align-items:center;gap:.6rem;padding:.6rem 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.li:first-child{border-top:0}
+.li .n{flex:1;min-width:9rem}
+.qty{display:flex;align-items:center;gap:.35rem}
+.qty button{width:3rem;height:3rem;border-radius:.6rem;border:2px solid var(--line);background:var(--chip);font-size:1.3rem;font-weight:700}
+.qty b{min-width:1.6rem;text-align:center;font-variant-numeric:tabular-nums;font-size:1.12rem}
+.tot-row{display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.6rem 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.tot-row:first-child{border-top:0}
+.tot-row.win{background:var(--best-bg);border-radius:.6rem;padding:.6rem .7rem;border:0;margin-top:.25rem}
+.amt{font-family:var(--font-display);font-size:1.75rem;font-weight:700}
+.empty{text-align:center;color:var(--muted);padding:1.6rem .5rem}
+.btn{min-height:3rem;padding:0 1.05rem;border-radius:.7rem;border:2px solid var(--brand);background:var(--brand);color:var(--brand-ink);font-weight:700;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;gap:.4rem}
+.btn.alt{background:transparent;color:var(--brand-text);border-color:var(--brand-text)}
+.btns{display:flex;gap:.6rem;flex-wrap:wrap;margin:.7rem 0}
+pre{background:var(--card);border:1px solid var(--line);border-radius:.6rem;padding:.7rem;overflow-x:auto;font-size:.8rem;margin:.5rem 0}
+.disclaimer{margin:1.4rem 0 0;padding:.7rem .8rem;border-left:4px solid var(--brand);background:var(--card);border-radius:.4rem;font-size:.94rem}
+.chart{width:100%;height:auto;display:block;margin-top:.4rem}
+.chart text{fill:var(--muted);font-size:14px;font-family:var(--font-body)}
+.chart .grid-line{stroke:var(--line);stroke-width:1}
+.legend{list-style:none;margin:.4rem 0 0;padding:0}
+.legend li{display:flex;align-items:center;gap:.5rem;padding:.25rem 0}
+.legend svg{flex:none}
+.back{margin-top:.8rem}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--card);border-top:2px solid var(--line);
+  padding:.35rem max(8px,env(safe-area-inset-right,0px)) calc(.35rem + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+nav.tabs .in{max-width:40rem;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:.25rem}
+nav.tabs button{min-height:3.4rem;border:0;background:transparent;border-radius:.6rem;font-weight:650;font-size:.88rem;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
+nav.tabs button svg{width:1.5rem;height:1.5rem;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button[aria-current="page"]{color:var(--ink);background:var(--chip);box-shadow:inset 0 -3px 0 var(--brand)}
+.cnt{font-size:.76rem;background:var(--brand);color:var(--brand-ink);border-radius:999px;padding:0 .45rem;margin-left:.25rem}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="wrap">
+<header>
+  <div class="row">
+    <h1>PricePulse ZA</h1>
+    <div class="where">
+      <label for="base">Town</label>
+      <select id="base"></select>
+      <button class="locbtn" id="locate" type="button" aria-label="Use my location to choose the nearest town">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="search"><input id="q" type="search" placeholder="Search a product, e.g. milk" aria-label="Search products" autocomplete="off" enterkeyhint="search"></div>
+  <div class="fresh" id="fresh"></div>
+</header>
+<div id="status" class="vh" role="status" aria-live="polite"></div>
+<main id="main" tabindex="-1"></main>
+</div>
+<nav class="tabs" aria-label="Main"><div class="in" id="nav"></div></nav>
+
+<script>
+"use strict";
+/* ---------- Settings and constants ---------- */
+var CFG = window.PRICEPULSE_CONFIG || {};
+var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
+var STALE_HOURS = 48;
+var DISCLAIMER = "Prices are collected from public retailer websites and may differ in store. Always check at the till.";
+var STORES = {"Checkers":"#0a6e8a","Pick n Pay":"#1d4fa3","Woolworths":"#2b2b2b",
+  "Ultra Liquors":"#6b2fa0","Liquorland":"#8a5100","Dis-Chem":"#17703a"};
+var DASHES = ["", "6 4", "2 3", "10 3 2 3", "1 4", "12 6"];
+var CATS = ["All","Groceries","Fresh","Liquor","Health & Beauty"];
+/* Used until the server's list arrives, and when offline. Location never leaves the phone. */
+var FALLBACK_REGIONS = [
+  {slug:"paarl",name:"Paarl",lat:-33.7342,lon:18.9621},{slug:"wellington",name:"Wellington",lat:-33.6393,lon:19.0112},
+  {slug:"franschhoek",name:"Franschhoek",lat:-33.9133,lon:19.1169},{slug:"stellenbosch",name:"Stellenbosch",lat:-33.9321,lon:18.8602},
+  {slug:"cape-town",name:"Cape Town",lat:-33.9249,lon:18.4241},{slug:"worcester",name:"Worcester",lat:-33.6461,lon:19.4485},
+  {slug:"hermanus",name:"Hermanus",lat:-34.4187,lon:19.2345}];
+/* Example figures for trying the app without a server. Clearly labelled in the app. */
+var SAMPLE = [
+ ["Albany Superior White Bread","700g","Groceries",{"Checkers":19.99,"Pick n Pay":20.99,"Woolworths":24.99}],
+ ["White Star Super Maize Meal","5kg","Groceries",{"Checkers":64.99,"Pick n Pay":66.99,"Woolworths":72.99}],
+ ["Sasko Cake Flour","2.5kg","Groceries",{"Checkers":39.99,"Pick n Pay":41.99}],
+ ["Tastic Long Grain Rice","2kg","Groceries",{"Checkers":49.99,"Pick n Pay":52.99,"Woolworths":59.99}],
+ ["Koo Baked Beans in Tomato Sauce","410g","Groceries",{"Checkers":14.99,"Pick n Pay":15.99,"Woolworths":17.99}],
+ ["Sunfoil Sunflower Oil","2L","Groceries",{"Checkers":84.99,"Pick n Pay":87.99,"Woolworths":94.99}],
+ ["Ricoffy Instant Coffee","250g","Groceries",{"Checkers":69.99,"Pick n Pay":72.99,"Woolworths":79.99}],
+ ["Coca-Cola Original","2L","Groceries",{"Checkers":25.99,"Pick n Pay":26.99}],
+ ["Clover Full Cream Milk","2L","Fresh",{"Checkers":36.99,"Pick n Pay":38.49,"Woolworths":41.99}],
+ ["Clover Low Fat Milk","2L","Fresh",{"Checkers":35.99,"Pick n Pay":37.49,"Woolworths":40.99}],
+ ["Large Eggs","18 pack","Fresh",{"Checkers":69.99,"Pick n Pay":72.99,"Woolworths":79.99}],
+ ["Chicken Portions","2kg","Fresh",{"Checkers":109.99,"Pick n Pay":114.99,"Woolworths":134.99}],
+ ["Bananas","per kg","Fresh",{"Checkers":24.99,"Pick n Pay":26.99,"Woolworths":29.99}],
+ ["Clover Butter","500g","Fresh",{"Checkers":84.99,"Pick n Pay":89.99,"Woolworths":99.99}],
+ ["Castle Lite","24 x 340ml","Liquor",{"Ultra Liquors":329.99,"Liquorland":339.99,"Checkers":344.99,"Pick n Pay":349.99}],
+ ["Klipdrift Premium Brandy","750ml","Liquor",{"Ultra Liquors":189.99,"Liquorland":194.99,"Pick n Pay":199.99}],
+ ["Savanna Dry Cider","6 x 330ml","Liquor",{"Ultra Liquors":98.99,"Liquorland":102.99,"Checkers":104.99}],
+ ["Fat Bastard Chardonnay","750ml","Liquor",{"Ultra Liquors":79.99,"Liquorland":84.99,"Checkers":89.99}],
+ ["Jameson Irish Whiskey","750ml","Liquor",{"Ultra Liquors":369.99,"Liquorland":379.99,"Pick n Pay":389.99}],
+ ["Panado Tablets 500mg","24 tablets","Health & Beauty",{"Dis-Chem":34.95,"Checkers":38.99,"Pick n Pay":39.99}],
+ ["Colgate Total Toothpaste","100ml","Health & Beauty",{"Dis-Chem":31.95,"Checkers":33.99,"Pick n Pay":34.99}],
+ ["Dettol Antiseptic Liquid","500ml","Health & Beauty",{"Dis-Chem":79.95,"Checkers":84.99,"Pick n Pay":86.99}],
+ ["Nivea Roll-on Deodorant","50ml","Health & Beauty",{"Dis-Chem":39.95,"Checkers":41.99,"Pick n Pay":44.99}],
+ ["Vitamin C 1000mg","30 tablets","Health & Beauty",{"Dis-Chem":89.95,"Checkers":99.99}]
+];
+
+var state = {
+  view:"compare", productId:null, cat:"All", q:"", region:"paarl", regions:FALLBACK_REGIONS.slice(),
+  products:[], source:"sample", stamp:null, isSample:true, savedAt:null, error:"", loading:false,
+  list:{}, unitMode:false, radius:50, townScope:"list", towns:null, townsKey:"", detail:null, theme:"system"
+};
+
+/* ---------- Small helpers ---------- */
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function money(v){var p=v.toFixed(2).split(".");return "R "+p[0].replace(/\B(?=(\d{3})+(?!\d))/g," ")+"."+p[1]}
+function key(n,s){return (n+"|"+s).toLowerCase().replace(/\s+/g," ").trim()}
+function say(msg){var el=document.getElementById("status");el.textContent="";setTimeout(function(){el.textContent=msg},50)}
+function storeColor(s){
+  if(STORES[s])return STORES[s];
+  var c=["#7a4a00","#006b6b","#8a2b5a","#3d5a1a"],h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;
+  return c[Math.abs(h)%c.length];
+}
+function badge(s){return '<span class="badge" style="background:'+storeColor(s)+'">'+esc(s)+'</span>'}
+function regionName(slug){var r=state.regions.find(function(x){return x.slug===slug});return r?r.name:slug}
+function haversine(a,b,c,d){var R=6371,r=Math.PI/180,x=(c-a)*r,y=(d-b)*r;
+  var h=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*r)*Math.cos(c*r)*Math.sin(y/2)*Math.sin(y/2);return 2*R*Math.asin(Math.sqrt(h))}
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function load(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}}
+/* Dates: API gives UTC ("...Z"); scraper files give South African time ("2026-10-27 07:30"). */
+function toDate(s){
+  if(!s)return null;if(s instanceof Date)return s;
+  var t=String(s);if(/^\d{4}-\d\d-\d\d[ T]\d\d:\d\d(:\d\d)?$/.test(t))t=t.replace(" ","T")+(t.length===16?":00":"")+"+02:00";
+  var d=new Date(t);return isNaN(d)?null:d;
+}
+function fmtDate(d){d=toDate(d);if(!d)return "";
+  return d.toLocaleString("en-ZA",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Africa/Johannesburg"}).replace(" at ",", ")}
+function hoursOld(d){d=toDate(d);return d?(Date.now()-d.getTime())/36e5:0}
+
+/* Size parsing for unit prices when data comes from a file (the server does this itself). */
+var UNITS={kg:["g",1000],g:["g",1],gr:["g",1],l:["ml",1000],lt:["ml",1000],ltr:["ml",1000],litre:["ml",1000],ml:["ml",1],cl:["ml",10]};
+function parseSize(t){
+  if(!t)return null;var s=String(t).toLowerCase().replace(",",".");
+  if(/per\s*kg|\/\s*kg|loose/.test(s))return {qty:1000,unit:"g",pack:1,byWeight:true};
+  var m=s.match(/(\d+)\s*[x\u00d7*]\s*(\d+(?:\.\d+)?)\s*(kg|gr|g|ltr|lt|litre|l|ml|cl)\b/)||null;
+  if(m)return {qty:+m[2]*UNITS[m[3]][1],unit:UNITS[m[3]][0],pack:+m[1]};
+  m=s.match(/(\d+(?:\.\d+)?)\s*(kg|gr|g|ltr|lt|litre|l|ml|cl)\b/);
+  if(m)return {qty:+m[1]*UNITS[m[2]][1],unit:UNITS[m[2]][0],pack:1};
+  m=s.match(/(\d+)\s*(pack|pk|tablets?|tabs?|capsules?|s\b|'s|rolls?|bags?|each|ea\b)/);
+  if(m)return {qty:+m[1],unit:"each",pack:1};
+  return null;
+}
+function unitPrice(size,price){
+  var s=parseSize(size);if(!s||!price)return null;
+  if(s.byWeight)return {value:price/10,unit:"per 100g"};
+  var total=s.qty*s.pack;if(!total)return null;
+  if(s.unit==="each")return {value:price/total,unit:"per item"};
+  return {value:price/total*100,unit:s.unit==="g"?"per 100g":"per 100ml"};
+}
+
+/* ---------- Data model: product = {id,name,brand,size,cat,prices:{store:{price,promo,url,at,unit}}} ---------- */
+function eff(p){return p.promo!=null?p.promo:p.price}
+function bestStore(prod){var b=null;for(var s in prod.prices){if(b===null||eff(prod.prices[s])<eff(prod.prices[b])||(eff(prod.prices[s])===eff(prod.prices[b])&&s<b))b=s}return b}
+function sortedStores(prod){return Object.keys(prod.prices).sort(function(a,b){return eff(prod.prices[a])-eff(prod.prices[b])||(a<b?-1:1)})}
+function fromApi(items){
+  return items.map(function(it){
+    var prices={};it.prices.forEach(function(p){prices[p.store]={price:p.price,promo:p.promo_price,url:p.url,at:p.scraped_at,stale:p.stale,unit:p.unit_price}});
+    return {id:String(it.id),apiId:it.id,name:it.name,brand:it.brand,size:it.size,cat:it.category,prices:prices};
+  });
+}
+function fromRows(json){
+  var items=Array.isArray(json)?json:(json.items||json.products||[]);
+  var stamp=Array.isArray(json)?null:(json.scraped_at||null);
+  var map={},order=[];
+  items.forEach(function(it){
+    var price=parseFloat(String(it.price).replace(/[^0-9.]/g,""));
+    if(!it.name||!it.store||!isFinite(price)||price<=0)return;
+    var promo=it.promo_price!=null?parseFloat(String(it.promo_price).replace(/[^0-9.]/g,"")):null;
+    if(!(promo>0&&promo<price))promo=null;
+    var k=key(it.name,it.size||"");
+    if(!map[k]){map[k]={id:k,name:it.name,size:it.size||"",cat:it.category||"Groceries",prices:{}};order.push(k)}
+    var cur=map[k].prices[it.store],row={price:price,promo:promo,url:it.url||"",at:it.scraped_at||stamp};
+    if(!cur||eff(row)<eff(cur))map[k].prices[it.store]=row;
+  });
+  var arr=order.map(function(k){return map[k]});
+  if(!arr.length)throw new Error("No usable rows. Each row needs store, name and price.");
+  return {products:arr,region:Array.isArray(json)?"":(json.region||""),stamp:stamp,sample:!!json.sample};
+}
+function loadSample(){
+  state.products=fromRows(SAMPLE.map(function(r){return Object.keys(r[3]).map(function(s){return {store:s,name:r[0],size:r[1],category:r[2],price:r[3][s]}})}).reduce(function(a,b){return a.concat(b)},[])).products;
+  state.source="sample";state.isSample=true;state.stamp=null;state.savedAt=null;
+}
+
+/* ---------- Network ---------- */
+function getJSON(url,opts){
+  var ctl=typeof AbortController!=="undefined"?new AbortController():null;
+  var timer=setTimeout(function(){if(ctl)ctl.abort()},10000);
+  opts=opts||{};if(ctl)opts.signal=ctl.signal;
+  return fetch(url,opts).then(function(r){
+    clearTimeout(timer);
+    return r.json().catch(function(){return {}}).then(function(body){
+      if(!r.ok){var e=new Error(body.detail||("The price server answered with error "+r.status+"."));e.status=r.status;throw e}
+      return body;
+    });
+  },function(err){clearTimeout(timer);throw new Error(navigator.onLine===false?"You are offline.":"Could not reach the price server.")});
+}
+function loadRegions(){
+  return getJSON(API+"/regions").then(function(rs){
+    if(Array.isArray(rs)&&rs.length){state.regions=rs;store("pp_regions",rs);fillRegions()}
+  }).catch(function(){});
+}
+function loadLive(){
+  var region=state.region;state.loading=true;renderFresh();
+  var all=[],first=null;
+  function page(offset){
+    return getJSON(API+"/products?region="+encodeURIComponent(region)+"&limit=100&offset="+offset).then(function(b){
+      if(!first)first=b;all=all.concat(b.items);
+      if(all.length<b.total&&offset<1900)return page(offset+100);
+    });
+  }
+  return page(0).then(function(){
+    if(region!==state.region)return;
+    state.loading=false;state.error="";
+    state.products=fromApi(all);state.source="api";state.isSample=!!first.sample;state.stamp=first.scraped_at;
+    state.savedAt=new Date().toISOString();state.note=first.note||"";
+    store("pp_cache_"+region,{items:all,stamp:first.scraped_at,sample:!!first.sample,savedAt:state.savedAt,note:state.note});
+    state.towns=null;render();
+  }).catch(function(err){
+    if(region!==state.region)return;
+    state.loading=false;state.error=err.message;
+    if(!useCache(region)&&state.source!=="file")loadSample();
+    render();say(state.error+" "+(state.source==="cache"?"Showing saved prices.":"Showing example prices."));
+  });
+}
+function useCache(region){
+  var c=load("pp_cache_"+region);
+  if(!c||!c.items)return false;
+  state.products=fromApi(c.items);state.source="cache";state.isSample=!!c.sample;state.stamp=c.stamp;state.savedAt=c.savedAt;state.note=c.note||"";
+  return true;
+}
+
+/* ---------- Freshness and banners (shown on every screen) ---------- */
+function newestPrice(){var n=null;state.products.forEach(function(p){for(var s in p.prices){var d=toDate(p.prices[s].at);if(d&&(!n||d>n))n=d}});return n||toDate(state.stamp)}
+function oldestPrice(){var o=null;state.products.forEach(function(p){for(var s in p.prices){var d=toDate(p.prices[s].at);if(d&&(!o||d<o))o=d}});return o}
+function renderFresh(){
+  var el=document.getElementById("fresh"),t="";
+  if(state.loading)t="Checking for new prices\u2026";
+  else if(state.source==="sample")t="Example prices, not real";
+  else{var n=newestPrice();t=n?"Prices updated "+fmtDate(n):"Price date unknown"}
+  el.textContent=t;
+}
+function banners(){
+  var h="";
+  if(state.source==="sample")h+='<div class="banner warn" role="note"><b>Example prices.</b>These are made-up figures for trying the app'+(state.error?'. '+esc(state.error)+' Check your connection and pull down or tap "Reload prices" on the Data tab.':'.')+'</div>';
+  else if(state.isSample)h+='<div class="banner warn" role="note"><b>Example prices.</b>The price server is running with test data, not real shelf prices.</div>';
+  if(state.source==="cache")h+='<div class="banner warn" role="note"><b>Showing saved prices from '+esc(fmtDate(state.savedAt))+'.</b>'+esc(state.error||"You are offline.")+' They will update when you are back online.</div>';
+  if(state.source==="file")h+='<div class="banner" role="note"><b>Prices from a file you loaded.</b>'+(state.stamp?'Scraped '+esc(fmtDate(state.stamp))+'. ':'')+'Go to the Data tab to switch back to live prices.</div>';
+  var o=oldestPrice();
+  if(state.source!=="sample"&&o&&hoursOld(o)>STALE_HOURS)h+='<div class="banner warn" role="note"><b>Some prices are more than 2 days old.</b>They are marked "Old price". Check at the till.</div>';
+  return h;
+}
+function disclaimer(){return '<p class="disclaimer">'+DISCLAIMER+'</p>'}
+
+/* ---------- Compare ---------- */
+function filtered(){
+  var words=state.q.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  return state.products.filter(function(p){
+    var hay=(p.name+" "+(p.brand||"")+" "+p.size).toLowerCase();
+    return (state.cat==="All"||p.cat===state.cat)&&words.every(function(w){return hay.indexOf(w)>-1});
+  });
+}
+function priceUnit(p,row){return row.unit||unitPrice(p.size,eff(row))}
+function viewCompare(){
+  var cats=state.products.reduce(function(a,p){if(a.indexOf(p.cat)<0)a.push(p.cat);return a},[]);
+  var list=CATS.concat(cats.filter(function(c){return CATS.indexOf(c)<0}));
+  var h=banners();
+  h+='<div class="pills" role="group" aria-label="Category">'+list.map(function(c){
+    return '<button class="pill" type="button" data-cat="'+esc(c)+'" aria-pressed="'+(state.cat===c)+'">'+esc(c)+'</button>'}).join("")+'</div>';
+  h+='<div class="seg" role="group" aria-label="Show prices as"><button type="button" data-unit="0" aria-pressed="'+!state.unitMode+'">Pack price</button><button type="button" data-unit="1" aria-pressed="'+state.unitMode+'">Per 100g / 100ml</button></div>';
+  var items=filtered();
+  if(!state.products.length)return h+'<div class="empty">'+esc(state.note||"No prices for this town yet.")+' Try another town.</div>'+disclaimer();
+  if(!items.length)return h+'<div class="empty">No products match. Try a shorter search or another category.</div>'+disclaimer();
+  h+='<p class="sub">'+items.length+' product'+(items.length===1?'':'s')+'</p><div class="grid">'+items.map(card).join("")+'</div>';
+  return h+disclaimer();
+}
+function card(p){
+  var b=bestStore(p),bp=p.prices[b],others=sortedStores(p).filter(function(s){return s!==b});
+  var on=!!state.list[p.id],u=priceUnit(p,bp);
+  var main=state.unitMode&&u?money(u.value):money(eff(bp));
+  var second=state.unitMode&&u?money(eff(bp))+' for '+esc(p.size):(u?money(u.value)+' '+esc(u.unit):'');
+  return '<article class="card"><div class="top"><div style="min-width:0"><h3><a href="#product/'+encodeURIComponent(p.id)+'">'+esc(p.name)+'</a></h3><div class="size">'+esc(p.size)+'</div></div>'+
+    '<button class="add" type="button" data-add="'+esc(p.id)+'" aria-pressed="'+on+'" aria-label="'+(on?'Remove '+esc(p.name)+' from list':'Add '+esc(p.name)+' to list')+'">'+(on?'On list':'+ List')+'</button></div>'+
+    '<div class="best"><div><div class="tag">Best price</div><div class="price">'+main+(state.unitMode&&u?' <span class="unit">'+esc(u.unit)+'</span>':'')+'</div>'+
+    (second?'<div class="unit">'+second+'</div>':'')+(bp.promo!=null?'<div class="was">Usually '+money(bp.price)+'</div>':'')+oldTag(bp)+'</div>'+badge(b)+'</div>'+
+    (others.length?'<ul class="others">'+others.map(function(s){
+      var r=p.prices[s],uu=priceUnit(p,r);
+      var shown=state.unitMode&&uu?money(uu.value)+' '+esc(uu.unit):money(eff(r));
+      var diff=state.unitMode&&uu&&u?'':' <span class="diff">'+money(eff(r)-eff(bp))+' more</span>';
+      return '<li><span>'+badge(s)+'</span><span><span class="p">'+shown+'</span>'+diff+oldTag(r)+'</span></li>'}).join("")+'</ul>':
+      '<div class="size" style="margin-top:.5rem">Only one store has this item.</div>')+'</article>';
+}
+function oldTag(r){return r.at&&hoursOld(r.at)>STALE_HOURS?' <span class="old">Old price ('+esc(fmtDate(r.at))+')</span>':''}
+
+/* ---------- Product detail ---------- */
+function findProduct(id){return state.products.find(function(p){return p.id===id})}
+function viewProduct(){
+  var p=findProduct(state.productId);
+  var h='<p class="back"><a class="btn alt" href="#compare">\u2190 Back to prices</a></p>';
+  if(!p)return h+'<div class="empty">This product is not in the current prices. It may not be sold in '+esc(regionName(state.region))+'.</div>';
+  var stores=sortedStores(p),b=stores[0];
+  h+='<h2 class="h2">'+esc(p.name)+'</h2><p class="sub">'+esc(p.size)+(p.brand?' \u00b7 '+esc(p.brand):'')+' \u00b7 '+esc(regionName(state.region))+'</p>';
+  h+='<div class="card">'+stores.map(function(s,i){
+    var r=p.prices[s],u=priceUnit(p,r);
+    return '<div class="tot-row'+(i===0?' win':'')+'"><div>'+badge(s)+(i===0?' <span class="tag">Best price</span>':'')+
+      '<div class="size">'+(u?money(u.value)+' '+esc(u.unit):'')+(r.at?' \u00b7 checked '+esc(fmtDate(r.at)):'')+'</div>'+oldTag(r)+
+      (r.url?'<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer">Open on '+esc(s)+' website<span class="vh"> (opens a new tab)</span></a>':'')+
+      '</div><div style="text-align:right"><div class="amt">'+money(eff(r))+'</div>'+(r.promo!=null?'<div class="was">Usually '+money(r.price)+'</div>':'')+'</div></div>'}).join("")+'</div>';
+  h+='<h2 class="h2">Price history</h2>';
+  var d=state.detail;
+  if(state.source!=="api"&&state.source!=="cache")h+='<p class="sub">Price history needs live prices from the price server.</p>';
+  else if(!d||d.id!==p.apiId)h+='<p class="sub" id="histmsg">Loading price history\u2026</p>';
+  else if(d.error)h+='<p class="sub">'+esc(d.error)+'</p>';
+  else h+=chart(d.history);
+  h+='<p class="btns"><button class="btn" type="button" data-add="'+esc(p.id)+'" aria-pressed="'+!!state.list[p.id]+'">'+(state.list[p.id]?'On your list':'Add to list')+'</button></p>';
+  return h+disclaimer();
+}
+function loadDetail(){
+  var p=findProduct(state.productId);
+  if(!p||!p.apiId||(state.detail&&state.detail.id===p.apiId))return;
+  getJSON(API+"/products/"+p.apiId+"?region="+encodeURIComponent(state.region)).then(function(d){
+    state.detail={id:p.apiId,history:d.history};if(state.view==="product")render();
+  }).catch(function(e){state.detail={id:p.apiId,error:"Price history is not available right now. "+e.message};if(state.view==="product")render()});
+}
+/* Hand-drawn SVG line chart. Lines differ by dash pattern as well as colour; the legend states each latest price. */
+function chart(history){
+  var series=(history||[]).filter(function(s){return s.points.length});
+  if(!series.length)return '<p class="sub">No history yet. It builds up as prices are checked each day.</p>';
+  var dates={},vals=[];
+  series.forEach(function(s){s.points.forEach(function(pt){dates[pt.date]=1;vals.push(pt.price)})});
+  var ds=Object.keys(dates).sort();
+  if(ds.length<2)return '<p class="sub">Only one day of prices so far. The chart appears after the next price check.</p>'+legend(series);
+  var W=360,H=220,L=62,R=10,T=12,B=30,min=Math.min.apply(null,vals),max=Math.max.apply(null,vals);
+  if(max===min){max+=1;min=Math.max(0,min-1)}
+  var t0=new Date(ds[0]).getTime(),t1=new Date(ds[ds.length-1]).getTime();
+  function x(d){return L+(new Date(d).getTime()-t0)/(t1-t0)*(W-L-R)}
+  function y(v){return T+(max-v)/(max-min)*(H-T-B)}
+  var g='';
+  [min,(min+max)/2,max].forEach(function(v){g+='<line class="grid-line" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'"/><text x="'+(L-6)+'" y="'+(y(v)+4)+'" text-anchor="end">R'+v.toFixed(2)+'</text>'});
+  g+='<text x="'+L+'" y="'+(H-8)+'">'+esc(fmtDay(ds[0]))+'</text><text x="'+(W-R)+'" y="'+(H-8)+'" text-anchor="end">'+esc(fmtDay(ds[ds.length-1]))+'</text>';
+  series.forEach(function(s,i){
+    var pts=s.points.map(function(pt){return x(pt.date).toFixed(1)+","+y(pt.price).toFixed(1)}).join(" ");
+    g+='<polyline fill="none" stroke="'+storeColorOn(s.store)+'" stroke-width="3" stroke-linejoin="round" stroke-dasharray="'+DASHES[i%DASHES.length]+'" points="'+pts+'"/>';
+    var last=s.points[s.points.length-1];g+='<circle cx="'+x(last.date)+'" cy="'+y(last.price)+'" r="4" fill="'+storeColorOn(s.store)+'"/>';
+  });
+  var summary=series.map(function(s){var a=s.points[0].price,z=s.points[s.points.length-1].price;
+    return s.store+" went from R"+a.toFixed(2)+" to R"+z.toFixed(2)}).join("; ");
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Price history: '+esc(summary)+'">'+g+'</svg>'+legend(series);
+}
+/* Lighter line colours for dark mode, so every line stays visible. */
+var STORES_DARK={"Checkers":"#6fd0f0","Pick n Pay":"#9dbbff","Woolworths":"#e8e8e8","Ultra Liquors":"#d4a8ff","Liquorland":"#ffc56b","Dis-Chem":"#86e8a8"};
+function storeColorOn(s){return document.documentElement.dataset.dark==="1"?(STORES_DARK[s]||"#f7eeee"):storeColor(s)}
+function legend(series){
+  return '<ul class="legend">'+series.map(function(s,i){var last=s.points[s.points.length-1];
+    return '<li><svg width="36" height="12" aria-hidden="true"><line x1="0" x2="36" y1="6" y2="6" stroke="'+storeColorOn(s.store)+'" stroke-width="3" stroke-dasharray="'+DASHES[i%DASHES.length]+'"/></svg>'+badge(s.store)+' <span>now '+money(last.price)+'</span></li>'}).join("")+'</ul>';
+}
+function fmtDay(d){return new Date(d).toLocaleDateString("en-ZA",{day:"numeric",month:"short"})}
+
+/* ---------- Towns (real per-town data from the server; no made-up multipliers) ---------- */
+function viewTowns(){
+  var h=banners()+'<h2 class="h2">Town by town</h2><p class="sub">What the same shopping costs in each town near '+esc(regionName(state.region))+', buying each item at that town\u2019s cheapest store.</p>';
+  h+='<div class="seg" role="group" aria-label="Distance"><span class="vh">Distance</span>'+[25,50,100].map(function(k){return '<button type="button" data-radius="'+k+'" aria-pressed="'+(state.radius===k)+'">'+k+' km</button>'}).join("")+'</div>';
+  h+='<div class="seg" role="group" aria-label="Which products"><button type="button" data-scope="list" aria-pressed="'+(state.townScope==="list")+'">My list</button><button type="button" data-scope="all" aria-pressed="'+(state.townScope==="all")+'">All products</button></div>';
+  if(state.source!=="api")return h+'<div class="empty">Comparing towns needs live prices from the price server. '+(state.source==="cache"?'You are offline.':'')+'</div>'+disclaimer();
+  var ids=listIds();
+  if(state.townScope==="list"&&!ids.length)return h+'<div class="empty">Your list is empty. Add products on the Compare tab, or choose \u201cAll products\u201d.</div>'+disclaimer();
+  var t=state.towns;
+  if(!t||t.key!==townsKey())return h+'<p class="sub" aria-busy="true">Working out town totals\u2026</p>'+disclaimer();
+  if(t.error)return h+'<div class="empty">'+esc(t.error)+'</div>'+disclaimer();
+  var d=t.data,rows=d.towns.filter(function(x){return x.total!=null});
+  if(d.note)h+='<div class="banner" role="note">'+esc(d.note)+'</div>';
+  if(!rows.length)return h+'<div class="empty">No town within '+state.radius+' km has prices yet.</div>'+disclaimer();
+  var max=Math.max.apply(null,rows.map(function(r){return r.total}));
+  h+='<div class="card">'+rows.map(function(r,i){
+    var cheap=i===0&&rows.length>1;
+    return '<div class="town'+(cheap?' cheap':'')+'"><div><div class="name">'+esc(r.name)+(cheap?' <span class="tag">Cheapest</span>':'')+'</div><div class="km">'+(r.distance_km<1?'Your town':Math.round(r.distance_km)+' km away')+
+      (r.items_missing?' \u00b7 '+r.items_missing+' item'+(r.items_missing===1?'':'s')+' not priced here':'')+'</div></div><div class="tot">'+money(r.total)+'</div><div class="bar" aria-hidden="true"><i style="width:'+Math.max(8,Math.round(r.total/max*100))+'%"></i></div></div>'}).join("")+'</div>';
+  var none=d.towns.filter(function(x){return x.total==null}).map(function(x){return x.name});
+  if(none.length)h+='<p class="sub" style="margin-top:.6rem">No prices yet for: '+esc(none.join(", "))+'.</p>';
+  return h+disclaimer();
+}
+function listIds(){return Object.keys(state.list).map(function(id){var p=findProduct(id);return p&&p.apiId}).filter(Boolean)}
+function townsKey(){return [state.region,state.radius,state.townScope,state.townScope==="list"?listIds().join(","):""].join("|")}
+function loadTowns(){
+  if(state.source!=="api")return;
+  var k=townsKey();if(state.towns&&state.towns.key===k)return;
+  if(state.townScope==="list"&&!listIds().length)return;
+  state.towns={key:k,pending:true};
+  var url=API+"/towns/compare?region="+encodeURIComponent(state.region)+"&radius_km="+state.radius+(state.townScope==="list"?"&product_ids="+listIds().join(","):"");
+  getJSON(url).then(function(d){if(state.towns.key===k){state.towns={key:k,data:d};if(state.view==="towns")render()}})
+    .catch(function(e){if(state.towns.key===k){state.towns={key:k,error:"Could not compare towns. "+e.message};if(state.view==="towns")render()}});
+}
+
+/* ---------- List ---------- */
+function listCount(){var n=0;for(var k in state.list)n+=state.list[k].q;return n}
+function basket(){
+  var items=[],missing=[];
+  Object.keys(state.list).forEach(function(id){var p=findProduct(id);if(p)items.push(p);else missing.push(id)});
+  var stores={};items.forEach(function(p){for(var s in p.prices)stores[s]=1});
+  var totals=Object.keys(stores).map(function(s){
+    var tot=0,have=0;items.forEach(function(p){if(p.prices[s]){tot+=eff(p.prices[s])*state.list[p.id].q;have++}});
+    return {s:s,tot:tot,have:have,full:have===items.length};
+  });
+  var full=totals.filter(function(r){return r.full}).sort(function(a,b){return a.tot-b.tot||(a.s<b.s?-1:1)});
+  var split={},splitTot=0;
+  items.forEach(function(p){var b=bestStore(p),line=eff(p.prices[b])*state.list[p.id].q;splitTot+=line;(split[b]=split[b]||[]).push({p:p,line:line})});
+  return {items:items,missing:missing,full:full,partial:totals.filter(function(r){return !r.full}),split:split,splitTot:splitTot};
+}
+function viewList(){
+  var ids=Object.keys(state.list),h=banners()+'<h2 class="h2">My list</h2>';
+  if(!ids.length)return h+'<div class="empty">Nothing here yet. Tap \u201c+ List\u201d on any product to compare your whole shop.</div>'+disclaimer();
+  h+='<div class="card">'+ids.map(function(id){
+    var e=state.list[id],p=findProduct(id),nm=esc(e.name);
+    return '<div class="li"><div class="n"><div style="font-weight:650">'+nm+'</div><div class="size">'+esc(e.size||"")+(p?'':' \u00b7 <span class="old">No current price in '+esc(regionName(state.region))+'</span>')+'</div></div>'+
+      '<div class="qty"><button type="button" data-dec="'+esc(id)+'" aria-label="One fewer '+nm+'">\u2212</button><b aria-label="Quantity">'+e.q+'</b><button type="button" data-inc="'+esc(id)+'" aria-label="One more '+nm+'">+</button></div></div>'}).join("")+'</div>';
+  var r=basket();
+  h+='<h2 class="h2" id="where">Where to shop</h2>';
+  if(!r.items.length)return h+'<div class="empty">None of these items have prices in '+esc(regionName(state.region))+'.</div>'+listButtons()+disclaimer();
+  h+='<p class="sub">One store for everything:</p><div class="card" id="single">';
+  if(r.full.length){
+    h+=r.full.map(function(x,i){return '<div class="tot-row'+(i===0?' win':'')+'"><span>'+badge(x.s)+(i===0?' <span class="tag">Cheapest</span>':'')+'</span><span class="amt">'+money(x.tot)+'</span></div>'}).join("");
+  }else h+='<div class="empty">No single store has every item on your list.</div>';
+  h+='</div>';
+  if(r.partial.length)h+='<p class="sub" style="margin-top:.5rem">Not counted, because they miss items: '+r.partial.map(function(x){return esc(x.s)+' ('+x.have+' of '+r.items.length+')'}).join(", ")+'.</p>';
+  h+='<p class="sub" style="margin-top:.8rem">Or split your shop, buying each item where it is cheapest:</p><div class="card" id="split">';
+  Object.keys(r.split).sort().forEach(function(s){
+    var lines=r.split[s],sub=lines.reduce(function(a,l){return a+l.line},0);
+    h+='<div class="tot-row"><div>'+badge(s)+'<div class="size">'+lines.map(function(l){return esc(l.p.name)+(state.list[l.p.id].q>1?' \u00d7'+state.list[l.p.id].q:'')}).join(", ")+'</div></div><span class="p" style="font-weight:700">'+money(sub)+'</span></div>';
+  });
+  h+='<div class="tot-row win"><span><b>Split shop total</b></span><span class="amt">'+money(r.splitTot)+'</span></div>';
+  if(r.full.length&&r.splitTot<r.full[0].tot)h+='<p class="size" style="margin:.4rem 0 0">Saves '+money(r.full[0].tot-r.splitTot)+' compared with shopping only at '+esc(r.full[0].s)+'.</p>';
+  h+='</div>';
+  return h+listButtons()+disclaimer();
+}
+function listButtons(){return '<div class="btns"><button class="btn" type="button" data-share="1">Share list</button><button class="btn alt" type="button" data-clear="1">Clear list</button></div>'}
+function listText(){
+  var r=basket(),out=["PricePulse shopping list ("+regionName(state.region)+")",""];
+  Object.keys(state.list).forEach(function(id){var e=state.list[id];out.push("- "+e.q+" x "+e.name+(e.size?" "+e.size:""))});
+  if(r.full.length)out.push("","Cheapest single store: "+r.full[0].s+" "+money(r.full[0].tot));
+  if(r.items.length){out.push("Split shop: "+money(r.splitTot));
+    Object.keys(r.split).sort().forEach(function(s){out.push("  "+s+": "+r.split[s].map(function(l){return l.p.name}).join(", "))})}
+  out.push("",DISCLAIMER);
+  return out.join("\n");
+}
+function shareList(){
+  var text=listText();
+  if(navigator.share){navigator.share({title:"Shopping list",text:text}).then(function(){say("List shared.")}).catch(function(){});return}
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(function(){say("List copied. Paste it into WhatsApp or SMS.")},function(){fallbackCopy(text)});return}
+  fallbackCopy(text);
+}
+function fallbackCopy(text){
+  var ta=document.createElement("textarea");ta.value=text;ta.setAttribute("readonly","");ta.style.position="absolute";ta.style.left="-9999px";
+  document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand("copy")}catch(e){}document.body.removeChild(ta);
+  say(ok?"List copied. Paste it into WhatsApp or SMS.":"Could not copy automatically. Select the list text and copy it.");
+}
+
+/* ---------- Data tab ---------- */
+function viewData(){
+  var h=banners()+'<h2 class="h2">Prices and settings</h2>';
+  var src={api:"Live prices from the price server.",cache:"Saved prices (offline).",file:"Prices from a file you loaded.",sample:"Example prices (not real)."}[state.source];
+  h+='<div class="card"><p style="margin:0"><b>Showing:</b> '+esc(src)+'</p>'+(state.source!=="sample"&&newestPrice()?'<p class="size" style="margin:.3rem 0 0">Newest price: '+esc(fmtDate(newestPrice()))+'. '+state.products.length+' products.</p>':'')+
+    '<div class="btns"><button class="btn" type="button" data-reload="1">Reload prices</button></div></div>';
+  h+='<h2 class="h2" style="font-size:1.35rem">Colours</h2><div class="seg" role="group" aria-label="Colour theme">'+
+    [["system","Like my phone"],["light","Light"],["dark","Dark"]].map(function(t){return '<button type="button" data-theme="'+t[0]+'" aria-pressed="'+(state.theme===t[0])+'">'+t[1]+'</button>'}).join("")+'</div>';
+  h+='<h2 class="h2" style="font-size:1.35rem">Privacy</h2><p>Your location is only used on this phone to pick the nearest town. It is never sent to our server. Your shopping list stays on this phone. There are no accounts and no personal data is stored.</p>';
+  h+='<h2 class="h2" style="font-size:1.35rem">Test with a scraper file</h2><p class="sub">For testing: load a <b>latest_{town}.json</b> file made by the price scraper. The file stays on your phone.</p>';
+  h+='<div class="btns"><label class="btn alt" for="file">Load scraper file</label><input id="file" type="file" accept=".json,application/json" class="vh">'+
+     (state.source!=="sample"?'<button class="btn alt" type="button" data-sample="1">Use example prices</button>':'')+'</div><div id="fmsg" class="sub"></div>';
+  h+='<details><summary style="min-height:3rem;display:flex;align-items:center;cursor:pointer">File format</summary><pre>{\n  "region": "paarl",\n  "scraped_at": "2026-10-27 07:30",\n  "items": [\n    {"store": "Checkers", "name": "Clover Full Cream Milk",\n     "size": "2L", "category": "Fresh", "price": 36.99,\n     "url": "https://..."}\n  ]\n}</pre><p class="sub">A plain list of rows also works.</p></details>';
+  h+='<h2 class="h2" style="font-size:1.35rem">Stores covered</h2><div class="card" style="display:flex;flex-wrap:wrap;gap:.5rem">'+Object.keys(STORES).map(badge).join("")+'</div>';
+  return h+disclaimer();
+}
+
+/* ---------- Rendering and navigation ---------- */
+var ICONS={
+  compare:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h12M4 12h8M4 17h5"/><path d="M17 14l3 3-3 3"/><path d="M20 17h-6"/></svg>',
+  towns:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  list:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>',
+  data:'<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>'
+};
+var LABELS={compare:"Compare",towns:"Towns",list:"List",data:"Data"};
+function renderNav(){
+  var cur=state.view==="product"?"compare":state.view;
+  document.getElementById("nav").innerHTML=Object.keys(LABELS).map(function(k){
+    var n=k==="list"?listCount():0;
+    return '<button type="button" data-view="'+k+'"'+(cur===k?' aria-current="page"':'')+'>'+ICONS[k]+'<span>'+LABELS[k]+(n?'<span class="cnt" aria-label=", '+n+' items">'+n+'</span>':'')+'</span></button>'}).join("");
+}
+function render(){
+  applyTheme();
+  var m=document.getElementById("main");
+  m.innerHTML=state.view==="compare"?viewCompare():state.view==="towns"?viewTowns():state.view==="list"?viewList():state.view==="product"?viewProduct():viewData();
+  renderNav();renderFresh();
+  if(state.view==="towns")loadTowns();
+  if(state.view==="product")loadDetail();
+}
+function go(v,focus){
+  if(v.indexOf("product/")===0){state.view="product";state.productId=decodeURIComponent(v.slice(8))}
+  else if(LABELS[v])state.view=v;else state.view="compare";
+  render();window.scrollTo(0,0);
+  var target="#"+(state.view==="product"?"product/"+encodeURIComponent(state.productId):state.view);
+  if(location.hash!==target){try{history.pushState(null,"",target)}catch(e){location.hash=target}}
+  if(focus!==false){var m=document.getElementById("main");m.focus({preventScroll:true})}
+}
+function save(){store("pp_list",state.list);store("pp_region",state.region);store("pp_unit",state.unitMode);store("pp_theme",state.theme)}
+function applyTheme(){
+  var root=document.documentElement;
+  if(state.theme==="system")root.removeAttribute("data-theme");else root.setAttribute("data-theme",state.theme);
+  var dark=state.theme==="dark"||(state.theme==="system"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);
+  root.dataset.dark=dark?"1":"0";
+}
+function fillRegions(){
+  var sel=document.getElementById("base");
+  sel.innerHTML=state.regions.map(function(r){return '<option value="'+esc(r.slug)+'">'+esc(r.name)+'</option>'}).join("");
+  if(!state.regions.some(function(r){return r.slug===state.region}))state.region=state.regions[0].slug;
+  sel.value=state.region;
+}
+function setRegion(slug){
+  if(slug===state.region)return;
+  state.region=slug;state.detail=null;state.towns=null;save();
+  document.getElementById("base").value=slug;
+  if(state.source==="file"){render();return}
+  if(!useCache(slug))state.products=[];
+  render();loadLive();
+}
+function locate(){
+  if(!navigator.geolocation){say("This phone cannot share its location. Choose your town from the list.");return}
+  say("Finding the nearest town\u2026");
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat=pos.coords.latitude,lon=pos.coords.longitude,best=null;
+    state.regions.forEach(function(r){var d=haversine(lat,lon,r.lat,r.lon);if(!best||d<best.d)best={r:r,d:d}});
+    if(!best)return;
+    setRegion(best.r.slug);
+    say("Nearest town: "+best.r.name+", about "+Math.round(best.d)+" km away."+(best.d>80?" That is far; you can choose another town from the list.":""));
+  },function(err){
+    say(err.code===1?"Location is blocked for this app. Choose your town from the list instead.":"Could not find your location. Choose your town from the list instead.");
+  },{enableHighAccuracy:false,timeout:10000,maximumAge:600000});
+}
+
+document.addEventListener("click",function(e){
+  var a=e.target.closest("a[href^='#']");
+  if(a){e.preventDefault();go(a.getAttribute("href").slice(1));return}
+  var t=e.target.closest("button");if(!t)return;
+  var d=t.dataset;
+  if(d.view)return go(d.view);
+  if(d.cat){state.cat=d.cat;return render()}
+  if(d.unit){state.unitMode=d.unit==="1";save();return render()}
+  if(d.radius){state.radius=+d.radius;return render()}
+  if(d.scope){state.townScope=d.scope;return render()}
+  if(d.add){
+    var p=findProduct(d.add);
+    if(state.list[d.add]){delete state.list[d.add];say("Removed "+(p?p.name:"item")+" from your list.")}
+    else if(p){state.list[d.add]={q:1,name:p.name,size:p.size};say("Added "+p.name+" to your list. "+listCount()+" items on your list.")}
+    save();var y=window.scrollY;render();window.scrollTo(0,y);
+    var again=document.querySelector('[data-add="'+CSS.escape(d.add)+'"]');if(again)again.focus();return;
+  }
+  if(d.inc||d.dec){
+    var id=d.inc||d.dec,e2=state.list[id];if(!e2)return;
+    if(d.inc)e2.q=Math.min(99,e2.q+1);else if(e2.q>1)e2.q--;else{delete state.list[id];say("Removed "+e2.name+".")}
+    save();render();var b=document.querySelector('[data-'+(d.inc?'inc':'dec')+'="'+CSS.escape(id)+'"]');if(b)b.focus();
+    if(state.list[id])say(e2.name+": "+e2.q);return;
+  }
+  if(d.clear){if(confirm("Clear your whole list?")){state.list={};save();render();say("List cleared.")}return}
+  if(d.share)return shareList();
+  if(d.sample){loadSample();state.error="";render();say("Showing example prices.");return}
+  if(d.reload){state.error="";loadLive();loadRegions();say("Checking for new prices.");return}
+  if(d.theme){state.theme=d.theme;save();render();return}
+});
+document.addEventListener("change",function(e){
+  if(e.target.id!=="file")return;
+  var f=e.target.files&&e.target.files[0];if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    var msg=document.getElementById("fmsg");
+    try{
+      var r=fromRows(JSON.parse(rd.result));
+      state.products=r.products;state.source="file";state.stamp=r.stamp;state.isSample=r.sample;state.error="";
+      if(r.region&&state.regions.some(function(x){return x.slug===r.region})){state.region=r.region;document.getElementById("base").value=r.region}
+      state.cat="All";render();say("Loaded "+r.products.length+" products from the file.");
+    }catch(err){if(msg)msg.textContent="Could not read that file. "+err.message;say("Could not read that file.")}
+  };
+  rd.readAsText(f);
+});
+document.getElementById("q").addEventListener("input",function(e){
+  state.q=e.target.value;
+  if(state.view!=="compare"){state.view="compare";try{history.replaceState(null,"","#compare")}catch(x){}}
+  render();
+});
+document.getElementById("base").addEventListener("change",function(e){setRegion(e.target.value)});
+document.getElementById("locate").addEventListener("click",locate);
+window.addEventListener("popstate",function(){go((location.hash||"#compare").slice(1),false)});
+window.addEventListener("online",function(){if(state.source!=="api"&&state.source!=="file")loadLive()});
+if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",function(){if(state.theme==="system")render()});
+
+/* ---------- Start ---------- */
+(function init(){
+  state.list=load("pp_list")||{};
+  /* Lists saved by the first version were {id: qty}; upgrade them. */
+  Object.keys(state.list).forEach(function(k){if(typeof state.list[k]==="number")state.list[k]={q:state.list[k],name:k.split("|")[0],size:k.split("|")[1]||""}});
+  state.region=load("pp_region")||"paarl";state.unitMode=!!load("pp_unit");state.theme=load("pp_theme")||"system";
+  var rs=load("pp_regions");if(Array.isArray(rs)&&rs.length)state.regions=rs;
+  fillRegions();
+  if(!useCache(state.region))loadSample();
+  var h=(location.hash||"").slice(1);
+  if(h.indexOf("product/")===0){state.view="product";state.productId=decodeURIComponent(h.slice(8))}else if(LABELS[h])state.view=h;
+  render();
+  if(location.protocol!=="file:"){loadRegions();loadLive()}
+  var secure=location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1";
+  if("serviceWorker" in navigator&&secure)navigator.serviceWorker.register("sw.js").catch(function(){});
+})();
+</script>
+</body>
+</html>

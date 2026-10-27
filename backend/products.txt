@@ -1,0 +1,90 @@
+# PricePulse ZA basket: one search term per line.
+# A "# category: Name" line sets the category for the terms below it.
+# Be specific (brand + product + size) so each store returns the same item.
+
+# category: Groceries
+albany superior white bread 700g
+sasko brown bread 700g
+white star super maize meal 5kg
+iwisa super maize meal 5kg
+tastic rice 2kg
+spekko rice 2kg
+huletts white sugar 2.5kg
+selati white sugar 2.5kg
+sasko cake flour 2.5kg
+five roses tea 100
+joko tagless tea 100
+freshpak rooibos 80
+ricoffy 750g
+nescafe classic 200g
+sunfoil sunflower oil 2l
+lucky star pilchards 400g
+koo baked beans 410g
+all gold tomato sauce 700ml
+jungle oats 1kg
+weet-bix 900g
+maggi 2 minute noodles
+knorr soup
+coca-cola 2l
+oros 2l
+omo auto washing powder 2kg
+sunlight dishwashing liquid 750ml
+handy andy 750ml
+jik 750ml
+twinsaver toilet paper 9
+huggies nappies
+
+# category: Fresh
+clover full cream milk 2l
+clover low fat milk 2l
+large eggs 18
+large eggs 30
+bananas
+apples
+potatoes 2kg
+onions 2kg
+tomatoes
+chicken portions
+beef mince
+rama 500g
+clover butter 500g
+clover cheddar cheese
+danone yoghurt 1kg
+
+# category: Liquor
+castle lite 24 x 340ml
+castle lager 6 x 340ml
+carling black label 6 x 340ml
+hansa pilsener 6 x 330ml
+heineken 6 x 330ml
+savanna dry 6 x 330ml
+hunters dry 6 x 330ml
+klipdrift brandy 750ml
+richelieu brandy 750ml
+jameson 750ml
+bells whisky 750ml
+smirnoff vodka 750ml
+gordons gin 750ml
+amarula 750ml
+fat bastard chardonnay 750ml
+nederburg baronne 750ml
+four cousins 5l
+drostdy-hof 5l
+
+# category: Health & Beauty
+panado 24 tablets
+grand-pa headache powders
+disprin 24
+med-lemon
+colgate toothpaste 100ml
+aquafresh toothpaste
+sensodyne toothpaste
+dettol antiseptic liquid 500ml
+nivea roll-on
+vaseline 250ml
+aqueous cream 500g
+always pads
+lactogen 1 900g
+nan optipro 1 800g
+purity baby food
+redoxon vitamin c

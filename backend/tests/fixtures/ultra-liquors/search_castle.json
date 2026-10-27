@@ -1,0 +1,5 @@
+{"_comment": "SYNTHETIC fixture shaped like a Shopify search/suggest.json reply. Not a real response.",
+ "resources": {"results": {"products": [
+   {"title": "Castle Lite Can 24 x 340ml", "price": "329.99", "compare_at_price_max": "0.00", "url": "/products/castle-lite-can-24x340ml"},
+   {"title": "Castle Lager NRB 6 x 340ml", "price": "109.99", "compare_at_price_max": "119.99", "url": "/products/castle-lager-nrb-6x340ml"}
+ ]}}}

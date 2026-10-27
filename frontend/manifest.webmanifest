@@ -1,0 +1,18 @@
+{
+  "name": "PricePulse ZA",
+  "short_name": "PricePulse",
+  "description": "Compare grocery, liquor and pharmacy prices across South African stores.",
+  "start_url": "./#compare",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f2f1",
+  "theme_color": "#b00d27",
+  "lang": "en-ZA",
+  "categories": ["shopping", "lifestyle"],
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

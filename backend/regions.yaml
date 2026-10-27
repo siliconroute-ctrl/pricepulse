@@ -1,0 +1,70 @@
+# Regions the app knows about, and how each store must be told which branch to price.
+#
+# STATUS: the per-store settings below are NOT VERIFIED against the live sites yet.
+# The build environment could not reach the retailer websites. Before trusting
+# regional prices, run:  python run_scrapers.py --region paarl --store "Pick n Pay" --debug
+# and follow docs/FIX_A_SCRAPER.md.
+#
+# regional_pricing per store:
+#   national  - one price everywhere; the same prices are stored for every region.
+#   postcode  - the scraper sets a delivery/collection postal code before searching.
+#   branch    - the scraper selects a branch/store code before searching.
+#   unknown   - not checked yet; treated as national until someone checks.
+
+stores:
+  Checkers:
+    regional_pricing: unknown
+  Pick n Pay:
+    regional_pricing: unknown
+  Woolworths:
+    regional_pricing: unknown
+  Ultra Liquors:
+    regional_pricing: unknown
+  Liquorland:
+    regional_pricing: unknown
+  Dis-Chem:
+    regional_pricing: unknown
+
+regions:
+  paarl:
+    name: Paarl
+    lat: -33.7342
+    lon: 18.9621
+    postal_code: "7646"
+    stores: {}          # e.g. {"Pick n Pay": {store_code: "XXXX"}} once verified
+  wellington:
+    name: Wellington
+    lat: -33.6393
+    lon: 19.0112
+    postal_code: "7655"
+    stores: {}
+  franschhoek:
+    name: Franschhoek
+    lat: -33.9133
+    lon: 19.1169
+    postal_code: "7690"
+    stores: {}
+  stellenbosch:
+    name: Stellenbosch
+    lat: -33.9321
+    lon: 18.8602
+    postal_code: "7600"
+    stores: {}
+  cape-town:
+    name: Cape Town
+    lat: -33.9249
+    lon: 18.4241
+    postal_code: "8001"
+    stores: {}
+  worcester:
+    name: Worcester
+    lat: -33.6461
+    lon: 19.4485
+    postal_code: "6850"
+    stores: {}
+  hermanus:
+    name: Hermanus
+    lat: -34.4187
+    lon: 19.2345
+    postal_code: "7200"
+    stores: {}

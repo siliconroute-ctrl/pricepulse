@@ -1,0 +1,9 @@
+{"_comment": "SYNTHETIC fixture shaped like our guess of the Pick n Pay product search API. Not a real response.",
+ "products": [
+  {"code": "000000000000123456_EA", "name": "Clover Fresh Full Cream Milk 2l", "url": "/clover-fresh-full-cream-milk-2l/p/000000000000123456_EA",
+   "price": {"currencyIso": "ZAR", "value": 38.49, "formattedValue": "R38.49"}},
+  {"code": "000000000000123457_EA", "name": "PnP Full Cream Fresh Milk 2l", "url": "/p/000000000000123457_EA",
+   "price": {"currencyIso": "ZAR", "value": 32.99},
+   "potentialPromotions": [{"promotionalPrice": {"value": 29.99}}]}
+ ],
+ "pagination": {"totalResults": 2}}

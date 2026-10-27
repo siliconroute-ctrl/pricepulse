@@ -1,0 +1,10 @@
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+backend/.env
+backend/data/*
+!backend/data/.gitkeep
+backend/debug/*
+!backend/debug/.gitkeep
+backend/tests/fixtures/live/
