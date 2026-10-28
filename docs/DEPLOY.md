@@ -37,8 +37,8 @@ curl -fsSL https://get.docker.com | sh
 ### 2. Get the code and settings
 
 ```bash
-git clone https://github.com/siliconroute-ctrl/AI_news.git
-cd AI_news/pricepulse
+git clone https://github.com/siliconroute-ctrl/pricepulse.git
+cd pricepulse
 cp backend/.env.example backend/.env
 nano backend/.env
 ```
@@ -83,7 +83,7 @@ Open `https://prices.siliconroute.co.za` on your phone. That is the **test URL**
 ### 5. Updating later
 
 ```bash
-cd AI_news/pricepulse
+cd pricepulse
 git pull
 docker compose up -d --build
 ```
@@ -105,7 +105,7 @@ for the API. Then on your own computer:
 ```bash
 npm install -g firebase-tools
 firebase login
-cd AI_news/pricepulse
+cd pricepulse
 ```
 
 Tell the app where the API is (this file is the only thing that changes):
@@ -145,7 +145,7 @@ email in both cases.
 ## Running without Docker (Linux)
 
 ```bash
-cd AI_news/pricepulse/backend
+cd pricepulse/backend
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements-scraper.txt && python -m playwright install --with-deps chromium
 python admin.py init-db
@@ -156,12 +156,12 @@ nohup python scheduler.py > scheduler.log 2>&1 &
 Or use cron instead of `scheduler.py`, staggering stores (`crontab -e`):
 
 ```
-17 */6 * * * cd /root/AI_news/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Checkers
-29 */6 * * * cd /root/AI_news/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store "Pick n Pay"
-41 */6 * * * cd /root/AI_news/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Woolworths
-53 */6 * * * cd /root/AI_news/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store "Ultra Liquors"
-5 1-23/6 * * * cd /root/AI_news/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Liquorland
-23 1-23/6 * * * cd /root/AI_news/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Dis-Chem
+17 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Checkers
+29 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store "Pick n Pay"
+41 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Woolworths
+53 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store "Ultra Liquors"
+5 1-23/6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Liquorland
+23 1-23/6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Dis-Chem
 ```
 
 ## Moving to Postgres later
