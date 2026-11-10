@@ -11,6 +11,7 @@ import logging
 import time
 from collections import defaultdict, deque
 from datetime import timedelta
+from types import SimpleNamespace
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +29,7 @@ from ..queries import ProductPrices, last_success_per_store, latest_prices, regi
 from ..regions import haversine_km, load_regions, valid_region
 from ..scrapers.stores import ALL_SCRAPERS
 from . import schemas as S
+from .account_routes import register_account_routes
 
 log = logging.getLogger("pricepulse.api")
 
@@ -78,6 +80,13 @@ class RateLimiter:
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Build the app. Tests pass their own settings (temporary database)."""
     settings = settings or get_settings()
+    if settings.production and (settings.auth_dev or settings.open_prices):
+        raise RuntimeError(
+            "Refusing to start: PP_AUTH_DEV and PP_OPEN_PRICES are for local testing "
+            "and must be 0 in production."
+        )
+    if settings.production and len(settings.id_secret) < 16:
+        raise RuntimeError("Refusing to start: set PP_ID_SECRET to a long random value (see .env.example).")
     _setup_logging()
     Session = session_factory(settings.database_url)
     regions = load_regions(str(settings.regions_file))
@@ -96,8 +105,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
-        allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
         max_age=3600,
     )
 
@@ -118,7 +127,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             response = await call_next(request)
             if request.method == "GET" and response.status_code == 200:
                 path = request.url.path
-                if path.endswith(("sw.js", "config.js")) or path in ("/", "/index.html"):
+                private = "authorization" in request.headers or any(
+                    part in path for part in ("/me", "/session", "/catalogue", "/billing")
+                )
+                if private:
+                    # Personal answers must never be kept by shared caches.
+                    response.headers["Cache-Control"] = "private, no-store"
+                elif path.endswith(("sw.js", "config.js", ".html")) or path == "/":
                     # The app shell must update promptly; the service worker handles offline.
                     response.headers["Cache-Control"] = "no-cache"
                 else:
@@ -153,6 +168,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         return region
 
+    def open_only() -> None:
+        """Whole-catalogue price endpoints are for local testing (PP_OPEN_PRICES=1).
+
+        In the real app, prices are only shown for items in a signed-in person's session.
+        """
+        if not settings.open_prices:
+            raise HTTPException(
+                401, {"code": "sign_in", "message": "Please sign in to the PricePulse app to see prices."}
+            )
+
+    open_dep = [Depends(open_only)]
     stale_after = timedelta(hours=settings.stale_hours)
 
     def product_out(pp: ProductPrices) -> S.ProductOut:
@@ -238,7 +264,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             for r in regions.regions.values()
         ]
 
-    @app.get(v1 + "/products", response_model=S.ProductList, tags=["products"])
+    @app.get(v1 + "/products", response_model=S.ProductList, tags=["testing"], dependencies=open_dep)
     def products(
         region: str = Query("paarl", description="Town, e.g. paarl"),
         q: str | None = Query(None, max_length=80, description="Search words"),
@@ -273,9 +299,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             items=[product_out(pp) for pp in page],
         )
 
-    @app.get(v1 + "/products/{product_id}", response_model=S.ProductDetail, tags=["products"])
-    def product_detail(product_id: int, region: str = Query("paarl"), s: Session = Depends(db)):  # noqa: B008
-        check_region(region)
+    def history_for(s: Session, product_id: int, region: str) -> S.ProductDetail:
         product = s.get(Product, product_id)
         if product is None:
             raise HTTPException(404, "That product was not found. It may have been merged with another.")
@@ -302,7 +326,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ]
         return S.ProductDetail(**base.model_dump(), region=region, history=history)
 
-    @app.get(v1 + "/towns/compare", response_model=S.TownsOut, tags=["towns"])
+    @app.get(
+        v1 + "/products/{product_id}", response_model=S.ProductDetail, tags=["testing"], dependencies=open_dep
+    )
+    def product_detail(product_id: int, region: str = Query("paarl"), s: Session = Depends(db)):  # noqa: B008
+        check_region(region)
+        return history_for(s, product_id, region)
+
+    @app.get(v1 + "/towns/compare", response_model=S.TownsOut, tags=["testing"], dependencies=open_dep)
     def towns_compare(
         region: str = Query("paarl"),
         radius_km: float = Query(50, gt=0, le=500),
@@ -318,9 +349,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 ids = [int(x) for x in product_ids.split(",") if x.strip()][:200]
             except ValueError:
                 raise HTTPException(422, "product_ids must be numbers separated by commas.") from None
-        home = regions.regions[region]
         if ids is None:
             ids = list(latest_prices(s, region).keys())
+        return towns_for(s, region, radius_km, ids)
+
+    def towns_for(s: Session, region: str, radius_km: float, ids: list[int]) -> S.TownsOut:
+        home = regions.regions[region]
         towns = []
         for r in regions.regions.values():
             km = haversine_km(home.lat, home.lon, r.lat, r.lon)
@@ -355,13 +389,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             note = "Some towns are missing some items; those totals are lower because of that."
         return S.TownsOut(region=region, radius_km=radius_km, product_count=len(ids), note=note, towns=towns)
 
-    @app.post(v1 + "/basket/optimise", response_model=S.BasketOut, tags=["basket"])
+    @app.post(v1 + "/basket/optimise", response_model=S.BasketOut, tags=["testing"], dependencies=open_dep)
     def basket(body: S.BasketIn, s: Session = Depends(db)):  # noqa: B008
         check_region(body.region)
         qty: dict[int, int] = {}
         for it in body.items:
             qty[it.product_id] = qty.get(it.product_id, 0) + it.quantity
-        grouped = latest_prices(s, body.region, product_ids=list(qty))
+        return basket_for(s, body.region, qty)
+
+    def basket_for(s: Session, region: str, qty: dict[int, int]) -> S.BasketOut:
+        grouped = latest_prices(s, region, product_ids=list(qty)) if qty else {}
         prices = {pid: {sp.store: sp.effective_cents for sp in pp.prices} for pid, pp in grouped.items()}
         res = optimise(qty, prices)
         names = {
@@ -380,7 +417,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         newest = max((sp.scraped_at for pp in grouped.values() for sp in pp.prices), default=None)
         return S.BasketOut(
-            region=body.region,
+            region=region,
             cheapest_single_store=st(res.single_store) if res.single_store else None,
             stores=[st(t) for t in res.stores],
             split=[
@@ -408,7 +445,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(404, f"No price file for '{region}' yet. Run the scraper first.")
         return json.loads(path.read_text(encoding="utf-8"))
 
-    @app.get(v1 + "/prices", tags=["file bridge"])
+    @app.get(v1 + "/prices", tags=["testing"], dependencies=open_dep)
     def prices_v1(region: str = Query("paarl")):
         """The raw latest_{region}.json scraper file (backward-compatible contract)."""
         return prices_file(region)
@@ -423,9 +460,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def legacy_regions():
         return sorted(p.stem.removeprefix("latest_") for p in settings.data_dir.glob("latest_*.json"))
 
-    @app.get("/api/prices", include_in_schema=False)
+    @app.get("/api/prices", include_in_schema=False, dependencies=open_dep)
     def legacy_prices(region: str = Query("paarl")):
         return prices_file(region)
+
+    register_account_routes(
+        app,
+        SimpleNamespace(
+            settings=settings,
+            db=db,
+            regions=regions,
+            check_region=check_region,
+            product_out=product_out,
+            history_for=history_for,
+            towns_for=towns_for,
+            basket_for=basket_for,
+        ),
+    )
 
     # Serve the web app from the same address when the folder is present, so one
     # service gives one test URL. It can also be hosted separately (see docs/DEPLOY.md).

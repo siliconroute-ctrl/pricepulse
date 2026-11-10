@@ -1,9 +1,10 @@
-"""Start the API with example data on a spare port, then run the browser smoke test.
+"""Start the API with example data and TEST sign-in on a spare port, then run the browser test.
 
     python frontend/tests/run_smoke.py [screenshot-folder]
 """
 
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -24,14 +25,34 @@ def free_port() -> int:
 
 def main() -> int:
     data = tempfile.mkdtemp(prefix="pp-smoke-")
-    env = {**os.environ, "PP_DATA_DIR": data, "PP_RATE_LIMIT_PER_MIN": "1000"}
-    env.pop("PP_DATABASE_URL", None)
-    subprocess.run([sys.executable, "make_sample.py", "--regions", "paarl,wellington", "--days", "5"],
-                   cwd=BACKEND, env=env, check=True, stdout=subprocess.DEVNULL)
+    web = Path(tempfile.mkdtemp(prefix="pp-web-")) / "frontend"
+    shutil.copytree(ROOT / "frontend", web, ignore=shutil.ignore_patterns("tests"))
+    # Test sign-in: the real server (PP_AUTH_DEV off) refuses these sign-ins.
+    (web / "config.js").write_text('window.PRICEPULSE_CONFIG = { apiBase: "", authMode: "dev" };\n')
     port = free_port()
-    server = subprocess.Popen([sys.executable, "-m", "uvicorn", "api:app", "--port", str(port)],
-                              cwd=BACKEND, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     base = f"http://127.0.0.1:{port}"
+    env = {
+        **os.environ,
+        "PP_DATA_DIR": data,
+        "PP_FRONTEND_DIR": str(web),
+        "PP_RATE_LIMIT_PER_MIN": "5000",
+        "PP_AUTH_DEV": "1",
+        "PP_OPEN_PRICES": "0",
+        "PP_ID_SECRET": "smoke-test-secret-0123456789abcdef",
+        "PP_PAYFAST_MERCHANT_ID": "10000100",
+        "PP_PAYFAST_MERCHANT_KEY": "46f0cd694581a",
+        "PP_PAYFAST_PASSPHRASE": "smoke-passphrase",
+        "PP_PUBLIC_URL": base,
+    }
+    env.pop("PP_DATABASE_URL", None)
+    subprocess.run(
+        [sys.executable, "make_sample.py", "--regions", "paarl,wellington", "--days", "5"],
+        cwd=BACKEND, env=env, check=True, stdout=subprocess.DEVNULL,
+    )
+    server = subprocess.Popen(
+        [sys.executable, "-m", "uvicorn", "api:app", "--port", str(port)],
+        cwd=BACKEND, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
     try:
         for _ in range(50):
             try:

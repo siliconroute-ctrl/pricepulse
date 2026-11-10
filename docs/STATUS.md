@@ -1,8 +1,27 @@
 # Status: what works, what is unverified
 
-Date: 27 Oct 2026. Built in a cloud session that **could not reach the retailer
-websites**: its network policy refused every store domain (HTTP 403 from the
-proxy). Nothing below claims a scraper works on a live site.
+Last updated 10 Nov 2026. Built in cloud sessions that **could not reach the retailer
+websites, PayFast or a live Firebase sign-in**. Nothing below claims any of those
+work on the real services.
+
+## Accounts, limits, payments and export (10 Nov 2026)
+
+| Item | State |
+|---|---|
+| Sign-in with TrolleyUp's accounts (Google, email + password) | Built. Token checking tested with a test signing key (expired, wrong project, forged, guest sign-ins all refused). **Not tried on a live address**: needs the address added in Firebase (docs/ACCOUNTS.md) |
+| Age check by SA ID number | Working, tested: check digit, real dates, 18th-birthday edge, century. Number never stored; fingerprint blocks a second account |
+| Under-18s | Liquor hidden in search, lookups, list and export. Tested |
+| Sessions: 45 items, 3 a day free, reset at midnight SA time | Working, tested on the server and in the browser |
+| Prices locked to looked-up items | Working. The old whole-catalogue endpoints answer only with `PP_OPEN_PRICES=1` (tests) |
+| R99 monthly plan (PayFast) | Built. Signed checkout, payment notices (paid, repeated, forged, wrong amount, cancelled, lapsed, resubscribe) tested with our own signatures. **Not run against PayFast's sandbox.** Cancel-through-API is the least certain part |
+| Send to TrolleyUp | Working. File checked with TrolleyUp's own `csv.js` and item rules. **Not tried by hand in the live TrolleyUp app** |
+| Terms of Use and Privacy Policy | **Drafts.** Need an attorney's review |
+| Delete my data | Working, tested |
+| Browser test | 34 checks pass: sign-in, ID check, lookup, list, export, 3-a-day limit, upgrade hand-off, under-18, second account refused, offline, sizes, dark theme |
+
+Changed from the first version: the Data tab, the file loader and the built-in example
+prices are gone from the app, because prices are now only shown to signed-in people
+for items they look up. `python run_local.py` gives a test copy with example prices.
 
 ## Phase 1: Scrapers
 
@@ -33,12 +52,12 @@ proxy). Nothing below claims a scraper works on a live site.
 
 All endpoints in the spec, pydantic models, pagination, region validation,
 CORS from env, gzip, Cache-Control, rate limit (60/min per IP), JSON request logs
-without IP addresses, `/docs`. **180 tests pass** (`python -m pytest`), including
+without IP addresses, `/docs`. **253 tests pass** (`python -m pytest`), including
 empty database, unknown and invalid towns, stale data and the 100 KB page limit.
 
 ## Phase 4: Web app
 
-Kept as one HTML file (no build step, 17 KB gzipped). Verified by the browser smoke
+Kept as one HTML file (no build step, 21 KB gzipped). Verified by the browser smoke
 test (`frontend/tests/run_smoke.py`), which passes:
 
 - loads from the API and shows "Prices updated …"; search "milk" shows 3 stores

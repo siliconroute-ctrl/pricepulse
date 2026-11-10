@@ -146,3 +146,84 @@ class BasketOut(_Model):
     split_saving: float
     not_found_product_ids: list[int]
     scraped_at: datetime | None
+
+
+# --- Accounts, sessions and billing -------------------------------------------------
+
+
+class SessionMeter(_Model):
+    active: bool
+    items_used: int
+    items_max: int
+
+
+class MeOut(_Model):
+    id_checked: bool = Field(description="False until the person has confirmed their age with an ID number")
+    adult: bool
+    plan: str = Field(description="free or paid")
+    paid_until: datetime | None = None
+    subscription_status: str = Field(description="none, pending, active or cancelled")
+    sessions_used_today: int
+    sessions_per_day: int | None = Field(description="Daily limit; null on the paid plan")
+    session: SessionMeter
+    price_per_month: float
+    billing_ready: bool = Field(description="False until the payment company is set up on the server")
+
+
+class VerifyIdIn(BaseModel):
+    id_number: str = Field(min_length=1, max_length=40)
+    accept_terms: bool
+
+
+class CatalogueItem(_Model):
+    id: int
+    name: str
+    brand: str
+    size: str
+    category: str
+    store_count: int
+    in_session: bool
+
+
+class CatalogueOut(_Model):
+    region: str
+    total: int
+    limit: int
+    offset: int
+    note: str = ""
+    items: list[CatalogueItem]
+
+
+class SessionItemOut(_Model):
+    quantity: int
+    on_list: bool
+    product: ProductOut
+
+
+class SessionOut(_Model):
+    region: str
+    me: MeOut
+    scraped_at: datetime | None
+    sample: bool
+    items: list[SessionItemOut]
+    basket: BasketOut | None = Field(description="Where to shop for the items on the list")
+
+
+class AddItemIn(BaseModel):
+    product_id: int = Field(ge=1)
+    region: str = Field(pattern=r"^[a-z0-9_-]{1,40}$")
+
+
+class UpdateItemIn(BaseModel):
+    region: str = Field(pattern=r"^[a-z0-9_-]{1,40}$")
+    quantity: int | None = Field(default=None, ge=1, le=99)
+    on_list: bool | None = None
+
+
+class RegionIn(BaseModel):
+    region: str = Field(pattern=r"^[a-z0-9_-]{1,40}$")
+
+
+class CheckoutOut(_Model):
+    action_url: str
+    fields: dict[str, str]

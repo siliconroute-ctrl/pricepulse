@@ -57,9 +57,30 @@ class Settings:
     frontend_dir: Path = field(
         default_factory=lambda: Path(os.environ.get("PP_FRONTEND_DIR", BACKEND_DIR.parent / "frontend"))
     )
+    # --- Accounts, limits and billing ---
+    firebase_project: str = field(
+        default_factory=lambda: os.environ.get("PP_FIREBASE_PROJECT", "trolleyup-eff50")
+    )
+    auth_dev: bool = field(default_factory=lambda: os.environ.get("PP_AUTH_DEV", "0") == "1")
+    open_prices: bool = field(default_factory=lambda: os.environ.get("PP_OPEN_PRICES", "0") == "1")
+    id_secret: str = field(default_factory=lambda: os.environ.get("PP_ID_SECRET", ""))
+    session_items_max: int = field(default_factory=lambda: int(_float("PP_SESSION_ITEMS", 45)))
+    free_sessions_per_day: int = field(default_factory=lambda: int(_float("PP_FREE_SESSIONS", 3)))
+    price_cents: int = field(default_factory=lambda: int(_float("PP_PRICE_CENTS", 9900)))
+    terms_version: int = 1
+    public_url: str = field(
+        default_factory=lambda: os.environ.get("PP_PUBLIC_URL", "http://localhost:8000").rstrip("/")
+    )
+    payfast_merchant_id: str = field(default_factory=lambda: os.environ.get("PP_PAYFAST_MERCHANT_ID", ""))
+    payfast_merchant_key: str = field(default_factory=lambda: os.environ.get("PP_PAYFAST_MERCHANT_KEY", ""))
+    payfast_passphrase: str = field(default_factory=lambda: os.environ.get("PP_PAYFAST_PASSPHRASE", ""))
+    payfast_sandbox: bool = field(default_factory=lambda: os.environ.get("PP_PAYFAST_SANDBOX", "1") == "1")
+    payfast_validate: bool = field(default_factory=lambda: os.environ.get("PP_PAYFAST_VALIDATE", "1") == "1")
     regions_file: Path = field(
         default_factory=lambda: Path(os.environ.get("PP_REGIONS_FILE", BACKEND_DIR / "regions.yaml"))
     )
+
+    production: bool = field(default_factory=lambda: os.environ.get("PP_ENV", "") == "production")
 
     def __post_init__(self) -> None:
         self.data_dir = Path(self.data_dir)

@@ -7,11 +7,12 @@ Full price history is kept: one price row per listing, region and scrape slot.
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -129,6 +130,78 @@ class ScrapeRun(Base):
     error: Mapped[str] = mapped_column(Text, default="")
 
 
+class AppUser(Base):
+    """A signed-in person. ``uid`` is the Firebase account ID (shared with TrolleyUp).
+
+    No name, email or ID number is stored: only the age result and a keyed
+    fingerprint of the ID number (see said.py).
+    """
+
+    __tablename__ = "app_user"
+    uid: Mapped[str] = mapped_column(String(128), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    id_fingerprint: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    id_checked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    adult: Mapped[bool] = mapped_column(Boolean, default=False)
+    adult_on: Mapped[date | None] = mapped_column(Date, nullable=True)  # under-18s: day they turn 18
+    terms_version: Mapped[int] = mapped_column(Integer, default=0)
+    plan_override: Mapped[str] = mapped_column(String(10), default="")  # "paid" = granted by hand
+
+
+class Subscription(Base):
+    """The R99-a-month plan for one user."""
+
+    __tablename__ = "subscription"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uid: Mapped[str] = mapped_column(ForeignKey("app_user.uid"), unique=True)
+    provider: Mapped[str] = mapped_column(String(20), default="payfast")
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, active, cancelled
+    token: Mapped[str] = mapped_column(String(80), default="")  # the provider's subscription token
+    m_payment_id: Mapped[str] = mapped_column(String(64), default="", index=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    paid_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class Payment(Base):
+    """One payment notice from the payment company. Kept for the books; no card or payer details."""
+
+    __tablename__ = "payment"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uid: Mapped[str] = mapped_column(String(128), index=True)
+    provider: Mapped[str] = mapped_column(String(20), default="payfast")
+    provider_payment_id: Mapped[str] = mapped_column(String(64), unique=True)
+    amount_cents: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(20), default="")
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class LookupSession(Base):
+    """One price-lookup session: up to 45 items. ``day`` is the South African date it started."""
+
+    __tablename__ = "lookup_session"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uid: Mapped[str] = mapped_column(ForeignKey("app_user.uid"), index=True)
+    day: Mapped[str] = mapped_column(String(10), index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    cleared_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    items: Mapped[list[SessionItem]] = relationship(back_populates="session", cascade="all, delete-orphan")
+
+
+class SessionItem(Base):
+    """A product looked up in a session. Stays counted even when taken off the list."""
+
+    __tablename__ = "session_item"
+    __table_args__ = (UniqueConstraint("session_id", "product_id", name="uq_session_product"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("lookup_session.id"), index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("product.id"))
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+    on_list: Mapped[bool] = mapped_column(Boolean, default=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    session: Mapped[LookupSession] = relationship(back_populates="items")
+
+
 class SchemaVersion(Base):
     __tablename__ = "schema_version"
     version: Mapped[int] = mapped_column(primary_key=True)
@@ -145,8 +218,15 @@ def _m1_initial(conn: Connection) -> None:
     Base.metadata.create_all(conn)
 
 
+def _m2_accounts(conn: Connection) -> None:
+    """Accounts, subscriptions, payments and lookup sessions (adds tables only)."""
+    tables = [m.__table__ for m in (AppUser, Subscription, Payment, LookupSession, SessionItem)]
+    Base.metadata.create_all(conn, tables=tables)
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
+    (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
 ]
 
 

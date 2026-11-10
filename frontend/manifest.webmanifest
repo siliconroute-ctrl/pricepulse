@@ -2,7 +2,7 @@
   "name": "PricePulse ZA",
   "short_name": "PricePulse",
   "description": "Compare grocery, liquor and pharmacy prices across South African stores.",
-  "start_url": "./#compare",
+  "start_url": "./#find",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

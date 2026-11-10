@@ -111,6 +111,10 @@ def main(argv: list[str] | None = None) -> int:
     p_m = sub.add_parser("merge")
     p_m.add_argument("keep", type=int)
     p_m.add_argument("drop", type=int)
+    sub.add_parser("users")
+    p_plan = sub.add_parser("plan")
+    p_plan.add_argument("uid")
+    p_plan.add_argument("plan", choices=["paid", "free"])
     args = ap.parse_args(argv)
 
     settings = get_settings()
@@ -135,6 +139,29 @@ def main(argv: list[str] | None = None) -> int:
             print("By match type: " + ", ".join(f"{k} {v}" for k, v in sorted(r["by_status"].items())))
         elif args.cmd == "review":
             review(s)
+        elif args.cmd == "users":
+            from pricepulse.db import AppUser, Subscription, utcnow
+
+            users = s.scalars(select(AppUser)).all()
+            paying = s.scalar(
+                select(func.count()).select_from(Subscription).where(Subscription.paid_until > utcnow())
+            )
+            checked = sum(1 for u in users if u.id_fingerprint)
+            minors = sum(1 for u in users if u.id_fingerprint and not u.adult)
+            by_hand = sum(1 for u in users if u.plan_override == "paid")
+            print(f"{len(users)} accounts. {checked} have done the age check, {minors} are under 18.")
+            print(f"{paying} paying subscribers, {by_hand} given the Unlimited plan by hand.")
+        elif args.cmd == "plan":
+            from pricepulse.db import AppUser
+
+            user = s.get(AppUser, args.uid)
+            if user is None:
+                print(f"No account with ID {args.uid}. The person must sign in to PricePulse once first.")
+                return 1
+            user.plan_override = "paid" if args.plan == "paid" else ""
+            print(
+                f"Account {args.uid} is now on the {'Unlimited' if args.plan == 'paid' else 'normal'} plan."
+            )
         elif args.cmd == "merge":
             n = merge(s, args.keep, args.drop)
             print(f"Moved {n} listings from product {args.drop} into {args.keep}.")

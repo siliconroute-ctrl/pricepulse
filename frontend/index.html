@@ -125,9 +125,40 @@ nav.tabs button svg{width:1.5rem;height:1.5rem;stroke:currentColor;fill:none;str
 nav.tabs button[aria-current="page"]{color:var(--ink);background:var(--chip);box-shadow:inset 0 -3px 0 var(--brand)}
 .cnt{font-size:.76rem;background:var(--brand);color:var(--brand-ink);border-radius:999px;padding:0 .45rem;margin-left:.25rem}
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s}}
+/* --- Accounts, sessions and billing --- */
+.meter{max-width:40rem;margin:.5rem auto 0;font-weight:700;font-size:.94rem;background:rgba(0,0,0,.22);border-radius:.5rem;padding:.35rem .6rem}
+.hrow{display:flex;justify-content:space-between;gap:.6rem;align-items:center;padding:.6rem 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.hrow:first-child{border-top:0}
+.hrow .n{flex:1;min-width:9rem}
+.hrow .n b{font-weight:650;font-size:1.06rem;display:block}
+.lookup{min-height:3rem;border-radius:.7rem;border:2px solid var(--brand);background:var(--brand);color:var(--brand-ink);font-weight:700;padding:0 .9rem}
+.field{display:block;margin:.8rem 0}
+.field span{display:block;font-weight:650;margin-bottom:.25rem}
+.field input{width:100%;min-height:3.2rem;padding:.5rem .8rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.12rem}
+.field input.big{font-size:1.5rem;letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.check{display:flex;gap:.7rem;align-items:flex-start;margin:.9rem 0;min-height:3rem}
+.check input{width:1.7rem;height:1.7rem;flex:none;margin-top:.15rem;accent-color:var(--brand)}
+.err{color:var(--warn);font-weight:700;min-height:1.4rem;margin:.4rem 0}
+.wide{width:100%}
+.btn.plain{background:transparent;border-color:var(--line);color:var(--ink)}
+.btn[disabled],.lookup[disabled]{opacity:.55;cursor:not-allowed}
+.linkbtn{background:none;border:0;color:var(--brand-text);font-weight:700;text-decoration:underline;min-height:3rem;padding:0 .2rem}
+.hero{text-align:center;padding:1.2rem 0 .4rem}
+.hero .big{font-family:var(--font-display);font-size:1.75rem;font-weight:700;line-height:1.15;margin:0 0 .4rem}
+.points{margin:.6rem 0;padding:0;list-style:none}
+.points li{padding:.35rem 0 .35rem 1.8rem;position:relative}
+.points li::before{content:"\2713";position:absolute;left:.2rem;color:var(--best);font-weight:800}
+.plan{border:2px solid var(--best);background:var(--best-bg)}
+.plan .amt{display:block}
+.steps{margin:.5rem 0;padding-left:1.4rem}
+.steps li{padding:.3rem 0}
+dialog{border:0;border-radius:1rem;padding:1.1rem;max-width:min(34rem,calc(100vw - 2rem));width:100%;background:var(--card);color:var(--ink);box-shadow:0 10px 40px rgba(0,0,0,.4)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog h2{margin:0 0 .5rem;font-family:var(--font-display);font-size:1.55rem}
+body.plainhead .where,body.plainhead .search,body.plainhead .meter,body.plainhead .fresh,body.plainhead nav.tabs{display:none}
 </style>
 </head>
-<body>
+<body class="plainhead">
 <a class="skip" href="#main">Skip to content</a>
 <div class="wrap">
 <header>
@@ -142,283 +173,335 @@ nav.tabs button[aria-current="page"]{color:var(--ink);background:var(--chip);box
     </div>
   </div>
   <div class="search"><input id="q" type="search" placeholder="Search a product, e.g. milk" aria-label="Search products" autocomplete="off" enterkeyhint="search"></div>
+  <div class="meter" id="meter"></div>
   <div class="fresh" id="fresh"></div>
 </header>
 <div id="status" class="vh" role="status" aria-live="polite"></div>
-<main id="main" tabindex="-1"></main>
+<main id="main" tabindex="-1"><p class="empty">Opening PricePulse&hellip;</p></main>
 </div>
 <nav class="tabs" aria-label="Main"><div class="in" id="nav"></div></nav>
+<dialog id="dlg" aria-labelledby="dlgt"></dialog>
 
 <script>
 "use strict";
 /* ---------- Settings and constants ---------- */
 var CFG = window.PRICEPULSE_CONFIG || {};
 var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
+var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
+var TROLLEYUP_URL = "https://trolleyup.com";
 var STALE_HOURS = 48;
 var DISCLAIMER = "Prices are collected from public retailer websites and may differ in store. Always check at the till.";
 var STORES = {"Checkers":"#0a6e8a","Pick n Pay":"#1d4fa3","Woolworths":"#2b2b2b",
   "Ultra Liquors":"#6b2fa0","Liquorland":"#8a5100","Dis-Chem":"#17703a"};
+var STORES_DARK={"Checkers":"#6fd0f0","Pick n Pay":"#9dbbff","Woolworths":"#e8e8e8","Ultra Liquors":"#d4a8ff","Liquorland":"#ffc56b","Dis-Chem":"#86e8a8"};
 var DASHES = ["", "6 4", "2 3", "10 3 2 3", "1 4", "12 6"];
 var CATS = ["All","Groceries","Fresh","Liquor","Health & Beauty"];
-/* Used until the server's list arrives, and when offline. Location never leaves the phone. */
+/* Used until the server's list arrives. Location never leaves the phone. */
 var FALLBACK_REGIONS = [
   {slug:"paarl",name:"Paarl",lat:-33.7342,lon:18.9621},{slug:"wellington",name:"Wellington",lat:-33.6393,lon:19.0112},
   {slug:"franschhoek",name:"Franschhoek",lat:-33.9133,lon:19.1169},{slug:"stellenbosch",name:"Stellenbosch",lat:-33.9321,lon:18.8602},
   {slug:"cape-town",name:"Cape Town",lat:-33.9249,lon:18.4241},{slug:"worcester",name:"Worcester",lat:-33.6461,lon:19.4485},
   {slug:"hermanus",name:"Hermanus",lat:-34.4187,lon:19.2345}];
-/* Example figures for trying the app without a server. Clearly labelled in the app. */
-var SAMPLE = [
- ["Albany Superior White Bread","700g","Groceries",{"Checkers":19.99,"Pick n Pay":20.99,"Woolworths":24.99}],
- ["White Star Super Maize Meal","5kg","Groceries",{"Checkers":64.99,"Pick n Pay":66.99,"Woolworths":72.99}],
- ["Sasko Cake Flour","2.5kg","Groceries",{"Checkers":39.99,"Pick n Pay":41.99}],
- ["Tastic Long Grain Rice","2kg","Groceries",{"Checkers":49.99,"Pick n Pay":52.99,"Woolworths":59.99}],
- ["Koo Baked Beans in Tomato Sauce","410g","Groceries",{"Checkers":14.99,"Pick n Pay":15.99,"Woolworths":17.99}],
- ["Sunfoil Sunflower Oil","2L","Groceries",{"Checkers":84.99,"Pick n Pay":87.99,"Woolworths":94.99}],
- ["Ricoffy Instant Coffee","250g","Groceries",{"Checkers":69.99,"Pick n Pay":72.99,"Woolworths":79.99}],
- ["Coca-Cola Original","2L","Groceries",{"Checkers":25.99,"Pick n Pay":26.99}],
- ["Clover Full Cream Milk","2L","Fresh",{"Checkers":36.99,"Pick n Pay":38.49,"Woolworths":41.99}],
- ["Clover Low Fat Milk","2L","Fresh",{"Checkers":35.99,"Pick n Pay":37.49,"Woolworths":40.99}],
- ["Large Eggs","18 pack","Fresh",{"Checkers":69.99,"Pick n Pay":72.99,"Woolworths":79.99}],
- ["Chicken Portions","2kg","Fresh",{"Checkers":109.99,"Pick n Pay":114.99,"Woolworths":134.99}],
- ["Bananas","per kg","Fresh",{"Checkers":24.99,"Pick n Pay":26.99,"Woolworths":29.99}],
- ["Clover Butter","500g","Fresh",{"Checkers":84.99,"Pick n Pay":89.99,"Woolworths":99.99}],
- ["Castle Lite","24 x 340ml","Liquor",{"Ultra Liquors":329.99,"Liquorland":339.99,"Checkers":344.99,"Pick n Pay":349.99}],
- ["Klipdrift Premium Brandy","750ml","Liquor",{"Ultra Liquors":189.99,"Liquorland":194.99,"Pick n Pay":199.99}],
- ["Savanna Dry Cider","6 x 330ml","Liquor",{"Ultra Liquors":98.99,"Liquorland":102.99,"Checkers":104.99}],
- ["Fat Bastard Chardonnay","750ml","Liquor",{"Ultra Liquors":79.99,"Liquorland":84.99,"Checkers":89.99}],
- ["Jameson Irish Whiskey","750ml","Liquor",{"Ultra Liquors":369.99,"Liquorland":379.99,"Pick n Pay":389.99}],
- ["Panado Tablets 500mg","24 tablets","Health & Beauty",{"Dis-Chem":34.95,"Checkers":38.99,"Pick n Pay":39.99}],
- ["Colgate Total Toothpaste","100ml","Health & Beauty",{"Dis-Chem":31.95,"Checkers":33.99,"Pick n Pay":34.99}],
- ["Dettol Antiseptic Liquid","500ml","Health & Beauty",{"Dis-Chem":79.95,"Checkers":84.99,"Pick n Pay":86.99}],
- ["Nivea Roll-on Deodorant","50ml","Health & Beauty",{"Dis-Chem":39.95,"Checkers":41.99,"Pick n Pay":44.99}],
- ["Vitamin C 1000mg","30 tablets","Health & Beauty",{"Dis-Chem":89.95,"Checkers":99.99}]
-];
 
 var state = {
-  view:"compare", productId:null, cat:"All", q:"", region:"paarl", regions:FALLBACK_REGIONS.slice(),
-  products:[], source:"sample", stamp:null, isSample:true, savedAt:null, error:"", loading:false,
-  list:{}, unitMode:false, radius:50, townScope:"list", towns:null, townsKey:"", detail:null, theme:"system"
+  phase:"boot",            /* boot, signin, idcheck, app */
+  view:"find", productId:null, cat:"All", q:"", region:"paarl", regions:FALLBACK_REGIONS.slice(),
+  me:null, items:[], basket:null, stamp:null, isSample:false, savedAt:null, offline:false, error:"",
+  found:null, finding:false, findErr:"", unitMode:false, radius:50, towns:null, detail:null, theme:"system",
+  signMode:"in", authErr:"", busy:false
 };
 
 /* ---------- Small helpers ---------- */
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
-function money(v){var p=v.toFixed(2).split(".");return "R "+p[0].replace(/\B(?=(\d{3})+(?!\d))/g," ")+"."+p[1]}
-function key(n,s){return (n+"|"+s).toLowerCase().replace(/\s+/g," ").trim()}
+function money(v){var p=Number(v).toFixed(2).split(".");return "R "+p[0].replace(/\B(?=(\d{3})+(?!\d))/g," ")+"."+p[1]}
 function say(msg){var el=document.getElementById("status");el.textContent="";setTimeout(function(){el.textContent=msg},50)}
 function storeColor(s){
   if(STORES[s])return STORES[s];
   var c=["#7a4a00","#006b6b","#8a2b5a","#3d5a1a"],h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;
   return c[Math.abs(h)%c.length];
 }
+function storeColorOn(s){return document.documentElement.dataset.dark==="1"?(STORES_DARK[s]||"#f7eeee"):storeColor(s)}
 function badge(s){return '<span class="badge" style="background:'+storeColor(s)+'">'+esc(s)+'</span>'}
 function regionName(slug){var r=state.regions.find(function(x){return x.slug===slug});return r?r.name:slug}
 function haversine(a,b,c,d){var R=6371,r=Math.PI/180,x=(c-a)*r,y=(d-b)*r;
   var h=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*r)*Math.cos(c*r)*Math.sin(y/2)*Math.sin(y/2);return 2*R*Math.asin(Math.sqrt(h))}
 function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function load(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}}
-/* Dates: API gives UTC ("...Z"); scraper files give South African time ("2026-10-27 07:30"). */
-function toDate(s){
-  if(!s)return null;if(s instanceof Date)return s;
-  var t=String(s);if(/^\d{4}-\d\d-\d\d[ T]\d\d:\d\d(:\d\d)?$/.test(t))t=t.replace(" ","T")+(t.length===16?":00":"")+"+02:00";
-  var d=new Date(t);return isNaN(d)?null:d;
-}
+function drop(k){try{localStorage.removeItem(k)}catch(e){}}
+function toDate(s){if(!s)return null;if(s instanceof Date)return s;var d=new Date(s);return isNaN(d)?null:d}
 function fmtDate(d){d=toDate(d);if(!d)return "";
   return d.toLocaleString("en-ZA",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Africa/Johannesburg"}).replace(" at ",", ")}
+function fmtDay(d){return new Date(d).toLocaleDateString("en-ZA",{day:"numeric",month:"short",year:"numeric",timeZone:"Africa/Johannesburg"})}
 function hoursOld(d){d=toDate(d);return d?(Date.now()-d.getTime())/36e5:0}
+function plural(n,w){return n+" "+w+(n===1?"":"s")}
 
-/* Size parsing for unit prices when data comes from a file (the server does this itself). */
-var UNITS={kg:["g",1000],g:["g",1],gr:["g",1],l:["ml",1000],lt:["ml",1000],ltr:["ml",1000],litre:["ml",1000],ml:["ml",1],cl:["ml",10]};
-function parseSize(t){
-  if(!t)return null;var s=String(t).toLowerCase().replace(",",".");
-  if(/per\s*kg|\/\s*kg|loose/.test(s))return {qty:1000,unit:"g",pack:1,byWeight:true};
-  var m=s.match(/(\d+)\s*[x\u00d7*]\s*(\d+(?:\.\d+)?)\s*(kg|gr|g|ltr|lt|litre|l|ml|cl)\b/)||null;
-  if(m)return {qty:+m[2]*UNITS[m[3]][1],unit:UNITS[m[3]][0],pack:+m[1]};
-  m=s.match(/(\d+(?:\.\d+)?)\s*(kg|gr|g|ltr|lt|litre|l|ml|cl)\b/);
-  if(m)return {qty:+m[1]*UNITS[m[2]][1],unit:UNITS[m[2]][0],pack:1};
-  m=s.match(/(\d+)\s*(pack|pk|tablets?|tabs?|capsules?|s\b|'s|rolls?|bags?|each|ea\b)/);
-  if(m)return {qty:+m[1],unit:"each",pack:1};
-  return null;
-}
-function unitPrice(size,price){
-  var s=parseSize(size);if(!s||!price)return null;
-  if(s.byWeight)return {value:price/10,unit:"per 100g"};
-  var total=s.qty*s.pack;if(!total)return null;
-  if(s.unit==="each")return {value:price/total,unit:"per item"};
-  return {value:price/total*100,unit:s.unit==="g"?"per 100g":"per 100ml"};
-}
+/* ---------- Sign-in. Same accounts as TrolleyUp (Firebase). "dev" mode is for local testing only. ---------- */
+var Auth=(function(){
+  var mode=CFG.authMode||"firebase",fbP=null,devName=null,fbUser=null;
+  function fb(){
+    if(!fbP){
+      var base="https://www.gstatic.com/firebasejs/10.14.1/";
+      fbP=Promise.all([import(base+"firebase-app.js"),import(base+"firebase-auth.js")]).then(function(m){
+        var auth=m[1].getAuth(m[0].initializeApp(CFG.firebase));return {Au:m[1],auth:auth};
+      });
+      fbP.catch(function(){fbP=null});
+    }
+    return fbP;
+  }
+  function plain(e){
+    var c=(e&&e.code)||"";
+    if(/invalid-credential|wrong-password|user-not-found|invalid-email|invalid-login/.test(c))return "That email or password is not right. Please check and try again.";
+    if(/email-already-in-use/.test(c))return "That email already has an account. Tap “I already have an account” to sign in.";
+    if(/weak-password/.test(c))return "Please choose a password of at least 6 characters.";
+    if(/popup-closed|cancelled-popup/.test(c))return "The Google window was closed before sign-in finished. Please try again.";
+    if(/popup-blocked/.test(c))return "Your browser blocked the Google window. Allow pop-ups for this site, or use email and password.";
+    if(/network-request-failed/.test(c))return "No connection. Check your internet and try again.";
+    if(/too-many-requests/.test(c))return "Too many tries. Please wait a few minutes and try again.";
+    if(/unauthorized-domain/.test(c))return "Sign-in is not switched on for this web address yet. Please tell "+SUPPORT+".";
+    return "Sign-in did not work. Please try again."+(c?" ("+c+")":"");
+  }
+  function wrap(p){return p.catch(function(e){throw new Error(plain(e))})}
+  return {
+    mode:mode,
+    /* Calls back with true/false whenever sign-in changes. Rejects if sign-in could not load (offline). */
+    start:function(cb){
+      if(mode==="dev"){devName=load("pp_dev_user");cb(!!devName);return Promise.resolve()}
+      return fb().then(function(f){f.Au.onAuthStateChanged(f.auth,function(u){fbUser=u&&!u.isAnonymous?u:null;cb(!!fbUser)})});
+    },
+    token:function(){
+      if(mode==="dev")return Promise.resolve(devName?"dev:"+devName:null);
+      return fbUser?fbUser.getIdToken():Promise.resolve(null);
+    },
+    email:function(){return mode==="dev"?(devName||""):(fbUser&&fbUser.email)||""},
+    google:function(){return wrap(fb().then(function(f){return f.Au.signInWithPopup(f.auth,new f.Au.GoogleAuthProvider())}))},
+    emailIn:function(e,p){return wrap(fb().then(function(f){return f.Au.signInWithEmailAndPassword(f.auth,e,p)}))},
+    emailNew:function(e,p){return wrap(fb().then(function(f){return f.Au.createUserWithEmailAndPassword(f.auth,e,p)}))},
+    reset:function(e){return wrap(fb().then(function(f){return f.Au.sendPasswordResetEmail(f.auth,e)}))},
+    dev:function(name){devName=name;store("pp_dev_user",name);onAuth(true)},
+    out:function(){
+      if(mode==="dev"){devName=null;drop("pp_dev_user");onAuth(false);return Promise.resolve()}
+      return fb().then(function(f){return f.Au.signOut(f.auth)});
+    }
+  };
+})();
 
-/* ---------- Data model: product = {id,name,brand,size,cat,prices:{store:{price,promo,url,at,unit}}} ---------- */
+/* ---------- Talking to the price server ---------- */
+function api(method,path,body){
+  return Auth.token().then(function(tok){
+    var ctl=typeof AbortController!=="undefined"?new AbortController():null;
+    var timer=setTimeout(function(){if(ctl)ctl.abort()},15000);
+    var opts={method:method,headers:{}};
+    if(ctl)opts.signal=ctl.signal;
+    if(tok)opts.headers.Authorization="Bearer "+tok;
+    if(body!==undefined){opts.headers["Content-Type"]="application/json";opts.body=JSON.stringify(body)}
+    return fetch(API+path,opts).then(function(r){
+      clearTimeout(timer);
+      var type=r.headers.get("content-type")||"";
+      if(r.ok&&type.indexOf("json")<0)return r;
+      return r.json().catch(function(){return {}}).then(function(b){
+        if(r.ok)return b;
+        var d=b.detail,e=new Error((d&&d.message)||(typeof d==="string"?d:"")||(Array.isArray(d)?"Please check what you typed and try again.":"The price server answered with error "+r.status+"."));
+        e.status=r.status;e.code=(d&&d.code)||"";throw e;
+      });
+    },function(){clearTimeout(timer);var e=new Error(navigator.onLine===false?"You are offline.":"Could not reach the price server.");e.code="network";throw e});
+  });
+}
+function qs(o){return Object.keys(o).filter(function(k){return o[k]!==""&&o[k]!=null}).map(function(k){return k+"="+encodeURIComponent(o[k])}).join("&")}
+
+/* ---------- Data: product = {id,name,brand,size,cat,prices:{store:{price,promo,url,at,stale,unit}}} ---------- */
 function eff(p){return p.promo!=null?p.promo:p.price}
-function bestStore(prod){var b=null;for(var s in prod.prices){if(b===null||eff(prod.prices[s])<eff(prod.prices[b])||(eff(prod.prices[s])===eff(prod.prices[b])&&s<b))b=s}return b}
 function sortedStores(prod){return Object.keys(prod.prices).sort(function(a,b){return eff(prod.prices[a])-eff(prod.prices[b])||(a<b?-1:1)})}
-function fromApi(items){
-  return items.map(function(it){
-    var prices={};it.prices.forEach(function(p){prices[p.store]={price:p.price,promo:p.promo_price,url:p.url,at:p.scraped_at,stale:p.stale,unit:p.unit_price}});
-    return {id:String(it.id),apiId:it.id,name:it.name,brand:it.brand,size:it.size,cat:it.category,prices:prices};
+function toProduct(it){
+  var prices={};it.prices.forEach(function(p){prices[p.store]={price:p.price,promo:p.promo_price,url:p.url,at:p.scraped_at,stale:p.stale,unit:p.unit_price}});
+  return {id:it.id,name:it.name,brand:it.brand,size:it.size,cat:it.category,prices:prices};
+}
+function applySession(s,fromCache){
+  state.me=s.me;state.basket=s.basket;state.stamp=s.scraped_at;state.isSample=!!s.sample;
+  state.items=s.items.map(function(i){return {q:i.quantity,on:i.on_list,p:toProduct(i.product)}});
+  if(!fromCache){state.offline=false;state.error="";state.savedAt=new Date().toISOString();
+    store("pp_session_"+state.region,{s:s,savedAt:state.savedAt})}
+  state.towns=null;
+}
+function findItem(id){return state.items.find(function(i){return i.p.id===id})}
+function onList(){return state.items.filter(function(i){return i.on})}
+function loadSession(){
+  return api("GET","/session?"+qs({region:state.region})).then(function(s){applySession(s);render()}).catch(function(e){
+    if(handleAuthError(e))return;
+    var c=load("pp_session_"+state.region);
+    state.offline=true;state.error=e.message;
+    if(c&&c.s){applySession(c.s,true);state.savedAt=c.savedAt}
+    render();say(e.message+(c?" Showing saved prices.":""));
   });
-}
-function fromRows(json){
-  var items=Array.isArray(json)?json:(json.items||json.products||[]);
-  var stamp=Array.isArray(json)?null:(json.scraped_at||null);
-  var map={},order=[];
-  items.forEach(function(it){
-    var price=parseFloat(String(it.price).replace(/[^0-9.]/g,""));
-    if(!it.name||!it.store||!isFinite(price)||price<=0)return;
-    var promo=it.promo_price!=null?parseFloat(String(it.promo_price).replace(/[^0-9.]/g,"")):null;
-    if(!(promo>0&&promo<price))promo=null;
-    var k=key(it.name,it.size||"");
-    if(!map[k]){map[k]={id:k,name:it.name,size:it.size||"",cat:it.category||"Groceries",prices:{}};order.push(k)}
-    var cur=map[k].prices[it.store],row={price:price,promo:promo,url:it.url||"",at:it.scraped_at||stamp};
-    if(!cur||eff(row)<eff(cur))map[k].prices[it.store]=row;
-  });
-  var arr=order.map(function(k){return map[k]});
-  if(!arr.length)throw new Error("No usable rows. Each row needs store, name and price.");
-  return {products:arr,region:Array.isArray(json)?"":(json.region||""),stamp:stamp,sample:!!json.sample};
-}
-function loadSample(){
-  state.products=fromRows(SAMPLE.map(function(r){return Object.keys(r[3]).map(function(s){return {store:s,name:r[0],size:r[1],category:r[2],price:r[3][s]}})}).reduce(function(a,b){return a.concat(b)},[])).products;
-  state.source="sample";state.isSample=true;state.stamp=null;state.savedAt=null;
-}
-
-/* ---------- Network ---------- */
-function getJSON(url,opts){
-  var ctl=typeof AbortController!=="undefined"?new AbortController():null;
-  var timer=setTimeout(function(){if(ctl)ctl.abort()},10000);
-  opts=opts||{};if(ctl)opts.signal=ctl.signal;
-  return fetch(url,opts).then(function(r){
-    clearTimeout(timer);
-    return r.json().catch(function(){return {}}).then(function(body){
-      if(!r.ok){var e=new Error(body.detail||("The price server answered with error "+r.status+"."));e.status=r.status;throw e}
-      return body;
-    });
-  },function(err){clearTimeout(timer);throw new Error(navigator.onLine===false?"You are offline.":"Could not reach the price server.")});
 }
 function loadRegions(){
-  return getJSON(API+"/regions").then(function(rs){
+  return fetch(API+"/regions").then(function(r){return r.json()}).then(function(rs){
     if(Array.isArray(rs)&&rs.length){state.regions=rs;store("pp_regions",rs);fillRegions()}
   }).catch(function(){});
 }
-function loadLive(){
-  var region=state.region;state.loading=true;renderFresh();
-  var all=[],first=null;
-  function page(offset){
-    return getJSON(API+"/products?region="+encodeURIComponent(region)+"&limit=100&offset="+offset).then(function(b){
-      if(!first)first=b;all=all.concat(b.items);
-      if(all.length<b.total&&offset<1900)return page(offset+100);
-    });
-  }
-  return page(0).then(function(){
-    if(region!==state.region)return;
-    state.loading=false;state.error="";
-    state.products=fromApi(all);state.source="api";state.isSample=!!first.sample;state.stamp=first.scraped_at;
-    state.savedAt=new Date().toISOString();state.note=first.note||"";
-    store("pp_cache_"+region,{items:all,stamp:first.scraped_at,sample:!!first.sample,savedAt:state.savedAt,note:state.note});
-    state.towns=null;render();
-  }).catch(function(err){
-    if(region!==state.region)return;
-    state.loading=false;state.error=err.message;
-    if(!useCache(region)&&state.source!=="file")loadSample();
-    render();say(state.error+" "+(state.source==="cache"?"Showing saved prices.":"Showing example prices."));
-  });
-}
-function useCache(region){
-  var c=load("pp_cache_"+region);
-  if(!c||!c.items)return false;
-  state.products=fromApi(c.items);state.source="cache";state.isSample=!!c.sample;state.stamp=c.stamp;state.savedAt=c.savedAt;state.note=c.note||"";
-  return true;
+function handleAuthError(e){
+  if(e.status===401){say("Please sign in again.");Auth.out();return true}
+  return false;
 }
 
-/* ---------- Freshness and banners (shown on every screen) ---------- */
-function newestPrice(){var n=null;state.products.forEach(function(p){for(var s in p.prices){var d=toDate(p.prices[s].at);if(d&&(!n||d>n))n=d}});return n||toDate(state.stamp)}
-function oldestPrice(){var o=null;state.products.forEach(function(p){for(var s in p.prices){var d=toDate(p.prices[s].at);if(d&&(!o||d<o))o=d}});return o}
-function renderFresh(){
-  var el=document.getElementById("fresh"),t="";
-  if(state.loading)t="Checking for new prices\u2026";
-  else if(state.source==="sample")t="Example prices, not real";
-  else{var n=newestPrice();t=n?"Prices updated "+fmtDate(n):"Price date unknown"}
-  el.textContent=t;
+/* ---------- Header lines shown on every screen ---------- */
+function meterText(){
+  var m=state.me;if(!m)return "";
+  var s=m.session,items=s.active?s.items_used+" of "+s.items_max+" items looked up":"No session open";
+  if(m.plan==="paid")return "Unlimited plan · "+items;
+  var n=m.sessions_per_day;
+  if(s.active)return "Session "+m.sessions_used_today+" of "+n+" today · "+items;
+  var left=Math.max(0,n-m.sessions_used_today);
+  return left?plural(left,"free session")+" left today":"No free sessions left today";
+}
+function newestPrice(){var n=null;state.items.forEach(function(i){for(var s in i.p.prices){var d=toDate(i.p.prices[s].at);if(d&&(!n||d>n))n=d}});return n}
+function oldestPrice(){var o=null;state.items.forEach(function(i){for(var s in i.p.prices){var d=toDate(i.p.prices[s].at);if(d&&(!o||d<o))o=d}});return o}
+function renderHead(){
+  document.body.classList.toggle("plainhead",state.phase!=="app");
+  document.getElementById("meter").textContent=meterText();
+  var n=newestPrice();
+  document.getElementById("fresh").textContent=n?"Prices updated "+fmtDate(n):"";
 }
 function banners(){
   var h="";
-  if(state.source==="sample")h+='<div class="banner warn" role="note"><b>Example prices.</b>These are made-up figures for trying the app'+(state.error?'. '+esc(state.error)+' Check your connection and pull down or tap "Reload prices" on the Data tab.':'.')+'</div>';
-  else if(state.isSample)h+='<div class="banner warn" role="note"><b>Example prices.</b>The price server is running with test data, not real shelf prices.</div>';
-  if(state.source==="cache")h+='<div class="banner warn" role="note"><b>Showing saved prices from '+esc(fmtDate(state.savedAt))+'.</b>'+esc(state.error||"You are offline.")+' They will update when you are back online.</div>';
-  if(state.source==="file")h+='<div class="banner" role="note"><b>Prices from a file you loaded.</b>'+(state.stamp?'Scraped '+esc(fmtDate(state.stamp))+'. ':'')+'Go to the Data tab to switch back to live prices.</div>';
+  if(state.offline)h+='<div class="banner warn" role="note"><b>'+(state.savedAt&&state.items.length?'Showing saved prices from '+esc(fmtDate(state.savedAt))+'.':'No connection.')+'</b>'+esc(state.error||"You are offline.")+' You can read your list, but looking up new items needs a connection.</div>';
+  if(state.isSample)h+='<div class="banner warn" role="note"><b>Example prices.</b>The price server is running with test data, not real shelf prices.</div>';
   var o=oldestPrice();
-  if(state.source!=="sample"&&o&&hoursOld(o)>STALE_HOURS)h+='<div class="banner warn" role="note"><b>Some prices are more than 2 days old.</b>They are marked "Old price". Check at the till.</div>';
+  if(o&&hoursOld(o)>STALE_HOURS)h+='<div class="banner warn" role="note"><b>Some prices are more than 2 days old.</b>They are marked "Old price". Check at the till.</div>';
   return h;
 }
 function disclaimer(){return '<p class="disclaimer">'+DISCLAIMER+'</p>'}
+function oldTag(r){return r.at&&hoursOld(r.at)>STALE_HOURS?' <span class="old">Old price ('+esc(fmtDate(r.at))+')</span>':''}
 
-/* ---------- Compare ---------- */
-function filtered(){
-  var words=state.q.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  return state.products.filter(function(p){
-    var hay=(p.name+" "+(p.brand||"")+" "+p.size).toLowerCase();
-    return (state.cat==="All"||p.cat===state.cat)&&words.every(function(w){return hay.indexOf(w)>-1});
-  });
+/* ---------- Sign in ---------- */
+function viewSignin(){
+  var h='<div class="hero"><p class="big">See where your shopping is cheapest</p><p class="sub">Compare prices at Checkers, Pick n Pay, Woolworths, Dis-Chem and liquor stores.</p></div>';
+  h+='<div class="card"><ul class="points"><li>Free: 3 lookup sessions a day, 45 items each</li><li>R99 a month for unlimited sessions</li><li>Send your list to TrolleyUp</li><li>One sign-in for PricePulse and TrolleyUp</li></ul></div>';
+  if(Auth.mode==="dev"){
+    return h+'<form class="card" id="devform" style="margin-top:.85rem"><div class="banner warn"><b>Test sign-in.</b>This copy runs in test mode. It is not for real users.</div><label class="field"><span>Test name</span><input name="name" required pattern="[a-z0-9]{2,20}" autocomplete="off" value="tester"></label><p class="err" role="alert">'+esc(state.authErr)+'</p><button class="btn wide">Sign in</button></form>';
+  }
+  var isNew=state.signMode==="new";
+  h+='<div class="card" style="margin-top:.85rem"><h2 class="h2" style="margin-top:0">'+(isNew?'Create your account':'Sign in')+'</h2>';
+  h+='<button class="btn wide plain" type="button" data-act="google"'+(state.busy?' disabled':'')+'>Continue with Google</button>';
+  h+='<p class="sub" style="text-align:center;margin:.7rem 0 0">or use your email</p>';
+  h+='<form id="emailform"><label class="field"><span>Email address</span><input name="email" type="email" required autocomplete="email" inputmode="email"></label>';
+  h+='<label class="field"><span>Password'+(isNew?' (at least 6 characters)':'')+'</span><input name="password" type="password" required minlength="6" autocomplete="'+(isNew?'new-password':'current-password')+'"></label>';
+  h+='<p class="err" role="alert">'+esc(state.authErr)+'</p>';
+  h+='<button class="btn wide"'+(state.busy?' disabled':'')+'>'+(isNew?'Create account':'Sign in')+'</button></form>';
+  h+='<div class="btns" style="justify-content:space-between">'+(isNew?'<button class="linkbtn" type="button" data-act="mode-in">I already have an account</button>':'<button class="linkbtn" type="button" data-act="mode-new">Create an account</button><button class="linkbtn" type="button" data-act="forgot">Forgot password?</button>')+'</div>';
+  h+='<p class="sub">Already use TrolleyUp? Sign in with the same Google account or email.</p></div>';
+  return h+legalLinks()+disclaimer();
 }
-function priceUnit(p,row){return row.unit||unitPrice(p.size,eff(row))}
-function viewCompare(){
-  var cats=state.products.reduce(function(a,p){if(a.indexOf(p.cat)<0)a.push(p.cat);return a},[]);
-  var list=CATS.concat(cats.filter(function(c){return CATS.indexOf(c)<0}));
+function legalLinks(){return '<p class="sub" style="margin-top:1rem"><a href="terms.html">Terms of Use</a> · <a href="privacy.html">Privacy Policy</a> · Help: <a href="mailto:'+esc(SUPPORT)+'">'+esc(SUPPORT)+'</a></p>'}
+
+/* ---------- Age check with South African ID number ---------- */
+function viewIdCheck(){
+  var h='<h2 class="h2">Confirm your age</h2><p>PricePulse shows liquor prices, which are only for people aged 18 and over. Please enter your South African ID number so we can check your age.</p>';
+  h+='<form class="card" id="idform"><label class="field"><span>South African ID number (13 digits)</span><input class="big" name="idnum" inputmode="numeric" autocomplete="off" required maxlength="17" placeholder="0000000000000" aria-describedby="idhelp"></label>';
+  h+='<p class="sub" id="idhelp">We check the number and then throw it away. We keep only whether you are 18 or older, and a scrambled fingerprint of the number so that one person cannot open several accounts. The fingerprint cannot be turned back into your ID number.</p>';
+  h+='<label class="check"><input type="checkbox" name="terms" required><span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>';
+  h+='<p class="err" role="alert">'+esc(state.authErr)+'</p><button class="btn wide"'+(state.busy?' disabled':'')+'>Confirm my age</button></form>';
+  h+='<p class="sub" style="margin-top:.8rem">Under 18? Please ask a parent or guardian before you continue. You can still use PricePulse for groceries, fresh food and health items. Liquor is hidden.</p>';
+  h+='<div class="btns"><button class="linkbtn" type="button" data-act="signout">Sign out</button></div>';
+  return h+legalLinks();
+}
+
+/* ---------- Find: search products, then look up prices ---------- */
+var findTimer=null;
+function runFind(now){
+  clearTimeout(findTimer);
+  findTimer=setTimeout(function(){
+    var key=state.region+"|"+state.cat+"|"+state.q;
+    state.finding=true;state.findErr="";
+    api("GET","/catalogue?"+qs({region:state.region,q:state.q.trim(),category:state.cat==="All"?"":state.cat,limit:50})).then(function(r){
+      if(key!==state.region+"|"+state.cat+"|"+state.q)return;
+      state.finding=false;state.found=r;if(state.view==="find")renderMain();
+    }).catch(function(e){
+      if(handleAuthError(e))return;
+      state.finding=false;state.findErr=e.message;if(state.view==="find")renderMain();
+    });
+  },now?0:350);
+}
+function priceUnit(p,row){return row.unit||null}
+function viewFind(){
+  var cats=CATS.filter(function(c){return c!=="Liquor"||(state.me&&state.me.adult)});
   var h=banners();
-  h+='<div class="pills" role="group" aria-label="Category">'+list.map(function(c){
+  h+='<div class="pills" role="group" aria-label="Category">'+cats.map(function(c){
     return '<button class="pill" type="button" data-cat="'+esc(c)+'" aria-pressed="'+(state.cat===c)+'">'+esc(c)+'</button>'}).join("")+'</div>';
   h+='<div class="seg" role="group" aria-label="Show prices as"><button type="button" data-unit="0" aria-pressed="'+!state.unitMode+'">Pack price</button><button type="button" data-unit="1" aria-pressed="'+state.unitMode+'">Per 100g / 100ml</button></div>';
-  var items=filtered();
-  if(!state.products.length)return h+'<div class="empty">'+esc(state.note||"No prices for this town yet.")+' Try another town.</div>'+disclaimer();
-  if(!items.length)return h+'<div class="empty">No products match. Try a shorter search or another category.</div>'+disclaimer();
-  h+='<p class="sub">'+items.length+' product'+(items.length===1?'':'s')+'</p><div class="grid">'+items.map(card).join("")+'</div>';
+  if(state.findErr)return h+'<div class="empty">'+esc(state.findErr)+' <button class="linkbtn" type="button" data-act="refind">Try again</button></div>'+disclaimer();
+  var f=state.found;
+  if(!f)return h+'<p class="sub" aria-busy="true">Loading products…</p>'+disclaimer();
+  if(!f.items.length)return h+'<div class="empty">'+esc(f.note||"No products match.")+'</div>'+disclaimer();
+  h+='<p class="sub">'+plural(f.total,"product")+(f.total>f.items.length?' (showing the first '+f.items.length+'; type more of the name to narrow it down)':'')+'. Tap <b>Look up price</b> to compare stores.</p><div class="grid">';
+  h+=f.items.map(function(c){
+    var it=findItem(c.id);
+    if(it)return card(it);
+    return '<article class="card"><div class="hrow"><div class="n"><b>'+esc(c.name)+'</b><span class="size">'+esc(c.size)+' · at '+plural(c.store_count,"store")+'</span></div>'+
+      '<button class="lookup" type="button" data-look="'+c.id+'" aria-label="Look up price of '+esc(c.name)+' '+esc(c.size)+'">Look up price</button></div></article>';
+  }).join("")+'</div>';
   return h+disclaimer();
 }
-function card(p){
-  var b=bestStore(p),bp=p.prices[b],others=sortedStores(p).filter(function(s){return s!==b});
-  var on=!!state.list[p.id],u=priceUnit(p,bp);
+function card(it){
+  var p=it.p,stores=sortedStores(p);
+  var head='<div class="top"><div style="min-width:0"><h3 id="p'+p.id+'" tabindex="-1"><a href="#product/'+p.id+'">'+esc(p.name)+'</a></h3><div class="size">'+esc(p.size)+'</div></div>'+
+    '<button class="add" type="button" data-toggle="'+p.id+'" aria-pressed="'+it.on+'" aria-label="'+(it.on?'Take '+esc(p.name)+' off my list':'Put '+esc(p.name)+' on my list')+'">'+(it.on?'On list':'+ List')+'</button></div>';
+  if(!stores.length)return '<article class="card">'+head+'<div class="size" style="margin-top:.5rem">No store in '+esc(regionName(state.region))+' has a price for this right now.</div></article>';
+  var b=stores[0],bp=p.prices[b],others=stores.slice(1),u=priceUnit(p,bp);
   var main=state.unitMode&&u?money(u.value):money(eff(bp));
   var second=state.unitMode&&u?money(eff(bp))+' for '+esc(p.size):(u?money(u.value)+' '+esc(u.unit):'');
-  return '<article class="card"><div class="top"><div style="min-width:0"><h3><a href="#product/'+encodeURIComponent(p.id)+'">'+esc(p.name)+'</a></h3><div class="size">'+esc(p.size)+'</div></div>'+
-    '<button class="add" type="button" data-add="'+esc(p.id)+'" aria-pressed="'+on+'" aria-label="'+(on?'Remove '+esc(p.name)+' from list':'Add '+esc(p.name)+' to list')+'">'+(on?'On list':'+ List')+'</button></div>'+
+  return '<article class="card">'+head+
     '<div class="best"><div><div class="tag">Best price</div><div class="price">'+main+(state.unitMode&&u?' <span class="unit">'+esc(u.unit)+'</span>':'')+'</div>'+
     (second?'<div class="unit">'+second+'</div>':'')+(bp.promo!=null?'<div class="was">Usually '+money(bp.price)+'</div>':'')+oldTag(bp)+'</div>'+badge(b)+'</div>'+
     (others.length?'<ul class="others">'+others.map(function(s){
       var r=p.prices[s],uu=priceUnit(p,r);
       var shown=state.unitMode&&uu?money(uu.value)+' '+esc(uu.unit):money(eff(r));
-      var diff=state.unitMode&&uu&&u?'':' <span class="diff">'+money(eff(r)-eff(bp))+' more</span>';
+      var diff=state.unitMode&&uu?'':' <span class="diff">'+money(eff(r)-eff(bp))+' more</span>';
       return '<li><span>'+badge(s)+'</span><span><span class="p">'+shown+'</span>'+diff+oldTag(r)+'</span></li>'}).join("")+'</ul>':
       '<div class="size" style="margin-top:.5rem">Only one store has this item.</div>')+'</article>';
 }
-function oldTag(r){return r.at&&hoursOld(r.at)>STALE_HOURS?' <span class="old">Old price ('+esc(fmtDate(r.at))+')</span>':''}
+function lookUp(id){
+  if(state.busy)return;state.busy=true;
+  api("POST","/session/items",{product_id:id,region:state.region}).then(function(s){
+    state.busy=false;applySession(s);render();
+    var it=findItem(id),h=document.getElementById("p"+id);if(h)h.focus({preventScroll:true});
+    if(it){var st=sortedStores(it.p);say(it.p.name+(st.length?": best price "+money(eff(it.p.prices[st[0]]))+" at "+st[0]:": no price right now")+". "+meterText()+".")}
+  }).catch(function(e){
+    state.busy=false;
+    if(handleAuthError(e))return;
+    if(e.code==="daily_limit")return upgradeDialog(e.message);
+    if(e.code==="session_full")return ask("This session is full",'<p>'+esc(e.message)+'</p><p>Your list stays until you clear it. Clearing starts a new session.</p>',[["Go to my list","golist","btn"],["Close","","btn alt"]]);
+    if(e.code==="id_required"){state.phase="idcheck";return render()}
+    say(e.message);ask("Could not look that up",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]]);
+  });
+}
 
 /* ---------- Product detail ---------- */
-function findProduct(id){return state.products.find(function(p){return p.id===id})}
 function viewProduct(){
-  var p=findProduct(state.productId);
-  var h='<p class="back"><a class="btn alt" href="#compare">\u2190 Back to prices</a></p>';
-  if(!p)return h+'<div class="empty">This product is not in the current prices. It may not be sold in '+esc(regionName(state.region))+'.</div>';
-  var stores=sortedStores(p),b=stores[0];
-  h+='<h2 class="h2">'+esc(p.name)+'</h2><p class="sub">'+esc(p.size)+(p.brand?' \u00b7 '+esc(p.brand):'')+' \u00b7 '+esc(regionName(state.region))+'</p>';
-  h+='<div class="card">'+stores.map(function(s,i){
+  var it=findItem(state.productId);
+  var h='<p class="back"><a class="btn alt" href="#find">← Back to products</a></p>';
+  if(!it)return h+'<div class="empty">Look up this item first to see its prices.</div>';
+  var p=it.p,stores=sortedStores(p);
+  h+='<h2 class="h2">'+esc(p.name)+'</h2><p class="sub">'+esc(p.size)+(p.brand?' · '+esc(p.brand):'')+' · '+esc(regionName(state.region))+'</p>';
+  h+='<div class="card">'+(stores.length?stores.map(function(s,i){
     var r=p.prices[s],u=priceUnit(p,r);
     return '<div class="tot-row'+(i===0?' win':'')+'"><div>'+badge(s)+(i===0?' <span class="tag">Best price</span>':'')+
-      '<div class="size">'+(u?money(u.value)+' '+esc(u.unit):'')+(r.at?' \u00b7 checked '+esc(fmtDate(r.at)):'')+'</div>'+oldTag(r)+
+      '<div class="size">'+(u?money(u.value)+' '+esc(u.unit):'')+(r.at?' · checked '+esc(fmtDate(r.at)):'')+'</div>'+oldTag(r)+
       (r.url?'<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer">Open on '+esc(s)+' website<span class="vh"> (opens a new tab)</span></a>':'')+
-      '</div><div style="text-align:right"><div class="amt">'+money(eff(r))+'</div>'+(r.promo!=null?'<div class="was">Usually '+money(r.price)+'</div>':'')+'</div></div>'}).join("")+'</div>';
+      '</div><div style="text-align:right"><div class="amt">'+money(eff(r))+'</div>'+(r.promo!=null?'<div class="was">Usually '+money(r.price)+'</div>':'')+'</div></div>'}).join(""):'<div class="empty">No price right now.</div>')+'</div>';
   h+='<h2 class="h2">Price history</h2>';
   var d=state.detail;
-  if(state.source!=="api"&&state.source!=="cache")h+='<p class="sub">Price history needs live prices from the price server.</p>';
-  else if(!d||d.id!==p.apiId)h+='<p class="sub" id="histmsg">Loading price history\u2026</p>';
+  if(state.offline)h+='<p class="sub">Price history needs a connection.</p>';
+  else if(!d||d.id!==p.id)h+='<p class="sub">Loading price history…</p>';
   else if(d.error)h+='<p class="sub">'+esc(d.error)+'</p>';
   else h+=chart(d.history);
-  h+='<p class="btns"><button class="btn" type="button" data-add="'+esc(p.id)+'" aria-pressed="'+!!state.list[p.id]+'">'+(state.list[p.id]?'On your list':'Add to list')+'</button></p>';
   return h+disclaimer();
 }
 function loadDetail(){
-  var p=findProduct(state.productId);
-  if(!p||!p.apiId||(state.detail&&state.detail.id===p.apiId))return;
-  getJSON(API+"/products/"+p.apiId+"?region="+encodeURIComponent(state.region)).then(function(d){
-    state.detail={id:p.apiId,history:d.history};if(state.view==="product")render();
-  }).catch(function(e){state.detail={id:p.apiId,error:"Price history is not available right now. "+e.message};if(state.view==="product")render()});
+  var id=state.productId;
+  if(state.offline||!findItem(id)||(state.detail&&state.detail.id===id))return;
+  api("GET","/session/items/"+id+"?"+qs({region:state.region})).then(function(d){
+    state.detail={id:id,history:d.history};if(state.view==="product")renderMain();
+  }).catch(function(e){state.detail={id:id,error:"Price history is not available right now. "+e.message};if(state.view==="product")renderMain()});
 }
 /* Hand-drawn SVG line chart. Lines differ by dash pattern as well as colour; the legend states each latest price. */
 function chart(history){
@@ -435,7 +518,8 @@ function chart(history){
   function y(v){return T+(max-v)/(max-min)*(H-T-B)}
   var g='';
   [min,(min+max)/2,max].forEach(function(v){g+='<line class="grid-line" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'"/><text x="'+(L-6)+'" y="'+(y(v)+4)+'" text-anchor="end">R'+v.toFixed(2)+'</text>'});
-  g+='<text x="'+L+'" y="'+(H-8)+'">'+esc(fmtDay(ds[0]))+'</text><text x="'+(W-R)+'" y="'+(H-8)+'" text-anchor="end">'+esc(fmtDay(ds[ds.length-1]))+'</text>';
+  function day(d){return new Date(d).toLocaleDateString("en-ZA",{day:"numeric",month:"short"})}
+  g+='<text x="'+L+'" y="'+(H-8)+'">'+esc(day(ds[0]))+'</text><text x="'+(W-R)+'" y="'+(H-8)+'" text-anchor="end">'+esc(day(ds[ds.length-1]))+'</text>';
   series.forEach(function(s,i){
     var pts=s.points.map(function(pt){return x(pt.date).toFixed(1)+","+y(pt.price).toFixed(1)}).join(" ");
     g+='<polyline fill="none" stroke="'+storeColorOn(s.store)+'" stroke-width="3" stroke-linejoin="round" stroke-dasharray="'+DASHES[i%DASHES.length]+'" points="'+pts+'"/>';
@@ -445,25 +529,19 @@ function chart(history){
     return s.store+" went from R"+a.toFixed(2)+" to R"+z.toFixed(2)}).join("; ");
   return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Price history: '+esc(summary)+'">'+g+'</svg>'+legend(series);
 }
-/* Lighter line colours for dark mode, so every line stays visible. */
-var STORES_DARK={"Checkers":"#6fd0f0","Pick n Pay":"#9dbbff","Woolworths":"#e8e8e8","Ultra Liquors":"#d4a8ff","Liquorland":"#ffc56b","Dis-Chem":"#86e8a8"};
-function storeColorOn(s){return document.documentElement.dataset.dark==="1"?(STORES_DARK[s]||"#f7eeee"):storeColor(s)}
 function legend(series){
   return '<ul class="legend">'+series.map(function(s,i){var last=s.points[s.points.length-1];
     return '<li><svg width="36" height="12" aria-hidden="true"><line x1="0" x2="36" y1="6" y2="6" stroke="'+storeColorOn(s.store)+'" stroke-width="3" stroke-dasharray="'+DASHES[i%DASHES.length]+'"/></svg>'+badge(s.store)+' <span>now '+money(last.price)+'</span></li>'}).join("")+'</ul>';
 }
-function fmtDay(d){return new Date(d).toLocaleDateString("en-ZA",{day:"numeric",month:"short"})}
 
-/* ---------- Towns (real per-town data from the server; no made-up multipliers) ---------- */
+/* ---------- Towns ---------- */
 function viewTowns(){
-  var h=banners()+'<h2 class="h2">Town by town</h2><p class="sub">What the same shopping costs in each town near '+esc(regionName(state.region))+', buying each item at that town\u2019s cheapest store.</p>';
-  h+='<div class="seg" role="group" aria-label="Distance"><span class="vh">Distance</span>'+[25,50,100].map(function(k){return '<button type="button" data-radius="'+k+'" aria-pressed="'+(state.radius===k)+'">'+k+' km</button>'}).join("")+'</div>';
-  h+='<div class="seg" role="group" aria-label="Which products"><button type="button" data-scope="list" aria-pressed="'+(state.townScope==="list")+'">My list</button><button type="button" data-scope="all" aria-pressed="'+(state.townScope==="all")+'">All products</button></div>';
-  if(state.source!=="api")return h+'<div class="empty">Comparing towns needs live prices from the price server. '+(state.source==="cache"?'You are offline.':'')+'</div>'+disclaimer();
-  var ids=listIds();
-  if(state.townScope==="list"&&!ids.length)return h+'<div class="empty">Your list is empty. Add products on the Compare tab, or choose \u201cAll products\u201d.</div>'+disclaimer();
-  var t=state.towns;
-  if(!t||t.key!==townsKey())return h+'<p class="sub" aria-busy="true">Working out town totals\u2026</p>'+disclaimer();
+  var h=banners()+'<h2 class="h2">Town by town</h2><p class="sub">What your list costs in each town near '+esc(regionName(state.region))+', buying each item at that town’s cheapest store.</p>';
+  h+='<div class="seg" role="group" aria-label="Distance">'+[25,50,100].map(function(k){return '<button type="button" data-radius="'+k+'" aria-pressed="'+(state.radius===k)+'">'+k+' km</button>'}).join("")+'</div>';
+  if(state.offline)return h+'<div class="empty">Comparing towns needs a connection.</div>'+disclaimer();
+  if(!onList().length)return h+'<div class="empty">Your list is empty. Look up products on the Find tab first.</div>'+disclaimer();
+  var t=state.towns,k=townsKey();
+  if(!t||t.key!==k)return h+'<p class="sub" aria-busy="true">Working out town totals…</p>'+disclaimer();
   if(t.error)return h+'<div class="empty">'+esc(t.error)+'</div>'+disclaimer();
   var d=t.data,rows=d.towns.filter(function(x){return x.total!=null});
   if(d.note)h+='<div class="banner" role="note">'+esc(d.note)+'</div>';
@@ -472,134 +550,217 @@ function viewTowns(){
   h+='<div class="card">'+rows.map(function(r,i){
     var cheap=i===0&&rows.length>1;
     return '<div class="town'+(cheap?' cheap':'')+'"><div><div class="name">'+esc(r.name)+(cheap?' <span class="tag">Cheapest</span>':'')+'</div><div class="km">'+(r.distance_km<1?'Your town':Math.round(r.distance_km)+' km away')+
-      (r.items_missing?' \u00b7 '+r.items_missing+' item'+(r.items_missing===1?'':'s')+' not priced here':'')+'</div></div><div class="tot">'+money(r.total)+'</div><div class="bar" aria-hidden="true"><i style="width:'+Math.max(8,Math.round(r.total/max*100))+'%"></i></div></div>'}).join("")+'</div>';
+      (r.items_missing?' · '+plural(r.items_missing,"item")+' not priced here':'')+'</div></div><div class="tot">'+money(r.total)+'</div><div class="bar" aria-hidden="true"><i style="width:'+Math.max(8,Math.round(r.total/max*100))+'%"></i></div></div>'}).join("")+'</div>';
   var none=d.towns.filter(function(x){return x.total==null}).map(function(x){return x.name});
   if(none.length)h+='<p class="sub" style="margin-top:.6rem">No prices yet for: '+esc(none.join(", "))+'.</p>';
   return h+disclaimer();
 }
-function listIds(){return Object.keys(state.list).map(function(id){var p=findProduct(id);return p&&p.apiId}).filter(Boolean)}
-function townsKey(){return [state.region,state.radius,state.townScope,state.townScope==="list"?listIds().join(","):""].join("|")}
+function townsKey(){return [state.region,state.radius,onList().map(function(i){return i.p.id+"x"+i.q}).join(",")].join("|")}
 function loadTowns(){
-  if(state.source!=="api")return;
+  if(state.offline||!onList().length)return;
   var k=townsKey();if(state.towns&&state.towns.key===k)return;
-  if(state.townScope==="list"&&!listIds().length)return;
-  state.towns={key:k,pending:true};
-  var url=API+"/towns/compare?region="+encodeURIComponent(state.region)+"&radius_km="+state.radius+(state.townScope==="list"?"&product_ids="+listIds().join(","):"");
-  getJSON(url).then(function(d){if(state.towns.key===k){state.towns={key:k,data:d};if(state.view==="towns")render()}})
-    .catch(function(e){if(state.towns.key===k){state.towns={key:k,error:"Could not compare towns. "+e.message};if(state.view==="towns")render()}});
+  state.towns={key:k};
+  api("GET","/session/towns?"+qs({region:state.region,radius_km:state.radius})).then(function(d){if(state.towns.key===k){state.towns={key:k,data:d};if(state.view==="towns")renderMain()}})
+    .catch(function(e){if(state.towns.key===k){state.towns={key:k,error:"Could not compare towns. "+e.message};if(state.view==="towns")renderMain()}});
 }
 
 /* ---------- List ---------- */
-function listCount(){var n=0;for(var k in state.list)n+=state.list[k].q;return n}
-function basket(){
-  var items=[],missing=[];
-  Object.keys(state.list).forEach(function(id){var p=findProduct(id);if(p)items.push(p);else missing.push(id)});
-  var stores={};items.forEach(function(p){for(var s in p.prices)stores[s]=1});
-  var totals=Object.keys(stores).map(function(s){
-    var tot=0,have=0;items.forEach(function(p){if(p.prices[s]){tot+=eff(p.prices[s])*state.list[p.id].q;have++}});
-    return {s:s,tot:tot,have:have,full:have===items.length};
-  });
-  var full=totals.filter(function(r){return r.full}).sort(function(a,b){return a.tot-b.tot||(a.s<b.s?-1:1)});
-  var split={},splitTot=0;
-  items.forEach(function(p){var b=bestStore(p),line=eff(p.prices[b])*state.list[p.id].q;splitTot+=line;(split[b]=split[b]||[]).push({p:p,line:line})});
-  return {items:items,missing:missing,full:full,partial:totals.filter(function(r){return !r.full}),split:split,splitTot:splitTot};
-}
+function listCount(){return onList().reduce(function(n,i){return n+i.q},0)}
 function viewList(){
-  var ids=Object.keys(state.list),h=banners()+'<h2 class="h2">My list</h2>';
-  if(!ids.length)return h+'<div class="empty">Nothing here yet. Tap \u201c+ List\u201d on any product to compare your whole shop.</div>'+disclaimer();
-  h+='<div class="card">'+ids.map(function(id){
-    var e=state.list[id],p=findProduct(id),nm=esc(e.name);
-    return '<div class="li"><div class="n"><div style="font-weight:650">'+nm+'</div><div class="size">'+esc(e.size||"")+(p?'':' \u00b7 <span class="old">No current price in '+esc(regionName(state.region))+'</span>')+'</div></div>'+
-      '<div class="qty"><button type="button" data-dec="'+esc(id)+'" aria-label="One fewer '+nm+'">\u2212</button><b aria-label="Quantity">'+e.q+'</b><button type="button" data-inc="'+esc(id)+'" aria-label="One more '+nm+'">+</button></div></div>'}).join("")+'</div>';
-  var r=basket();
-  h+='<h2 class="h2" id="where">Where to shop</h2>';
-  if(!r.items.length)return h+'<div class="empty">None of these items have prices in '+esc(regionName(state.region))+'.</div>'+listButtons()+disclaimer();
-  h+='<p class="sub">One store for everything:</p><div class="card" id="single">';
-  if(r.full.length){
-    h+=r.full.map(function(x,i){return '<div class="tot-row'+(i===0?' win':'')+'"><span>'+badge(x.s)+(i===0?' <span class="tag">Cheapest</span>':'')+'</span><span class="amt">'+money(x.tot)+'</span></div>'}).join("");
-  }else h+='<div class="empty">No single store has every item on your list.</div>';
-  h+='</div>';
-  if(r.partial.length)h+='<p class="sub" style="margin-top:.5rem">Not counted, because they miss items: '+r.partial.map(function(x){return esc(x.s)+' ('+x.have+' of '+r.items.length+')'}).join(", ")+'.</p>';
-  h+='<p class="sub" style="margin-top:.8rem">Or split your shop, buying each item where it is cheapest:</p><div class="card" id="split">';
-  Object.keys(r.split).sort().forEach(function(s){
-    var lines=r.split[s],sub=lines.reduce(function(a,l){return a+l.line},0);
-    h+='<div class="tot-row"><div>'+badge(s)+'<div class="size">'+lines.map(function(l){return esc(l.p.name)+(state.list[l.p.id].q>1?' \u00d7'+state.list[l.p.id].q:'')}).join(", ")+'</div></div><span class="p" style="font-weight:700">'+money(sub)+'</span></div>';
-  });
-  h+='<div class="tot-row win"><span><b>Split shop total</b></span><span class="amt">'+money(r.splitTot)+'</span></div>';
-  if(r.full.length&&r.splitTot<r.full[0].tot)h+='<p class="size" style="margin:.4rem 0 0">Saves '+money(r.full[0].tot-r.splitTot)+' compared with shopping only at '+esc(r.full[0].s)+'.</p>';
-  h+='</div>';
-  return h+listButtons()+disclaimer();
+  var list=onList(),off=state.items.filter(function(i){return !i.on}),m=state.me,h=banners()+'<h2 class="h2">My list</h2>';
+  if(!state.items.length)return h+'<div class="empty">Nothing here yet. On the Find tab, tap “Look up price” on a product.</div>'+disclaimer();
+  if(list.length)h+='<div class="card">'+list.map(function(i){
+    var nm=esc(i.p.name);
+    return '<div class="li"><div class="n"><div style="font-weight:650"><a href="#product/'+i.p.id+'">'+nm+'</a></div><div class="size">'+esc(i.p.size)+'</div></div>'+
+      '<div class="qty"><button type="button" data-dec="'+i.p.id+'" aria-label="'+(i.q>1?'One fewer ':'Take off my list: ')+nm+'">−</button><b aria-label="Quantity">'+i.q+'</b><button type="button" data-inc="'+i.p.id+'" aria-label="One more '+nm+'">+</button></div></div>'}).join("")+'</div>';
+  else h+='<div class="empty">Your list is empty, but this session still has looked-up items below.</div>';
+  var b=state.basket;
+  if(b&&list.length){
+    h+='<h2 class="h2" id="where">Where to shop</h2><p class="sub">One store for everything:</p><div class="card" id="single">';
+    var full=b.stores.filter(function(s){return s.full_coverage}),part=b.stores.filter(function(s){return !s.full_coverage});
+    if(full.length)h+=full.map(function(x,i){return '<div class="tot-row'+(i===0?' win':'')+'"><span>'+badge(x.store)+(i===0?' <span class="tag">Cheapest</span>':'')+'</span><span class="amt">'+money(x.total)+'</span></div>'}).join("");
+    else h+='<div class="empty">No single store has every item on your list.</div>';
+    h+='</div>';
+    if(part.length)h+='<p class="sub" style="margin-top:.5rem">Not counted, because they miss items: '+part.map(function(x){return esc(x.store)+' ('+x.items_found+' of '+list.length+')'}).join(", ")+'.</p>';
+    if(b.split.length){
+      h+='<p class="sub" style="margin-top:.8rem">Or split your shop, buying each item where it is cheapest:</p><div class="card" id="split">';
+      var by={};b.split.forEach(function(l){(by[l.store]=by[l.store]||[]).push(l)});
+      Object.keys(by).sort().forEach(function(s){
+        var sub=by[s].reduce(function(a,l){return a+l.line_total},0);
+        h+='<div class="tot-row"><div>'+badge(s)+'<div class="size">'+by[s].map(function(l){return esc(l.name)+(l.quantity>1?' ×'+l.quantity:'')}).join(", ")+'</div></div><span class="p" style="font-weight:700">'+money(sub)+'</span></div>';
+      });
+      h+='<div class="tot-row win"><span><b>Split shop total</b></span><span class="amt">'+money(b.split_total)+'</span></div>';
+      if(full.length&&b.split_saving>0)h+='<p class="size" style="margin:.4rem 0 0">Saves '+money(b.split_saving)+' compared with shopping only at '+esc(full[0].store)+'.</p>';
+      h+='</div>';
+    }
+    if(b.not_found_product_ids.length)h+='<p class="sub" style="margin-top:.5rem">'+plural(b.not_found_product_ids.length,"item")+' on your list '+(b.not_found_product_ids.length===1?'has':'have')+' no price in '+esc(regionName(state.region))+' right now.</p>';
+  }
+  if(list.length)h+='<div class="btns"><button class="btn" type="button" data-act="export">Send to TrolleyUp</button><button class="btn alt" type="button" data-act="share">Share list</button></div>';
+  if(off.length)h+='<h2 class="h2" style="font-size:1.35rem">Looked up, not on my list</h2><div class="card">'+off.map(function(i){
+    return '<div class="hrow"><div class="n"><b>'+esc(i.p.name)+'</b><span class="size">'+esc(i.p.size)+'</span></div><button class="add" type="button" data-toggle="'+i.p.id+'" aria-label="Put '+esc(i.p.name)+' on my list">+ List</button></div>'}).join("")+'</div>';
+  h+='<h2 class="h2" style="font-size:1.35rem">This session</h2><div class="card"><p style="margin:0">'+esc(meterText())+'.</p><p class="sub" style="margin:.3rem 0 0">Items you look up stay counted even if you take them off the list. Clearing ends this session; your next lookup starts a new one'+(m&&m.plan!=="paid"?' ('+m.sessions_per_day+' free sessions a day)':'')+'.</p><div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-act="clear">Clear session</button></div></div>';
+  return h+disclaimer();
 }
-function listButtons(){return '<div class="btns"><button class="btn" type="button" data-share="1">Share list</button><button class="btn alt" type="button" data-clear="1">Clear list</button></div>'}
 function listText(){
-  var r=basket(),out=["PricePulse shopping list ("+regionName(state.region)+")",""];
-  Object.keys(state.list).forEach(function(id){var e=state.list[id];out.push("- "+e.q+" x "+e.name+(e.size?" "+e.size:""))});
-  if(r.full.length)out.push("","Cheapest single store: "+r.full[0].s+" "+money(r.full[0].tot));
-  if(r.items.length){out.push("Split shop: "+money(r.splitTot));
-    Object.keys(r.split).sort().forEach(function(s){out.push("  "+s+": "+r.split[s].map(function(l){return l.p.name}).join(", "))})}
+  var b=state.basket,out=["PricePulse shopping list ("+regionName(state.region)+")",""];
+  onList().forEach(function(i){out.push("- "+i.q+" x "+i.p.name+(i.p.size?" "+i.p.size:""))});
+  if(b){
+    if(b.cheapest_single_store)out.push("","Cheapest single store: "+b.cheapest_single_store.store+" "+money(b.cheapest_single_store.total));
+    out.push("Split shop: "+money(b.split_total));
+    var by={};b.split.forEach(function(l){(by[l.store]=by[l.store]||[]).push(l.name)});
+    Object.keys(by).sort().forEach(function(s){out.push("  "+s+": "+by[s].join(", "))});
+  }
   out.push("",DISCLAIMER);
   return out.join("\n");
 }
 function shareList(){
   var text=listText();
   if(navigator.share){navigator.share({title:"Shopping list",text:text}).then(function(){say("List shared.")}).catch(function(){});return}
-  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(function(){say("List copied. Paste it into WhatsApp or SMS.")},function(){fallbackCopy(text)});return}
-  fallbackCopy(text);
+  copyText(text);
 }
-function fallbackCopy(text){
+function copyText(text){
+  function done(ok){say(ok?"List copied. Paste it into WhatsApp or SMS.":"Could not copy automatically.")}
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(function(){done(true)},function(){done(false)});return}
   var ta=document.createElement("textarea");ta.value=text;ta.setAttribute("readonly","");ta.style.position="absolute";ta.style.left="-9999px";
-  document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand("copy")}catch(e){}document.body.removeChild(ta);
-  say(ok?"List copied. Paste it into WhatsApp or SMS.":"Could not copy automatically. Select the list text and copy it.");
+  document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand("copy")}catch(e){}document.body.removeChild(ta);done(ok);
+}
+function setItem(id,patch){
+  if(state.offline)return say("This needs a connection.");
+  patch.region=state.region;
+  return api("PATCH","/session/items/"+id,patch).then(function(s){applySession(s);render()}).catch(function(e){if(!handleAuthError(e)){say(e.message)}});
+}
+function clearSession(){
+  var m=state.me,free=m&&m.plan!=="paid",left=free?Math.max(0,m.sessions_per_day-m.sessions_used_today):null;
+  ask("Clear this session?",'<p>This empties your list and ends this session.</p>'+(free?'<p><b>'+(left?'You will have '+plural(left,"free session")+' left today.':'You have no free sessions left today, so you cannot start a new one until tomorrow unless you upgrade.')+'</b></p>':''),
+    [["Clear session","doclear","btn"],["Keep my list","","btn alt"]]);
 }
 
-/* ---------- Data tab ---------- */
-function viewData(){
-  var h=banners()+'<h2 class="h2">Prices and settings</h2>';
-  var src={api:"Live prices from the price server.",cache:"Saved prices (offline).",file:"Prices from a file you loaded.",sample:"Example prices (not real)."}[state.source];
-  h+='<div class="card"><p style="margin:0"><b>Showing:</b> '+esc(src)+'</p>'+(state.source!=="sample"&&newestPrice()?'<p class="size" style="margin:.3rem 0 0">Newest price: '+esc(fmtDate(newestPrice()))+'. '+state.products.length+' products.</p>':'')+
-    '<div class="btns"><button class="btn" type="button" data-reload="1">Reload prices</button></div></div>';
+/* ---------- Send to TrolleyUp ---------- */
+function exportDialog(){
+  var single=state.basket&&state.basket.cheapest_single_store;
+  ask("Send to TrolleyUp",'<p>This makes a file with your '+plural(onList().length,"item")+' that TrolleyUp can import into a shared shopping list.</p>'+
+    '<fieldset style="border:0;padding:0;margin:.6rem 0"><legend style="font-weight:650">Which store should each item go under?</legend>'+
+    '<label class="check"><input type="radio" name="xmode" value="split" checked><span>The cheapest store for each item (split shop)</span></label>'+
+    (single?'<label class="check"><input type="radio" name="xmode" value="single"><span>Everything at '+esc(single.store)+' (cheapest single store)</span></label>':'')+'</fieldset>'+
+    '<p class="err" id="xerr" role="alert"></p>',[["Make the file","doexport","btn"],["Cancel","","btn alt"]]);
+}
+function doExport(){
+  var mode=(document.querySelector('input[name="xmode"]:checked')||{}).value||"split";
+  return api("GET","/session/export/trolleyup?"+qs({region:state.region,mode:mode})).then(function(r){
+    var name=(/filename="([^"]+)"/.exec(r.headers.get("content-disposition")||"")||[])[1]||"pricepulse-for-trolleyup.csv";
+    return r.blob().then(function(blob){
+      var file=null;try{file=new File([blob],name,{type:"text/csv"})}catch(e){}
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+      setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000);
+      ask("File saved",'<p>The file <b>'+esc(name)+'</b> is in your Downloads.</p><p>Now, in TrolleyUp:</p><ol class="steps"><li>Open your shopping list (you must be the list’s admin).</li><li>On the <b>Items</b> tab, scroll to the bottom and tap <b>Import items from a CSV file</b>.</li><li>Choose the file <b>'+esc(name)+'</b>.</li><li>Check the items, then tap <b>Add items to list</b>.</li></ol><p class="sub">Each item carries its store and the PricePulse price as a note.</p>',
+        [["Open TrolleyUp","opentu","btn"]].concat(file&&navigator.canShare&&navigator.canShare({files:[file]})?[["Share the file","sharefile","btn alt"]]:[]).concat([["Done","","btn alt"]]));
+      state.exportFile=file;say("File saved. Follow the steps to import it in TrolleyUp.");
+    });
+  }).catch(function(e){var x=document.getElementById("xerr");if(x)x.textContent=e.message;say(e.message)});
+}
+
+/* ---------- Account and plan ---------- */
+function viewAccount(){
+  var m=state.me||{},h=banners()+'<h2 class="h2">My account</h2>';
+  h+='<div class="card"><p style="margin:0"><b>Signed in as</b> '+esc(Auth.email()||"your account")+'</p><p class="size" style="margin:.3rem 0 0">Age check done: '+(m.adult?'18 or older.':'under 18. Liquor is hidden.')+'</p></div>';
+  h+='<h2 class="h2" style="font-size:1.35rem">My plan</h2>';
+  if(m.plan==="paid"){
+    h+='<div class="card plan"><span class="tag">Unlimited plan</span><p style="margin:.3rem 0 0">Unlimited lookup sessions, 45 items each.</p>'+
+      (m.paid_until?'<p class="size" style="margin:.3rem 0 0">'+(m.subscription_status==="cancelled"?'Cancelled. You keep unlimited sessions until ':'Paid up until ')+esc(fmtDay(m.paid_until))+'.</p>':'')+
+      (m.subscription_status==="active"?'<div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-act="cancelplan">Cancel my plan</button></div>':'')+'</div>';
+  }else{
+    h+='<div class="card"><p style="margin:0"><b>Free plan.</b> '+m.sessions_per_day+' lookup sessions a day, '+m.session.items_max+' items each. Used today: '+m.sessions_used_today+' of '+m.sessions_per_day+'.</p></div>';
+    h+='<div class="card plan" style="margin-top:.85rem"><span class="tag">Unlimited plan</span><span class="amt">'+money(m.price_per_month).replace(".00","")+' a month</span><ul class="points"><li>Unlimited lookup sessions every day</li><li>45 items in each session</li><li>Cancel any time</li></ul>'+
+      (m.subscription_status==="pending"?'<p class="size">If you have just paid, this updates within a minute. <button class="linkbtn" type="button" data-act="refresh">Check again</button></p>':'')+
+      (m.billing_ready?'<button class="btn wide" type="button" data-act="upgrade">Upgrade for '+money(m.price_per_month).replace(".00","")+' a month</button><p class="sub" style="margin:.5rem 0 0">Paid safely through PayFast by card. PricePulse never sees your card number.</p>':'<p class="sub" style="margin:0">Paid plans open soon.</p>')+'</div>';
+  }
   h+='<h2 class="h2" style="font-size:1.35rem">Colours</h2><div class="seg" role="group" aria-label="Colour theme">'+
     [["system","Like my phone"],["light","Light"],["dark","Dark"]].map(function(t){return '<button type="button" data-theme="'+t[0]+'" aria-pressed="'+(state.theme===t[0])+'">'+t[1]+'</button>'}).join("")+'</div>';
-  h+='<h2 class="h2" style="font-size:1.35rem">Privacy</h2><p>Your location is only used on this phone to pick the nearest town. It is never sent to our server. Your shopping list stays on this phone. There are no accounts and no personal data is stored.</p>';
-  h+='<h2 class="h2" style="font-size:1.35rem">Test with a scraper file</h2><p class="sub">For testing: load a <b>latest_{town}.json</b> file made by the price scraper. The file stays on your phone.</p>';
-  h+='<div class="btns"><label class="btn alt" for="file">Load scraper file</label><input id="file" type="file" accept=".json,application/json" class="vh">'+
-     (state.source!=="sample"?'<button class="btn alt" type="button" data-sample="1">Use example prices</button>':'')+'</div><div id="fmsg" class="sub"></div>';
-  h+='<details><summary style="min-height:3rem;display:flex;align-items:center;cursor:pointer">File format</summary><pre>{\n  "region": "paarl",\n  "scraped_at": "2026-10-27 07:30",\n  "items": [\n    {"store": "Checkers", "name": "Clover Full Cream Milk",\n     "size": "2L", "category": "Fresh", "price": 36.99,\n     "url": "https://..."}\n  ]\n}</pre><p class="sub">A plain list of rows also works.</p></details>';
-  h+='<h2 class="h2" style="font-size:1.35rem">Stores covered</h2><div class="card" style="display:flex;flex-wrap:wrap;gap:.5rem">'+Object.keys(STORES).map(badge).join("")+'</div>';
+  h+='<h2 class="h2" style="font-size:1.35rem">Privacy</h2><p>Your location is only used on this phone to pick the nearest town. We do not keep your ID number: only whether you are 18 or older and a scrambled fingerprint. Read the full <a href="privacy.html">Privacy Policy</a> and <a href="terms.html">Terms of Use</a>.</p>';
+  h+='<div class="btns"><button class="btn alt" type="button" data-act="signout">Sign out</button><button class="btn plain" type="button" data-act="delete">Delete my PricePulse data</button></div>';
+  h+='<p class="sub">Help: <a href="mailto:'+esc(SUPPORT)+'">'+esc(SUPPORT)+'</a></p>';
   return h+disclaimer();
 }
+function upgradeDialog(msg){
+  var m=state.me||{},price=money(m.price_per_month||99).replace(".00","");
+  ask("No free sessions left today",'<p>'+esc(msg)+'</p><div class="card plan"><span class="tag">Unlimited plan</span><span class="amt">'+price+' a month</span><p style="margin:.2rem 0 0">Unlimited sessions every day. Cancel any time.</p></div>',
+    (m.billing_ready?[["Upgrade for "+price+" a month","upgrade","btn"]]:[]).concat([["Not now","","btn alt"]]));
+}
+function upgrade(){
+  say("Opening PayFast…");
+  api("POST","/billing/checkout").then(function(c){
+    var f=document.createElement("form");f.method="post";f.action=c.action_url;
+    Object.keys(c.fields).forEach(function(k){var i=document.createElement("input");i.type="hidden";i.name=k;i.value=c.fields[k];f.appendChild(i)});
+    document.body.appendChild(f);f.submit();
+  }).catch(function(e){ask("Could not start the payment",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+}
+function refreshMe(){return api("GET","/me").then(function(m){state.me=m;render();return m})}
+function afterPayment(){
+  ask("Thank you",'<p>PayFast is confirming your payment. Your plan will show as <b>Unlimited</b> within a minute.</p>',[["OK","","btn"]]);
+  var tries=0;(function poll(){refreshMe().then(function(m){if(m.plan!=="paid"&&++tries<8)setTimeout(poll,5000);else if(m.plan==="paid")say("Your Unlimited plan is active.")}).catch(function(){})})();
+}
+
+/* ---------- Dialog ---------- */
+function ask(title,html,buttons){
+  var d=document.getElementById("dlg");
+  d.innerHTML='<h2 id="dlgt">'+esc(title)+'</h2>'+html+'<div class="btns" style="margin-bottom:0">'+buttons.map(function(b){return '<button class="'+b[2]+'" type="button" data-dlg="'+b[1]+'">'+esc(b[0])+'</button>'}).join("")+'</div>';
+  if(!d.open)d.showModal();
+}
+document.getElementById("dlg").addEventListener("click",function(e){
+  var b=e.target.closest("[data-dlg]");if(!b)return;
+  var a=b.dataset.dlg,d=document.getElementById("dlg");
+  if(a==="doexport"){b.disabled=true;return doExport().then(function(){b.disabled=false})}
+  if(a==="sharefile"){if(state.exportFile)navigator.share({files:[state.exportFile],title:"PricePulse list for TrolleyUp"}).catch(function(){});return}
+  if(a==="opentu"){window.open(TROLLEYUP_URL,"_blank","noopener");return}
+  d.close();
+  if(a==="golist")go("list");
+  if(a==="upgrade")upgrade();
+  if(a==="doclear")api("POST","/session/clear",{region:state.region}).then(function(s){applySession(s);state.detail=null;render();say("Session cleared. "+meterText()+".")}).catch(function(e){if(!handleAuthError(e))say(e.message)});
+  if(a==="docancel")api("POST","/billing/cancel").then(function(m){state.me=m;render();say("Your plan is cancelled. You keep unlimited sessions until the paid-up date.")}).catch(function(e){ask("Could not cancel",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+  if(a==="dodelete")api("DELETE","/me").then(function(){["pp_session_"+state.region].forEach(drop);say("Your PricePulse data was deleted.");Auth.out()}).catch(function(e){ask("Could not delete",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+});
 
 /* ---------- Rendering and navigation ---------- */
 var ICONS={
-  compare:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h12M4 12h8M4 17h5"/><path d="M17 14l3 3-3 3"/><path d="M20 17h-6"/></svg>',
+  find:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>',
   towns:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',
   list:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>',
-  data:'<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>'
+  account:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>'
 };
-var LABELS={compare:"Compare",towns:"Towns",list:"List",data:"Data"};
+var LABELS={find:"Find",list:"List",towns:"Towns",account:"Account"};
 function renderNav(){
-  var cur=state.view==="product"?"compare":state.view;
+  var cur=state.view==="product"?"find":state.view;
   document.getElementById("nav").innerHTML=Object.keys(LABELS).map(function(k){
     var n=k==="list"?listCount():0;
     return '<button type="button" data-view="'+k+'"'+(cur===k?' aria-current="page"':'')+'>'+ICONS[k]+'<span>'+LABELS[k]+(n?'<span class="cnt" aria-label=", '+n+' items">'+n+'</span>':'')+'</span></button>'}).join("");
 }
+function renderMain(){
+  var m=document.getElementById("main"),h;
+  if(state.phase==="boot")h='<p class="empty">Opening PricePulse…</p>';
+  else if(state.phase==="signin")h=viewSignin();
+  else if(state.phase==="idcheck")h=viewIdCheck();
+  else h=state.view==="find"?viewFind():state.view==="towns"?viewTowns():state.view==="list"?viewList():state.view==="product"?viewProduct():viewAccount();
+  m.innerHTML=h;
+}
 function render(){
-  applyTheme();
-  var m=document.getElementById("main");
-  m.innerHTML=state.view==="compare"?viewCompare():state.view==="towns"?viewTowns():state.view==="list"?viewList():state.view==="product"?viewProduct():viewData();
-  renderNav();renderFresh();
+  applyTheme();renderMain();renderHead();
+  if(state.phase!=="app")return;
+  renderNav();
   if(state.view==="towns")loadTowns();
   if(state.view==="product")loadDetail();
+  if(state.view==="find"&&!state.found&&!state.finding&&!state.findErr)runFind(true);
 }
 function go(v,focus){
-  if(v.indexOf("product/")===0){state.view="product";state.productId=decodeURIComponent(v.slice(8))}
-  else if(LABELS[v])state.view=v;else state.view="compare";
+  if(state.phase!=="app")return;
+  if(v.indexOf("product/")===0){state.view="product";state.productId=+v.slice(8)}
+  else if(v.indexOf("account")===0){state.view="account";if(v==="account/paid")afterPayment();if(v==="account/cancelled")say("Payment was cancelled. Nothing was charged.");v="account"}
+  else state.view=LABELS[v]?v:"find";
   render();window.scrollTo(0,0);
-  var target="#"+(state.view==="product"?"product/"+encodeURIComponent(state.productId):state.view);
+  var target="#"+(state.view==="product"?"product/"+state.productId:state.view);
   if(location.hash!==target){try{history.pushState(null,"",target)}catch(e){location.hash=target}}
-  if(focus!==false){var m=document.getElementById("main");m.focus({preventScroll:true})}
+  if(focus!==false)document.getElementById("main").focus({preventScroll:true});
 }
-function save(){store("pp_list",state.list);store("pp_region",state.region);store("pp_unit",state.unitMode);store("pp_theme",state.theme)}
+function savePrefs(){store("pp_region",state.region);store("pp_unit",state.unitMode);store("pp_theme",state.theme)}
 function applyTheme(){
   var root=document.documentElement;
   if(state.theme==="system")root.removeAttribute("data-theme");else root.setAttribute("data-theme",state.theme);
@@ -614,15 +775,13 @@ function fillRegions(){
 }
 function setRegion(slug){
   if(slug===state.region)return;
-  state.region=slug;state.detail=null;state.towns=null;save();
+  state.region=slug;state.detail=null;state.towns=null;state.found=null;savePrefs();
   document.getElementById("base").value=slug;
-  if(state.source==="file"){render();return}
-  if(!useCache(slug))state.products=[];
-  render();loadLive();
+  render();loadSession();
 }
 function locate(){
   if(!navigator.geolocation){say("This phone cannot share its location. Choose your town from the list.");return}
-  say("Finding the nearest town\u2026");
+  say("Finding the nearest town…");
   navigator.geolocation.getCurrentPosition(function(pos){
     var lat=pos.coords.latitude,lon=pos.coords.longitude,best=null;
     state.regions.forEach(function(r){var d=haversine(lat,lon,r.lat,r.lon);if(!best||d<best.d)best={r:r,d:d}});
@@ -634,74 +793,114 @@ function locate(){
   },{enableHighAccuracy:false,timeout:10000,maximumAge:600000});
 }
 
+/* Sign-in changed: work out which screen to show. */
+function onAuth(signedIn){
+  state.authErr="";state.busy=false;
+  if(!signedIn){state.phase="signin";state.me=null;state.items=[];state.basket=null;state.found=null;return render()}
+  api("GET","/me").then(function(m){
+    state.me=m;
+    if(!m.id_checked){state.phase="idcheck";return render()}
+    enterApp();
+  }).catch(function(e){
+    if(e.status===401){state.phase="signin";state.authErr=e.message;return render()}
+    /* Server unreachable: show the saved list if there is one. */
+    var c=load("pp_session_"+state.region);
+    if(c&&c.s){state.phase="app";state.offline=true;state.error=e.message;applySession(c.s,true);state.savedAt=c.savedAt;state.view="list";return render()}
+    state.phase="signin";state.authErr=e.message+" Please try again when you have a connection.";render();
+  });
+}
+function enterApp(){
+  state.phase="app";
+  var h=(location.hash||"").slice(1);
+  render();
+  loadSession().then(function(){if(h)go(h,false)});
+}
+
 document.addEventListener("click",function(e){
+  if(e.target.closest("dialog"))return;
   var a=e.target.closest("a[href^='#']");
   if(a){e.preventDefault();go(a.getAttribute("href").slice(1));return}
   var t=e.target.closest("button");if(!t)return;
   var d=t.dataset;
   if(d.view)return go(d.view);
-  if(d.cat){state.cat=d.cat;return render()}
-  if(d.unit){state.unitMode=d.unit==="1";save();return render()}
+  if(d.cat){state.cat=d.cat;state.found=null;renderMain();return runFind(true)}
+  if(d.unit){state.unitMode=d.unit==="1";savePrefs();return renderMain()}
   if(d.radius){state.radius=+d.radius;return render()}
-  if(d.scope){state.townScope=d.scope;return render()}
-  if(d.add){
-    var p=findProduct(d.add);
-    if(state.list[d.add]){delete state.list[d.add];say("Removed "+(p?p.name:"item")+" from your list.")}
-    else if(p){state.list[d.add]={q:1,name:p.name,size:p.size};say("Added "+p.name+" to your list. "+listCount()+" items on your list.")}
-    save();var y=window.scrollY;render();window.scrollTo(0,y);
-    var again=document.querySelector('[data-add="'+CSS.escape(d.add)+'"]');if(again)again.focus();return;
-  }
+  if(d.theme){state.theme=d.theme;savePrefs();return render()}
+  if(d.look){if(state.offline)return say("Looking up prices needs a connection.");t.disabled=true;t.textContent="Looking up…";return lookUp(+d.look)}
+  if(d.toggle){var it=findItem(+d.toggle);if(it)setItem(it.p.id,{on_list:!it.on}).then(function(){say(it.p.name+(it.on?" taken off your list.":" put on your list."))});return}
   if(d.inc||d.dec){
-    var id=d.inc||d.dec,e2=state.list[id];if(!e2)return;
-    if(d.inc)e2.q=Math.min(99,e2.q+1);else if(e2.q>1)e2.q--;else{delete state.list[id];say("Removed "+e2.name+".")}
-    save();render();var b=document.querySelector('[data-'+(d.inc?'inc':'dec')+'="'+CSS.escape(id)+'"]');if(b)b.focus();
-    if(state.list[id])say(e2.name+": "+e2.q);return;
+    var i2=findItem(+(d.inc||d.dec));if(!i2)return;
+    if(d.dec&&i2.q<=1)return void setItem(i2.p.id,{on_list:false}).then(function(){say(i2.p.name+" taken off your list.")});
+    var nq=Math.min(99,i2.q+(d.inc?1:-1));
+    return void setItem(i2.p.id,{quantity:nq}).then(function(){var b=document.querySelector('[data-'+(d.inc?'inc':'dec')+'="'+i2.p.id+'"]');if(b)b.focus();say(i2.p.name+": "+nq)});
   }
-  if(d.clear){if(confirm("Clear your whole list?")){state.list={};save();render();say("List cleared.")}return}
-  if(d.share)return shareList();
-  if(d.sample){loadSample();state.error="";render();say("Showing example prices.");return}
-  if(d.reload){state.error="";loadLive();loadRegions();say("Checking for new prices.");return}
-  if(d.theme){state.theme=d.theme;save();render();return}
+  switch(d.act){
+    case "google":return void Auth.google().catch(function(er){formState(document.getElementById("emailform"),false,er.message)});
+    case "mode-in":state.signMode="in";state.authErr="";return renderMain();
+    case "mode-new":state.signMode="new";state.authErr="";return renderMain();
+    case "forgot":{
+      var em=(document.querySelector('#emailform [name=email]')||{}).value||"";
+      var ef=document.getElementById("emailform");
+      if(!em)return formState(ef,false,"Type your email address above first, then tap Forgot password.");
+      return void Auth.reset(em).then(function(){formState(ef,false,"We sent a password reset email to "+em+". Open it, choose a new password, then sign in here.")},function(er){formState(ef,false,er.message)});
+    }
+    case "signout":return void Auth.out();
+    case "refind":state.findErr="";return runFind(true);
+    case "share":return shareList();
+    case "export":return exportDialog();
+    case "clear":return clearSession();
+    case "upgrade":return upgrade();
+    case "refresh":return void refreshMe().then(function(m){say(m.plan==="paid"?"Your Unlimited plan is active.":"Not paid yet.")});
+    case "cancelplan":return ask("Cancel your plan?",'<p>No more payments will be taken. You keep unlimited sessions until the end of the month you have paid for, then go back to the free plan.</p>',[["Cancel my plan","docancel","btn"],["Keep my plan","","btn alt"]]);
+    case "delete":return ask("Delete your PricePulse data?",'<p>This removes your age check, your sessions and your list from PricePulse. It does not delete your sign-in, which you also use for TrolleyUp.</p>',[["Delete my data","dodelete","btn"],["Keep it","","btn alt"]]);
+  }
 });
-document.addEventListener("change",function(e){
-  if(e.target.id!=="file")return;
-  var f=e.target.files&&e.target.files[0];if(!f)return;
-  var rd=new FileReader();
-  rd.onload=function(){
-    var msg=document.getElementById("fmsg");
-    try{
-      var r=fromRows(JSON.parse(rd.result));
-      state.products=r.products;state.source="file";state.stamp=r.stamp;state.isSample=r.sample;state.error="";
-      if(r.region&&state.regions.some(function(x){return x.slug===r.region})){state.region=r.region;document.getElementById("base").value=r.region}
-      state.cat="All";render();say("Loaded "+r.products.length+" products from the file.");
-    }catch(err){if(msg)msg.textContent="Could not read that file. "+err.message;say("Could not read that file.")}
-  };
-  rd.readAsText(f);
+/* Forms keep what was typed when something goes wrong: only the message and button change. */
+function formState(f,busy,msg){
+  var b=f.querySelector("button.btn"),er=f.querySelector(".err");
+  if(b)b.disabled=!!busy;
+  if(er&&msg!==undefined)er.textContent=msg;
+  if(msg)say(msg);
+}
+document.addEventListener("submit",function(e){
+  var f=e.target;e.preventDefault();
+  if(f.id==="devform")return Auth.dev(f.querySelector("[name=name]").value.trim());
+  if(f.id==="emailform"){
+    formState(f,true,"");
+    var em=f.email.value.trim(),pw=f.password.value;
+    (state.signMode==="new"?Auth.emailNew(em,pw):Auth.emailIn(em,pw)).catch(function(er){formState(f,false,er.message)});
+    return;
+  }
+  if(f.id==="idform"){
+    formState(f,true,"");
+    api("POST","/me/verify-id",{id_number:f.idnum.value,accept_terms:f.terms.checked}).then(function(m){
+      state.me=m;say(m.adult?"Thank you. Your age is confirmed.":"Thank you. Liquor is hidden because you are under 18.");enterApp();
+    }).catch(function(er){if(handleAuthError(er))return;formState(f,false,er.message);f.idnum.focus()});
+  }
 });
 document.getElementById("q").addEventListener("input",function(e){
   state.q=e.target.value;
-  if(state.view!=="compare"){state.view="compare";try{history.replaceState(null,"","#compare")}catch(x){}}
-  render();
+  if(state.view!=="find"){state.view="find";try{history.replaceState(null,"","#find")}catch(x){}renderNav()}
+  runFind();
 });
 document.getElementById("base").addEventListener("change",function(e){setRegion(e.target.value)});
 document.getElementById("locate").addEventListener("click",locate);
-window.addEventListener("popstate",function(){go((location.hash||"#compare").slice(1),false)});
-window.addEventListener("online",function(){if(state.source!=="api"&&state.source!=="file")loadLive()});
+window.addEventListener("popstate",function(){go((location.hash||"#find").slice(1),false)});
+window.addEventListener("online",function(){if(state.phase==="app"&&state.offline)loadSession()});
 if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",function(){if(state.theme==="system")render()});
 
 /* ---------- Start ---------- */
 (function init(){
-  state.list=load("pp_list")||{};
-  /* Lists saved by the first version were {id: qty}; upgrade them. */
-  Object.keys(state.list).forEach(function(k){if(typeof state.list[k]==="number")state.list[k]={q:state.list[k],name:k.split("|")[0],size:k.split("|")[1]||""}});
   state.region=load("pp_region")||"paarl";state.unitMode=!!load("pp_unit");state.theme=load("pp_theme")||"system";
   var rs=load("pp_regions");if(Array.isArray(rs)&&rs.length)state.regions=rs;
-  fillRegions();
-  if(!useCache(state.region))loadSample();
-  var h=(location.hash||"").slice(1);
-  if(h.indexOf("product/")===0){state.view="product";state.productId=decodeURIComponent(h.slice(8))}else if(LABELS[h])state.view=h;
-  render();
-  if(location.protocol!=="file:"){loadRegions();loadLive()}
+  fillRegions();render();loadRegions();
+  Auth.start(onAuth).catch(function(){
+    /* Sign-in could not load (no connection). Show the saved list if there is one. */
+    var c=load("pp_session_"+state.region);
+    if(c&&c.s){state.phase="app";state.offline=true;state.error="You are offline.";applySession(c.s,true);state.savedAt=c.savedAt;state.view="list";return render()}
+    state.phase="signin";state.authErr="No connection. PricePulse needs the internet to sign you in.";render();
+  });
   var secure=location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1";
   if("serviceWorker" in navigator&&secure)navigator.serviceWorker.register("sw.js").catch(function(){});
 })();
