@@ -7,7 +7,7 @@ _Last updated 2026-11-10. Claude: rewrite this section at the end of every work 
 
 - **Built and tested (253 server tests, 34-step browser test):** sign-in with TrolleyUp's Firebase accounts; one-time age check by South African ID number (number not kept; keyed fingerprint stops second accounts); lookup sessions (45 items, 3 a day free, midnight SA time); prices locked to looked-up items; under-18s never see liquor; R99 monthly plan through PayFast; Send to TrolleyUp (CSV for TrolleyUp's import); Terms and Privacy pages (drafts); delete-my-data.
 - **Unverified (could not be reached from the build machine):** every store scraper against the live sites; PayFast (sandbox and live); Firebase sign-in on a real address; the scraper Docker image.
-- Branch `claude/accounts-sessions-billing` holds the accounts, limits and billing work, waiting for the owner to say "merge".
+- The accounts, limits and billing work was merged into `main` on 2026-11-10 (owner said "merge"). Merging deploys nothing: there is no hosting yet.
 
 **Waiting on the owner**
 - Choose hosting (docs/DEPLOY.md, Option A recommended) so there is a public address.
