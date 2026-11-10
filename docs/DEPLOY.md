@@ -25,36 +25,85 @@ address; the health report will say so.
 ## Option A: one server with Docker
 
 Needs: a Linux server (Ubuntu 24.04, 1 GB RAM minimum, 2 GB better for Chromium),
-a domain or subdomain pointing at it (e.g. `prices.siliconroute.co.za`).
+a domain or subdomain pointing at it (e.g. `prices.trolleyup.com`).
 
-### 1. Install Docker on the server
+### 1. Install Docker and a firewall on the server
 
 ```bash
 ssh root@YOUR_SERVER_IP
+apt update && apt upgrade -y
 curl -fsSL https://get.docker.com | sh
+ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw --force enable
 ```
 
-### 2. Get the code and settings
+### 2. Get the code (the repo is private, so the server needs a read-only key)
 
 ```bash
-git clone https://github.com/siliconroute-ctrl/pricepulse.git
+ssh-keygen -t ed25519 -f ~/.ssh/pricepulse_deploy -N ""
+cat ~/.ssh/pricepulse_deploy.pub
+```
+
+Copy the one line it prints. In GitHub open the **pricepulse** repo → **Settings** →
+**Deploy keys** → **Add deploy key**. Title: `server`. Paste the line. Leave
+"Allow write access" **unticked**. Then on the server:
+
+```bash
+printf 'Host github.com\n  IdentityFile ~/.ssh/pricepulse_deploy\n' >> ~/.ssh/config
+git clone git@github.com:siliconroute-ctrl/pricepulse.git
 cd pricepulse
+```
+
+(Answer `yes` when asked whether to trust github.com.)
+
+### 3. Settings
+
+```bash
 cp backend/.env.example backend/.env
+python3 -c "import secrets; print(secrets.token_hex(32))"
 nano backend/.env
 ```
 
-In `.env` set at least:
+The second command prints a long random secret. In `.env` set:
 
 ```
-PP_ALLOWED_ORIGINS=https://prices.siliconroute.co.za
+PP_PUBLIC_URL=https://prices.trolleyup.com
+PP_ALLOWED_ORIGINS=https://prices.trolleyup.com
 PP_TRUST_PROXY=1
+PP_ID_SECRET=<the long secret just printed>
 PP_SCRAPE_REGIONS=paarl
 ```
 
-### 3. Start everything
+Keep a copy of `PP_ID_SECRET` somewhere safe off the server and never change it.
+Leave the PayFast lines empty for now, and `PP_AUTH_DEV` and `PP_OPEN_PRICES` at 0.
+The server refuses to start without `PP_ID_SECRET`. Save in nano with Ctrl+O, Enter,
+Ctrl+X.
+
+### 3a. First, test whether the stores accept this server
+
+Do this before starting the timetable, so a blocked server costs you nothing more:
 
 ```bash
-docker compose up -d --build
+docker compose build
+docker compose run --rm -v $PWD/debug:/app/backend/debug scraper \
+  python run_scrapers.py --region paarl --limit 3 --debug --no-db
+```
+
+Read the line for each store:
+
+| You see | Meaning |
+|---|---|
+| `3 of 3 products found` with sensible names and prices | That store works |
+| `0 of 3 products found ... nothing found; see the debug folder` | The site opened; the scraper needs fixing (docs/FIX_A_SCRAPER.md). Pictures are in `debug/` |
+| `BLOCKED by the website` | The store refuses this server's address |
+| `could not open the website` | Network problem or the store refuses the connection outright |
+
+If most stores say BLOCKED or could not open, try a South African server before
+spending time on fixes.
+
+### 3b. Start everything
+
+```bash
+docker compose up -d
 docker compose logs -f scraper      # watch the first price check (Ctrl+C to stop watching)
 ```
 
@@ -71,14 +120,17 @@ Install Caddy, which gets a free certificate automatically:
 ```bash
 apt install -y caddy
 cat > /etc/caddy/Caddyfile <<'EOF'
-prices.siliconroute.co.za {
+prices.trolleyup.com {
     reverse_proxy localhost:8000
 }
 EOF
 systemctl reload caddy
 ```
 
-Open `https://prices.siliconroute.co.za` on your phone. That is the **test URL**.
+Open `https://prices.trolleyup.com` on your phone. That is the **test URL**.
+
+Sign-in will fail until this address is added to Firebase's Authorized domains:
+see [ACCOUNTS.md](ACCOUNTS.md).
 
 ### 5. Updating later
 
@@ -99,7 +151,7 @@ docker compose cp api:/data/backup.db ./pricepulse-backup-$(date +%F).db
 
 ## Option B: app on Firebase Hosting, API on the server
 
-Do Option A steps 1 to 4 first, but use a subdomain like `api.prices.siliconroute.co.za`
+Do Option A steps 1 to 4 first, but use a subdomain like `api.prices.trolleyup.com`
 for the API. Then on your own computer:
 
 ```bash
@@ -112,11 +164,11 @@ Tell the app where the API is (this file is the only thing that changes):
 
 **Linux/macOS**
 ```bash
-echo 'window.PRICEPULSE_CONFIG = { apiBase: "https://api.prices.siliconroute.co.za" };' > frontend/config.js
+echo 'window.PRICEPULSE_CONFIG = { apiBase: "https://api.prices.trolleyup.com" };' > frontend/config.js
 ```
 **Windows (PowerShell)**
 ```powershell
-Set-Content frontend\config.js 'window.PRICEPULSE_CONFIG = { apiBase: "https://api.prices.siliconroute.co.za" };'
+Set-Content frontend\config.js 'window.PRICEPULSE_CONFIG = { apiBase: "https://api.prices.trolleyup.com" };'
 ```
 
 Create the Firebase site and deploy:
@@ -135,7 +187,7 @@ server's `.env`, then on the server run `docker compose up -d`.
 
 1. Create a free account at https://uptimerobot.com
 2. **Add New Monitor** → type **HTTP(s)**.
-3. URL: `https://prices.siliconroute.co.za/api/v1/health?strict=1`
+3. URL: `https://prices.trolleyup.com/api/v1/health?strict=1`
 4. Interval: 5 minutes. Alert contact: your email.
 
 `?strict=1` makes the health check fail when there has been **no successful scrape

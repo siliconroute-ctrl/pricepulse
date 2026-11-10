@@ -10,7 +10,8 @@ services:
     volumes:
       - ppdata:/data
     ports:
-      - "8000:8000"
+      # Only this server can reach port 8000; the public reaches the app through Caddy (HTTPS).
+      - "127.0.0.1:8000:8000"
     restart: unless-stopped
 
   scraper:
