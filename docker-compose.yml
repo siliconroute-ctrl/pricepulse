@@ -1,5 +1,8 @@
-# Run everything:   docker compose up -d --build
-# Logs:             docker compose logs -f
+# App and API (what the Contabo test server runs):   docker compose up -d --build api
+# Logs:                                              docker compose logs -f api
+# The scraper does NOT start by default. For now the scrapers run on the owner's PC
+# (South African address); retailers may block or re-price a data-centre address.
+# To run the timetable on a server later:            docker compose --profile scraper up -d
 # The API and the scraper share one data folder (SQLite database + JSON files).
 services:
   api:
@@ -15,6 +18,7 @@ services:
     restart: unless-stopped
 
   scraper:
+    profiles: ["scraper"]
     build: { context: ., dockerfile: Dockerfile.scraper }
     env_file: backend/.env
     environment:

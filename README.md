@@ -18,7 +18,7 @@ It is not a shop and takes no orders. Free for 3 lookup sessions a day; R99 a mo
 | R99 monthly plan (PayFast) | Built and tested against our own checks. **Not yet run against PayFast.** See [docs/PAYMENTS.md](docs/PAYMENTS.md). |
 | Send to TrolleyUp | Working. The file was checked against TrolleyUp's own import code. |
 | Web app (installable) | Working. 34-step browser test passes. |
-| Public address | Not deployed yet. See [docs/DEPLOY.md](docs/DEPLOY.md). |
+| Test server | Contabo (Germany) is hardened and serves a test page at pricepulse.trolleyup.com. The app is not deployed on it yet. See [docs/DEPLOY.md](docs/DEPLOY.md). |
 
 Full detail, including what is unverified: [docs/STATUS.md](docs/STATUS.md).
 
@@ -100,6 +100,7 @@ All commands are run from `pricepulse/backend` with the virtual environment acti
 | Keep scraping every 6 hours | `python scheduler.py` |
 | Match report | `python admin.py report` |
 | Accounts and subscribers | `python admin.py users` |
+| Remove example prices only | `python admin.py purge-sample` (add `--yes` to do it) |
 | Give someone the Unlimited plan | `python admin.py plan <account-id> paid` |
 | Decide uncertain matches | `python admin.py review` |
 | Load a JSON file into the database | `python admin.py ingest data/latest_paarl.json` |
@@ -132,8 +133,9 @@ the failed store are kept.
 ## Deploy
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) for step-by-step commands. In short:
-`docker compose up -d --build` on a small Linux server gives the app, the API
-and the scheduler in one go.
+`docker compose up -d --build api` on a small Linux server runs the app and its API.
+The scrapers run on the owner's PC for now (South African address); the timetable can run
+on a server later with `docker compose --profile scraper up -d`.
 
 ## Troubleshooting
 

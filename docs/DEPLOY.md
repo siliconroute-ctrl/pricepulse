@@ -1,199 +1,207 @@
 # Deploying PricePulse ZA for testing
 
-Two ways. **Option A is recommended**: one small Linux server runs everything
-(app, API, scheduler) with one command. Option B adds Firebase Hosting for the app,
-since you already use it.
+**Plan:** the app and its API run on a small Linux server, in Docker, behind Caddy
+(which provides HTTPS). The price **scrapers run on the owner's Windows PC**, with a
+South African internet address, because retailers may block or re-price a data-centre
+address. Prices will be copied to the server from the PC (not built yet).
 
-> Not yet done: these steps have not been run against a real server or Firebase
-> project. They need your accounts. Ask Claude Code to walk through them with you.
+| Part | Where it runs |
+|---|---|
+| App (web page) and API | Server, one Docker container (`api`) |
+| HTTPS and the address | Caddy on the server |
+| Scrapers | The owner's PC, for now |
+| Database | SQLite file in a Docker volume on the server |
 
-## Which host? (decision needed)
+**Test server:** Contabo Cloud VPS in Germany (Ubuntu 24.04, 6 vCPU, 12 GB, month by
+month). Address: `pricepulse.trolleyup.com`. If the stores block scrapers run from it, or
+South African speed matters, the same steps work on a South African provider
+(xneelo Cloud, or a fixed-price VPS there).
 
-| | Option A: small VPS | Option B: Firebase + VPS | Not recommended: Render/Railway free tier |
-|---|---|---|---|
-| App (web) | served by the API | Firebase Hosting (free) | free static site |
-| API | VPS | VPS | sleeps when idle; free tier has **no permanent disk**, so the SQLite database is wiped on each restart |
-| Scraper + Chromium | VPS | VPS | needs a paid background worker |
-| Cost | about R80-R150 a month | same | free tier not workable for scraping |
-| Moving parts | 1 server | server + Firebase | 2-3 services |
+> Status (11 Nov 2026): the server is **hardened and serving a test page**. The app is
+> **not deployed on it yet** (steps 5 onward). Nothing here has been run against
+> PayFast, and Firebase sign-in has not been tried on this address.
 
-A server in **South Africa** (for example xneelo, Afrihost or Hetzner's Johannesburg
-location if available) is worth considering: some retailer sites treat foreign or
-data-centre traffic with more suspicion. Even so, a store may block a server's
-address; the health report will say so.
+## DNS notes (this caused a long delay once)
 
-## Option A: one server with Docker
+- `trolleyup.com` DNS is at **xneelo**. The main site and email are on a different server
+  (129.232.137.82). **Never change those records.**
+- xneelo's panel had created a separate zone called `pricepulse.trolleyup.com`. Inside that
+  zone, a record named `pricepulse` means `pricepulse.pricepulse.trolleyup.com`, which is
+  wrong. The fix was to set the **`@` A record in that zone** to the server's IP (TTL 300).
+- After any DNS change, ask xneelo's own server what it says:
+  `nslookup pricepulse.trolleyup.com ns1.host-h.net`
+  Your router, 8.8.8.8 and 1.1.1.1 may show the old answer for up to 2 hours.
+- The API does not need its own name: it answers at `https://pricepulse.trolleyup.com/api/...`.
 
-Needs: a Linux server (Ubuntu 24.04, 1 GB RAM minimum, 2 GB better for Chromium),
-a domain or subdomain pointing at it. Ours is `pricepulse.trolleyup.com` (an `A` record at xneelo
-with the server's IP). `api.trolleyup.com` is only needed for Option B.
+## 1 to 4: Server preparation (done on the Contabo test server)
 
-### 1. Install Docker and a firewall on the server
+Repeat these on any new server. Log in as `root` the first time only.
 
-```bash
-ssh root@YOUR_SERVER_IP
-apt update && apt upgrade -y
-curl -fsSL https://get.docker.com | sh
-ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw --force enable
+1. **Update:** `apt update && apt upgrade -y`. If a brand new server cannot look up names
+   ("Temporary failure resolving"), create `/etc/systemd/resolved.conf.d/dns.conf`
+   containing `[Resolve]`, `DNS=1.1.1.1 8.8.8.8`, `FallbackDNS=9.9.9.9`, then
+   `systemctl restart systemd-resolved`.
+2. **Firewall:** `ufw allow OpenSSH && ufw allow 80 && ufw allow 443 && ufw --force enable`
+3. **HTTPS front door:** `apt install -y caddy`
+4. **Safe logins.** On your PC (PowerShell) make a key (use a passphrase of four
+   unrelated words) and show its public half:
+   ```
+   ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\id_ed25519
+   Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub
+   ```
+   On the server, as root, put that line in `~/.ssh/authorized_keys` (the file needs
+   `chmod 700 ~/.ssh` and `chmod 600 ~/.ssh/authorized_keys`), then create a normal user:
+   ```
+   adduser --gecos "" deploy
+   usermod -aG sudo deploy
+   mkdir -p /home/deploy/.ssh && cp ~/.ssh/authorized_keys /home/deploy/.ssh/
+   chown -R deploy:deploy /home/deploy/.ssh
+   chmod 700 /home/deploy/.ssh && chmod 600 /home/deploy/.ssh/authorized_keys
+   ```
+   **Test both logins from a second window** (`ssh -i ... deploy@IP` then `sudo whoami`).
+   Only then turn off password login. The `00-` name matters: some servers have a setup
+   file that switches passwords back on, and the first value read wins.
+   ```
+   cat > /etc/ssh/sshd_config.d/00-hardening.conf <<'EOF'
+   PasswordAuthentication no
+   KbdInteractiveAuthentication no
+   PermitRootLogin prohibit-password
+   PubkeyAuthentication yes
+   EOF
+   sshd -t && sshd -T | grep -q '^passwordauthentication no$' && systemctl restart ssh
+   ```
+   Check from outside: `ssh -o PubkeyAuthentication=no -o PreferredAuthentications=password root@IP`
+   must say `Permission denied (publickey).`
+5. **Automatic protection**, as `deploy`:
+   ```
+   sudo apt install -y fail2ban unattended-upgrades
+   printf 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n' | sudo tee /etc/apt/apt.conf.d/20auto-upgrades
+   sudo systemctl enable --now fail2ban
+   ```
+   Security updates now install themselves but the server does **not** reboot by itself,
+   so every month or two: `ls /var/run/reboot-required`, and if it exists, `sudo reboot`.
+6. **Reboot once**, then check `uname -r`, `systemctl is-active caddy fail2ban ssh`,
+   `sudo ufw status`, and that the page still loads.
+7. **Snapshot** in the Contabo panel (VPS, your server, Snapshots), named for the date.
+   Rolling back to a snapshot also undoes everything done after it.
+8. **Check port 80 from outside** (Contabo's own panel firewall can block it): on your PC,
+   `curl.exe -I http://pricepulse.trolleyup.com` should answer
+   `308 Permanent Redirect` to `https://...`.
+
+## 5. Put the app on the server
+
+Everything from here is run as `deploy`. Docker commands use `sudo` on purpose: being in
+the `docker` group is the same as being root.
+
+**5a. Docker and git**
+```
+curl -fsSL https://get.docker.com | sudo sh
+sudo docker --version
+sudo apt install -y git
 ```
 
-### 2. Get the code (the repo is private, so the server needs a read-only key)
-
-```bash
+**5b. The code.** The repo is private, so the server gets its own read-only key:
+```
 ssh-keygen -t ed25519 -f ~/.ssh/pricepulse_deploy -N ""
 cat ~/.ssh/pricepulse_deploy.pub
 ```
-
-Copy the one line it prints. In GitHub open the **pricepulse** repo → **Settings** →
-**Deploy keys** → **Add deploy key**. Title: `server`. Paste the line. Leave
-"Allow write access" **unticked**. Then on the server:
-
-```bash
-printf 'Host github.com\n  IdentityFile ~/.ssh/pricepulse_deploy\n' >> ~/.ssh/config
+In GitHub: the **pricepulse** repo, **Settings**, **Deploy keys**, **Add deploy key**,
+title `server`, paste the line, leave **Allow write access** unticked. Then:
+```
+printf 'Host github.com\n  IdentityFile ~/.ssh/pricepulse_deploy\n  IdentitiesOnly yes\n' >> ~/.ssh/config
+chmod 600 ~/.ssh/config
 git clone git@github.com:siliconroute-ctrl/pricepulse.git
 cd pricepulse
 ```
+(Answer `yes` when asked to trust github.com.)
 
-(Answer `yes` when asked whether to trust github.com.)
-
-### 3. Settings
-
-```bash
+**5c. Settings**
+```
 cp backend/.env.example backend/.env
 python3 -c "import secrets; print(secrets.token_hex(32))"
 nano backend/.env
 ```
-
-The second command prints a long random secret. In `.env` set:
-
+Set these four lines (use the long secret just printed for `PP_ID_SECRET`):
 ```
 PP_PUBLIC_URL=https://pricepulse.trolleyup.com
 PP_ALLOWED_ORIGINS=https://pricepulse.trolleyup.com
 PP_TRUST_PROXY=1
-PP_ID_SECRET=<the long secret just printed>
-PP_SCRAPE_REGIONS=paarl
+PP_ID_SECRET=<the long secret>
 ```
+Leave the PayFast lines empty and `PP_AUTH_DEV` and `PP_OPEN_PRICES` at 0. The server refuses
+to start otherwise. Keep a copy of `PP_ID_SECRET` somewhere safe off the server and never
+change it: it is what keeps ID fingerprints safe. Never put it in GitHub or in chat.
 
-Keep a copy of `PP_ID_SECRET` somewhere safe off the server and never change it.
-Leave the PayFast lines empty for now, and `PP_AUTH_DEV` and `PP_OPEN_PRICES` at 0.
-The server refuses to start without `PP_ID_SECRET`. Save in nano with Ctrl+O, Enter,
-Ctrl+X.
-
-### 3a. First, test whether the stores accept this server
-
-Do this before starting the timetable, so a blocked server costs you nothing more:
-
-```bash
-docker compose build
-docker compose run --rm -v $PWD/debug:/app/backend/debug scraper \
-  python run_scrapers.py --region paarl --limit 3 --debug --no-db
+**5d. Start the app (not the scraper)**
 ```
-
-Read the line for each store:
-
-| You see | Meaning |
-|---|---|
-| `3 of 3 products found` with sensible names and prices | That store works |
-| `0 of 3 products found ... nothing found; see the debug folder` | The site opened; the scraper needs fixing (docs/FIX_A_SCRAPER.md). Pictures are in `debug/` |
-| `BLOCKED by the website` | The store refuses this server's address |
-| `could not open the website` | Network problem or the store refuses the connection outright |
-
-If most stores say BLOCKED or could not open, try a South African server before
-spending time on fixes.
-
-### 3b. Start everything
-
-```bash
-docker compose up -d
-docker compose logs -f scraper      # watch the first price check (Ctrl+C to stop watching)
+sudo docker compose up -d --build api
+sudo docker compose logs api --tail 20
+curl http://127.0.0.1:8000/api/v1/health
 ```
+The health answer should start `{"status":"empty",...` (no prices yet). The app listens
+on `127.0.0.1:8000` only, so it cannot be reached from the internet except through Caddy.
 
-The first price check starts within a minute. Check the API:
-
-```bash
-curl http://localhost:8000/api/v1/health
+**5e. Point Caddy at it.** Replace the test page with the app:
 ```
-
-### 4. Add HTTPS (needed for "install app" and location on phones)
-
-Install Caddy, which gets a free certificate automatically:
-
-```bash
-apt install -y caddy
-cat > /etc/caddy/Caddyfile <<'EOF'
+sudo nano /etc/caddy/Caddyfile
+```
+so the whole file reads:
+```
 pricepulse.trolleyup.com {
-    reverse_proxy localhost:8000
+    reverse_proxy 127.0.0.1:8000
 }
-EOF
-systemctl reload caddy
 ```
+Then `sudo systemctl reload caddy` and open `https://pricepulse.trolleyup.com`.
 
-Open `https://pricepulse.trolleyup.com` on your phone. That is the **test URL**.
+**5f. Allow sign-in on this address.** In the Firebase console, project **trolleyup**,
+**Authentication**, **Settings**, **Authorized domains**, **Add domain**:
+`pricepulse.trolleyup.com`. If the project's web API key is restricted by website (Google
+Cloud console, APIs and Services, Credentials), add the address there too. Details and
+what is untested: [ACCOUNTS.md](ACCOUNTS.md).
 
-Sign-in will fail until this address is added to Firebase's Authorized domains:
-see [ACCOUNTS.md](ACCOUNTS.md).
+**5g. Example prices for testing the screens (optional).** Until real prices arrive:
+```
+sudo docker compose exec api python make_sample.py --regions paarl,wellington
+```
+The app shows an "Example prices" warning for these. They are made up. When real prices
+are ready, remove only the examples (accounts and age checks stay):
+```
+sudo docker compose exec api python admin.py purge-sample          # shows what it would remove
+sudo docker compose exec api python admin.py purge-sample --yes    # does it
+```
+**Until the legal review is done, let only yourself and people you know sign in.** The age
+check collects ID numbers, so POPIA applies even during testing.
 
-### 5. Updating later
-
-```bash
-cd pricepulse
+## Updating later
+```
+cd ~/pricepulse
 git pull
-docker compose up -d --build
+sudo docker compose up -d --build api
 ```
 
-### 6. Backups
-
-The database and price files live in the Docker volume `pricepulse_ppdata`.
-
-```bash
-docker compose exec api python -c "import sqlite3; s=sqlite3.connect('/data/pricepulse.db'); s.execute(\"VACUUM INTO '/data/backup.db'\")"
-docker compose cp api:/data/backup.db ./pricepulse-backup-$(date +%F).db
+## Backups
+The database holds accounts, age results (not ID numbers), fingerprints and subscriptions.
+Treat every copy as private.
 ```
+cd ~/pricepulse
+sudo docker compose exec api rm -f /data/backup.db
+sudo docker compose exec api python -c "import sqlite3; s=sqlite3.connect('/data/pricepulse.db'); s.execute(\"VACUUM INTO '/data/backup.db'\")"
+sudo docker compose cp api:/data/backup.db ./pricepulse-backup-$(date +%F).db
+```
+Copy it to your PC, then delete it from the server: from PowerShell,
+`scp -i $env:USERPROFILE\.ssh\id_ed25519 deploy@SERVER_IP:pricepulse/pricepulse-backup-*.db .`
+Contabo's Auto Backup (about EUR 3.35 a month) is worth switching on once real accounts
+exist.
 
-## Oracle Cloud (Always Free) differences
+## Getting real prices onto the server (not built yet)
+Planned: run the scrapers on your PC, copy `data/latest_{town}.json` to the server with
+`scp` (key login, no password in any script), then load it with
+`docker compose exec api python admin.py ingest <file>`. A one-command PowerShell script
+for this will be written once the scrapers produce real data.
 
-Oracle's free servers are a good place to test, but they differ from a plain Ubuntu
-server in four ways. Where this guide says `ssh root@...`, use these instead.
-(Written from how Oracle's setup normally works; their screens and names can change.)
+## Optional: app on Firebase Hosting, API on the server
 
-1. **Choose the machine.** Create an instance with image **Ubuntu 24.04**, shape
-   **Ampere (VM.Standard.A1.Flex)**, **2 OCPUs and 12 GB** (the free allowance is up to
-   4 OCPUs and 24 GB). Do not use the 1 GB "Micro" shape; Chromium needs more.
-   The A1 shape is **ARM**, not Intel. The Docker images used here are built for both,
-   but **we have not yet built them on ARM**; if the build fails, send the last 20 lines.
-2. **Sign-in is by key, as user `ubuntu`, not root.** Oracle makes you download a
-   private key file when creating the instance. Keep it safe. From PowerShell:
-   ```
-   ssh -i C:\Users\YOU\Downloads\ssh-key.key ubuntu@YOUR_SERVER_IP
-   sudo -i
-   ```
-   `sudo -i` gives you the root prompt the rest of this guide expects. If Windows says
-   the key file's permissions are too open, right-click the file, Properties, Security,
-   Advanced, remove all users except yourself.
-3. **Open the web ports in two places.** Oracle blocks everything except SSH both in
-   the cloud network and inside Ubuntu.
-   - In the Oracle console: **Networking** then **Virtual Cloud Networks** then your
-     network then **Security Lists** then the default list then **Add Ingress Rules**:
-     source `0.0.0.0/0`, TCP, destination ports `80`, then again for `443`.
-   - On the server, in place of the `ufw` line in step 1:
-     ```
-     iptables -I INPUT 5 -p tcp --dport 80 -j ACCEPT
-     iptables -I INPUT 5 -p tcp --dport 443 -j ACCEPT
-     apt install -y iptables-persistent && netfilter-persistent save
-     ```
-     (Do not also turn on `ufw`; the two fight.)
-4. **"Out of host capacity" when creating the A1 server** is common on the free tier.
-   Try another availability domain, or try again later. Oracle can also reclaim a free
-   server that sits idle for a long time, so keep a copy of `backend/.env` and
-   `PP_ID_SECRET` somewhere safe, and back up as shown below.
-
-Which region you pick at sign-up matters: free resources live only in your **home
-region**, which cannot be changed later. Oracle has a Johannesburg region; if your home
-region is elsewhere, Oracle's addresses may look foreign to South African shops.
-
-## Option B: app on Firebase Hosting, API on the server
-
-Do Option A steps 1 to 4 first, but use a subdomain like `api.trolleyup.com`
+Do the server steps above first, but use a subdomain like `api.trolleyup.com`
 for the API. Then on your own computer:
 
 ```bash

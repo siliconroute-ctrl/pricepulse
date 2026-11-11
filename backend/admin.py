@@ -45,6 +45,32 @@ def match_report(s: Session) -> dict:
     }
 
 
+def purge_sample(s: Session) -> dict[str, int]:
+    """Remove example (made-up) prices and whatever is left with no price at all.
+
+    Accounts, age checks, sessions' daily counts, subscriptions and real prices stay.
+    A looked-up item whose product disappears is taken out of that person's session.
+    """
+    from sqlalchemy import delete, update
+
+    from pricepulse.db import Price, ScrapeRun, SessionItem
+
+    out = {"prices": s.execute(delete(Price).where(Price.is_sample.is_(True))).rowcount}
+    bare = s.scalars(select(Listing.id).where(Listing.id.not_in(select(Price.listing_id)))).all()
+    if bare:
+        s.execute(delete(Listing).where(Listing.id.in_(bare)))
+    out["listings"] = len(bare)
+    used = select(Listing.product_id).where(Listing.product_id.is_not(None))
+    gone = s.scalars(select(Product.id).where(Product.id.not_in(used))).all()
+    if gone:
+        s.execute(update(Listing).where(Listing.suggestion_id.in_(gone)).values(suggestion_id=None))
+        s.execute(delete(SessionItem).where(SessionItem.product_id.in_(gone)))
+        s.execute(delete(Product).where(Product.id.in_(gone)))
+    out["products"] = len(gone)
+    out["runs"] = s.execute(delete(ScrapeRun).where(ScrapeRun.status == "sample")).rowcount
+    return out
+
+
 def merge(s: Session, keep_id: int, drop_id: int) -> int:
     """Move listings from product ``drop_id`` into ``keep_id``. Nothing is deleted."""
     if keep_id == drop_id:
@@ -112,6 +138,10 @@ def main(argv: list[str] | None = None) -> int:
     p_m.add_argument("keep", type=int)
     p_m.add_argument("drop", type=int)
     sub.add_parser("users")
+    p_purge = sub.add_parser("purge-sample")
+    p_purge.add_argument(
+        "--yes", action="store_true", help="really remove them (without it: only show counts)"
+    )
     p_plan = sub.add_parser("plan")
     p_plan.add_argument("uid")
     p_plan.add_argument("plan", choices=["paid", "free"])
@@ -139,6 +169,17 @@ def main(argv: list[str] | None = None) -> int:
             print("By match type: " + ", ".join(f"{k} {v}" for k, v in sorted(r["by_status"].items())))
         elif args.cmd == "review":
             review(s)
+        elif args.cmd == "purge-sample":
+            n = purge_sample(s)
+            text = (
+                f"{n['prices']} example prices, {n['listings']} listings, {n['products']} products "
+                f"and {n['runs']} example scrape records"
+            )
+            if args.yes:
+                print(f"Removed {text}. Accounts and real prices were not touched.")
+            else:
+                s.rollback()
+                print(f"Would remove {text}. Nothing was changed. Add --yes to do it.")
         elif args.cmd == "users":
             from pricepulse.db import AppUser, Subscription, utcnow
 

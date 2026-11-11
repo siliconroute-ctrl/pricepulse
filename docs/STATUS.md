@@ -79,7 +79,8 @@ and a real device.
 |---|---|
 | `Dockerfile.api` | Built and run here (API, web app, sample data all worked). Base image was later pinned to `python:3.12-slim-bookworm`; that exact build is not re-run (Docker Hub rate limit) |
 | `Dockerfile.scraper` | **Not built here**: the sandbox blocks Debian's package servers, which Chromium's libraries come from. Python part installs fine |
-| `docker-compose.yml`, `.env.example`, `scheduler.py` | Written; scheduler logic not run for a full cycle |
+| `docker-compose.yml`, `.env.example`, `scheduler.py` | Written; scheduler logic not run for a full cycle. The scraper service now only starts with `--profile scraper` |
+| Test server (Contabo, Germany) | Hardened (key-only login, non-root user, firewall, fail2ban, automatic security updates, rebooted). Serves a test page at pricepulse.trolleyup.com with a valid certificate. App not deployed on it yet |
 | GitHub Actions workflow | Written, not yet run |
 | Public test URL | **Not deployed: needs your hosting decision** (docs/DEPLOY.md) |
 

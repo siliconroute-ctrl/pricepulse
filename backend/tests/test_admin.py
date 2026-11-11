@@ -72,3 +72,36 @@ def test_merge(session, settings):
     )
     assert merge(session, 1, 2) == 1
     assert {lst.product_id for lst in session.scalars(select(Listing))} == {1}
+
+
+def test_purge_sample_keeps_real_prices_and_accounts(session, settings, capsys):
+    import admin
+    from pricepulse.db import AppUser, LookupSession, Price, ScrapeRun, SessionItem
+
+    ingest_items(session, [row("Checkers", "Example Thing 1L", 10)], "paarl", T, settings, is_sample=True)
+    ingest_items(
+        session, [row("Checkers", "Real Thing 2L", 20, url="https://x.example/r")], "paarl", T, settings
+    )
+    sample_pid = session.scalars(select(Product).where(Product.name.like("Example%"))).one().id
+    real_pid = session.scalars(select(Product).where(Product.name.like("Real%"))).one().id
+    session.add(AppUser(uid="u1", id_fingerprint="f" * 64, adult=True))
+    sess = LookupSession(uid="u1", day="2026-11-10")
+    sess.items.append(SessionItem(product_id=sample_pid))
+    sess.items.append(SessionItem(product_id=real_pid))
+    session.add_all(
+        [
+            sess,
+            ScrapeRun(store="Checkers", region="paarl", status="sample"),
+            ScrapeRun(store="Checkers", region="paarl", status="ok"),
+        ]
+    )
+    session.flush()
+
+    out = admin.purge_sample(session)
+    assert out == {"prices": 1, "listings": 1, "products": 1, "runs": 1}
+    assert [p.name for p in session.scalars(select(Product))] == ["Real Thing"]
+    assert len(session.scalars(select(Price)).all()) == 1
+    assert [i.product_id for i in session.scalars(select(SessionItem))] == [real_pid]
+    assert session.get(AppUser, "u1").id_fingerprint == "f" * 64
+    assert [r.status for r in session.scalars(select(ScrapeRun))] == ["ok"]
+    assert admin.purge_sample(session) == {"prices": 0, "listings": 0, "products": 0, "runs": 0}
