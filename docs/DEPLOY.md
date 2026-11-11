@@ -25,7 +25,8 @@ address; the health report will say so.
 ## Option A: one server with Docker
 
 Needs: a Linux server (Ubuntu 24.04, 1 GB RAM minimum, 2 GB better for Chromium),
-a domain or subdomain pointing at it (e.g. `prices.trolleyup.com`).
+a domain or subdomain pointing at it. Ours is `pricepulse.trolleyup.com` (an `A` record at xneelo
+with the server's IP). `api.trolleyup.com` is only needed for Option B.
 
 ### 1. Install Docker and a firewall on the server
 
@@ -66,8 +67,8 @@ nano backend/.env
 The second command prints a long random secret. In `.env` set:
 
 ```
-PP_PUBLIC_URL=https://prices.trolleyup.com
-PP_ALLOWED_ORIGINS=https://prices.trolleyup.com
+PP_PUBLIC_URL=https://pricepulse.trolleyup.com
+PP_ALLOWED_ORIGINS=https://pricepulse.trolleyup.com
 PP_TRUST_PROXY=1
 PP_ID_SECRET=<the long secret just printed>
 PP_SCRAPE_REGIONS=paarl
@@ -120,14 +121,14 @@ Install Caddy, which gets a free certificate automatically:
 ```bash
 apt install -y caddy
 cat > /etc/caddy/Caddyfile <<'EOF'
-prices.trolleyup.com {
+pricepulse.trolleyup.com {
     reverse_proxy localhost:8000
 }
 EOF
 systemctl reload caddy
 ```
 
-Open `https://prices.trolleyup.com` on your phone. That is the **test URL**.
+Open `https://pricepulse.trolleyup.com` on your phone. That is the **test URL**.
 
 Sign-in will fail until this address is added to Firebase's Authorized domains:
 see [ACCOUNTS.md](ACCOUNTS.md).
@@ -149,9 +150,50 @@ docker compose exec api python -c "import sqlite3; s=sqlite3.connect('/data/pric
 docker compose cp api:/data/backup.db ./pricepulse-backup-$(date +%F).db
 ```
 
+## Oracle Cloud (Always Free) differences
+
+Oracle's free servers are a good place to test, but they differ from a plain Ubuntu
+server in four ways. Where this guide says `ssh root@...`, use these instead.
+(Written from how Oracle's setup normally works; their screens and names can change.)
+
+1. **Choose the machine.** Create an instance with image **Ubuntu 24.04**, shape
+   **Ampere (VM.Standard.A1.Flex)**, **2 OCPUs and 12 GB** (the free allowance is up to
+   4 OCPUs and 24 GB). Do not use the 1 GB "Micro" shape; Chromium needs more.
+   The A1 shape is **ARM**, not Intel. The Docker images used here are built for both,
+   but **we have not yet built them on ARM**; if the build fails, send the last 20 lines.
+2. **Sign-in is by key, as user `ubuntu`, not root.** Oracle makes you download a
+   private key file when creating the instance. Keep it safe. From PowerShell:
+   ```
+   ssh -i C:\Users\YOU\Downloads\ssh-key.key ubuntu@YOUR_SERVER_IP
+   sudo -i
+   ```
+   `sudo -i` gives you the root prompt the rest of this guide expects. If Windows says
+   the key file's permissions are too open, right-click the file, Properties, Security,
+   Advanced, remove all users except yourself.
+3. **Open the web ports in two places.** Oracle blocks everything except SSH both in
+   the cloud network and inside Ubuntu.
+   - In the Oracle console: **Networking** then **Virtual Cloud Networks** then your
+     network then **Security Lists** then the default list then **Add Ingress Rules**:
+     source `0.0.0.0/0`, TCP, destination ports `80`, then again for `443`.
+   - On the server, in place of the `ufw` line in step 1:
+     ```
+     iptables -I INPUT 5 -p tcp --dport 80 -j ACCEPT
+     iptables -I INPUT 5 -p tcp --dport 443 -j ACCEPT
+     apt install -y iptables-persistent && netfilter-persistent save
+     ```
+     (Do not also turn on `ufw`; the two fight.)
+4. **"Out of host capacity" when creating the A1 server** is common on the free tier.
+   Try another availability domain, or try again later. Oracle can also reclaim a free
+   server that sits idle for a long time, so keep a copy of `backend/.env` and
+   `PP_ID_SECRET` somewhere safe, and back up as shown below.
+
+Which region you pick at sign-up matters: free resources live only in your **home
+region**, which cannot be changed later. Oracle has a Johannesburg region; if your home
+region is elsewhere, Oracle's addresses may look foreign to South African shops.
+
 ## Option B: app on Firebase Hosting, API on the server
 
-Do Option A steps 1 to 4 first, but use a subdomain like `api.prices.trolleyup.com`
+Do Option A steps 1 to 4 first, but use a subdomain like `api.trolleyup.com`
 for the API. Then on your own computer:
 
 ```bash
@@ -164,11 +206,11 @@ Tell the app where the API is (this file is the only thing that changes):
 
 **Linux/macOS**
 ```bash
-echo 'window.PRICEPULSE_CONFIG = { apiBase: "https://api.prices.trolleyup.com" };' > frontend/config.js
+echo 'window.PRICEPULSE_CONFIG = { apiBase: "https://api.trolleyup.com" };' > frontend/config.js
 ```
 **Windows (PowerShell)**
 ```powershell
-Set-Content frontend\config.js 'window.PRICEPULSE_CONFIG = { apiBase: "https://api.prices.trolleyup.com" };'
+Set-Content frontend\config.js 'window.PRICEPULSE_CONFIG = { apiBase: "https://api.trolleyup.com" };'
 ```
 
 Create the Firebase site and deploy:
@@ -187,7 +229,7 @@ server's `.env`, then on the server run `docker compose up -d`.
 
 1. Create a free account at https://uptimerobot.com
 2. **Add New Monitor** → type **HTTP(s)**.
-3. URL: `https://prices.trolleyup.com/api/v1/health?strict=1`
+3. URL: `https://pricepulse.trolleyup.com/api/v1/health?strict=1`
 4. Interval: 5 minutes. Alert contact: your email.
 
 `?strict=1` makes the health check fail when there has been **no successful scrape
