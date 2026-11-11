@@ -80,9 +80,9 @@ and a real device.
 | `Dockerfile.api` | Built and run here (API, web app, sample data all worked). Base image was later pinned to `python:3.12-slim-bookworm`; that exact build is not re-run (Docker Hub rate limit) |
 | `Dockerfile.scraper` | **Not built here**: the sandbox blocks Debian's package servers, which Chromium's libraries come from. Python part installs fine |
 | `docker-compose.yml`, `.env.example`, `scheduler.py` | Written; scheduler logic not run for a full cycle. The scraper service now only starts with `--profile scraper` |
-| Test server (Contabo, Germany) | Hardened (key-only login, non-root user, firewall, fail2ban, automatic security updates, rebooted). Serves a test page at pricepulse.trolleyup.com with a valid certificate. App not deployed on it yet |
-| GitHub Actions workflow | Written, not yet run |
-| Public test URL | **Not deployed: needs your hosting decision** (docs/DEPLOY.md) |
+| Test server (Contabo, Germany) | Hardened (key-only login, non-root user, firewall, fail2ban, automatic security updates, rebooted). **App deployed 11 Nov 2026** (Docker `api` container behind Caddy, valid HTTPS certificate) at https://pricepulse.trolleyup.com with EXAMPLE prices for paarl and wellington |
+| GitHub Actions workflow | Runs on every push (ruff, black, 254 tests, browser test). Every run so far has passed |
+| Public test URL | https://pricepulse.trolleyup.com (test copy, example prices only). **Verified by the owner on a phone, 11 Nov 2026:** sign-in worked, the ID age check passed (made-up ID), and the list exported with Send to TrolleyUp imported correctly into TrolleyUp. **Not yet tried:** Google sign-in from this address, Delete my data, a PayFast payment, real prices |
 
 ## Next steps
 
