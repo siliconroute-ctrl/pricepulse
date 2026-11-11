@@ -136,7 +136,32 @@ def test_block_detection():
     assert looks_blocked(403, "")
     assert looks_blocked(429, "")
     assert looks_blocked(200, "<html>Please complete the CAPTCHA</html>")
+    assert looks_blocked(200, '<html><script src="https://x.token.awswaf.com/challenge.js"></script></html>')
     assert not looks_blocked(200, "<html>Milk R36.99</html>")
+
+
+def test_big_shop_page_mentioning_captcha_is_not_a_block():
+    """Found on the real Checkers page: a normal page can load a captcha script."""
+    head = '<head><script src="https://6ac.captcha-sdk.awswaf.com/jsapi.js"></script></head>'
+    page = "<html>" + head + "<body>" + "<div>product</div>" * 8000 + "</body></html>"
+    assert len(page) > 100_000 and not looks_blocked(200, page)
+    assert looks_blocked(200, "<html>" + head + "<body>Please wait</body></html>")  # small page = challenge
+
+
+def test_context_options_present_as_desktop_with_honest_tag():
+    class FakeBrowser:
+        version = "156.0.8078.4"
+
+    opts = Checkers().context_options(FakeBrowser())
+    assert opts["viewport"]["width"] >= 1280 and opts["locale"] == "en-ZA"
+    ua = opts["user_agent"]
+    assert "Windows NT" in ua and "Mobile" not in ua and "Chrome/156.0.0.0" in ua
+    assert "PricePulseZA/1.0" in ua and "pricepulse.trolleyup.com" in ua
+    assert "Chrome/124" in Checkers().context_options(object())["user_agent"]  # no version known
+
+
+def test_checkers_search_address():
+    assert Checkers.search_url == "https://www.checkers.co.za/search?Search={q}"
 
 
 def test_check_items_flags_suspect_and_rejects():
@@ -185,3 +210,11 @@ def test_failed_store_says_why():
     nothing = StoreHealth(store="Checkers", region="paarl", terms_total=2)
     nothing.finish()
     assert "nothing found; see the debug folder" in nothing.summary()
+
+
+def test_wrong_address_is_reported_plainly():
+    h = StoreHealth(store="Checkers", region="paarl", terms_total=3)
+    h.errors.append("Search address not found (HTTP 404): https://x.example/search/all?q=milk")
+    h.status = "failed"
+    assert h.summary().startswith("Checkers: 0 of 3 products found")
+    assert "FAILED - Search address not found (HTTP 404)" in h.summary()

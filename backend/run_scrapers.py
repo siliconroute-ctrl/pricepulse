@@ -27,7 +27,14 @@ from pathlib import Path
 from pricepulse.config import BACKEND_DIR, get_settings
 from pricepulse.ingest import sa_now
 from pricepulse.regions import load_regions, valid_region
-from pricepulse.scrapers.base import BaseScraper, BlockedError, Item, StoreHealth, check_items
+from pricepulse.scrapers.base import (
+    BaseScraper,
+    BlockedError,
+    Item,
+    StoreHealth,
+    WrongAddressError,
+    check_items,
+)
 from pricepulse.scrapers.stores import ALL_SCRAPERS, find_scraper
 
 log = logging.getLogger("pricepulse.run")
@@ -81,15 +88,7 @@ def scrape_store(
     )
     items: list[Item] = []
     shown = 0
-    context = browser.new_context(
-        locale="en-ZA",
-        timezone_id="Africa/Johannesburg",
-        user_agent=(
-            "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0 Mobile Safari/537.36 PricePulseZA-price-check"
-        ),
-        viewport={"width": 412, "height": 915},
-    )
+    context = browser.new_context(**scraper.context_options(browser))
     page = context.new_page()
     try:
         scraper.setup(page)
@@ -99,6 +98,11 @@ def scrape_store(
             except BlockedError as exc:
                 health.status = "blocked"
                 health.errors.append(f"Blocked: {exc}")
+                health.terms_missing.extend(t for t, _ in terms[terms.index((term, category)) :])
+                break
+            except WrongAddressError as exc:
+                health.status = "failed"
+                health.errors.append(str(exc))
                 health.terms_missing.extend(t for t, _ in terms[terms.index((term, category)) :])
                 break
             except Exception as exc:  # noqa: BLE001 - one term must not stop the store

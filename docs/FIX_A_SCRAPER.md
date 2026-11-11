@@ -3,6 +3,35 @@
 Websites change. When one does, a store suddenly finds 0 products, or wrong prices.
 This guide fixes that in about 20 minutes. You do not need to understand all the code.
 
+## 0. The routine on the owner's Windows PC
+
+Open PowerShell and switch the Python workspace on (every new window):
+
+```
+cd $env:USERPROFILE\pricepulse\backend
+.venv\Scripts\Activate.ps1
+git pull
+```
+
+Run one store, 3 products, and keep the pages it sees:
+
+```
+python run_scrapers.py --region paarl --store Checkers --limit 3 --debug --no-db --save-fixtures
+explorer debug\checkers
+```
+
+When a store finds nothing, send Claude the screenshots (`.png`) and one `.html` from that
+folder (drag them into the chat). A screenshot shows what the browser really saw; the page
+shows what the scraper can read. Add `--show` to watch the browser window while it runs.
+
+What went wrong first time, so you can recognise it:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Screenshot shows the store's own "404 / page not found" | Wrong search address | Use the address that works in your own browser. The scraper now says `Search address not found (HTTP 404)` and stops that store at once |
+| Screenshot shows a phone-style app instead of the shop | The store serves phones a different site | The scraper presents as a desktop Chrome (`context_options` in `scrapers/base.py`) |
+| "BLOCKED" | The store refused or showed a bot check | Do not try to get around it (section 5) |
+
 ## 1. See what is wrong
 
 Run just that store, with details:

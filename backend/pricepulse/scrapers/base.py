@@ -34,7 +34,10 @@ BLOCK_MARKERS = (
     "are you a robot",
     "request unsuccessful. incapsula",
     "pardon our interruption",
+    "awswaf",
 )
+# Real shop pages are large and may mention a captcha script. Bot-check pages are small.
+BLOCK_PAGE_MAX = 60000
 
 
 @dataclass
@@ -61,6 +64,10 @@ class Item:
 
 class BlockedError(Exception):
     """The site refused us (HTTP 403/429 or a CAPTCHA page)."""
+
+
+class WrongAddressError(Exception):
+    """The store's search address does not exist (HTTP 404). Retrying cannot help: fix the address."""
 
 
 @dataclass
@@ -99,7 +106,10 @@ class StoreHealth:
             head += ". BLOCKED by the website - stopped this store and moved on"
         elif self.status == "failed":
             opened = next((e for e in self.errors if e.startswith("Could not open the website")), "")
-            if opened:
+            wrong = next((e for e in self.errors if e.startswith("Search address not found")), "")
+            if wrong:
+                head += f". FAILED - {wrong}"
+            elif opened:
                 head += f". FAILED - could not open the website ({_net_reason(opened)})"
             else:
                 head += ". FAILED - nothing found; see the debug folder"
@@ -353,10 +363,12 @@ def relevant(term: str, name: str) -> bool:
 
 
 def looks_blocked(status: int, body: str) -> bool:
+    """True when the site refused us (HTTP 403/429) or showed a small bot-check page."""
     if status in (403, 429):
         return True
-    low = body[:20000].lower()
-    return any(m in low for m in BLOCK_MARKERS) and len(low) < 200000
+    if len(body) > BLOCK_PAGE_MAX:
+        return False
+    return any(m in body[:20000].lower() for m in BLOCK_MARKERS)
 
 
 # --- Store scraper base class ---------------------------------------------------
@@ -401,6 +413,25 @@ class BaseScraper:
         self.blocks = 0
 
     # Hooks -----------------------------------------------------------------
+    def context_options(self, browser: Any) -> dict:
+        """Browser settings for this store: desktop Chrome, South African locale, honest tag.
+
+        Some stores serve a different (phone app) site to phone browsers, so the scraper
+        presents as a desktop. The tag at the end says who we are and where to ask.
+        """
+        major = str(getattr(browser, "version", "") or "124").split(".")[0]
+        agent = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+            f"Chrome/{major}.0.0.0 Safari/537.36 "
+            "PricePulseZA/1.0 (+https://pricepulse.trolleyup.com; price comparison)"
+        )
+        return {
+            "locale": "en-ZA",
+            "timezone_id": "Africa/Johannesburg",
+            "user_agent": agent,
+            "viewport": {"width": 1366, "height": 900},
+        }
+
     def parse_html(self, html: str, category: str = "") -> list[Item]:
         items = parse_html_cards(html, self.name, self.base_url, self.selectors, category)
         return items or parse_json_ld(html, self.name, self.base_url, category)
@@ -460,6 +491,8 @@ class BaseScraper:
         url = self.search_url.format(q=quote_plus(term), **self.region_setting)
         resp = page.goto(url, wait_until="domcontentloaded", timeout=45000)
         status = resp.status if resp else 0
+        if status in (404, 410):
+            raise WrongAddressError(f"Search address not found (HTTP {status}): {url}")
         card_sel = ", ".join(self.selectors.get("card", [])) or "body"
         try:
             page.wait_for_selector(card_sel, timeout=12000)
@@ -492,7 +525,7 @@ class BaseScraper:
                 if self.api_url:
                     try:
                         items = self._search_api(page, term, category)
-                    except BlockedError:
+                    except (BlockedError, WrongAddressError):
                         raise
                     except Exception as exc:  # noqa: BLE001 - fall back to the page
                         log.debug("%s: API search failed for '%s': %s", self.name, term, exc)
@@ -501,7 +534,7 @@ class BaseScraper:
                 self.blocks = 0 if items else self.blocks
                 hits = [i for i in items if relevant(term, i.name)]
                 return hits[: self.per_term]
-            except BlockedError:
+            except (BlockedError, WrongAddressError):
                 raise
             except Exception as exc:  # noqa: BLE001
                 last_error = exc

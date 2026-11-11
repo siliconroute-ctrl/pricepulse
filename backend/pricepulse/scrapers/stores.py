@@ -19,15 +19,19 @@ from .base import BaseScraper, Item, walk_json_products
 
 
 class Checkers(BaseScraper):
-    """Checkers (Shoprite group). Server-rendered search page with product tiles.
+    """Checkers (Shoprite group).
 
-    Guess: tiles carry a ``data-product-ga`` JSON attribute with name and price.
+    Search address confirmed by the owner (same one TrolleyUp uses):
+    https://www.checkers.co.za/search?Search=<words>. A phone browser is sent to the separate
+    "Sixty60" app, so this scraper presents as a desktop (see ``context_options``). The
+    page markup below is still an UNVERIFIED guess. Checkers also uses AWS bot protection:
+    if it shows a challenge page we stop and report BLOCKED, we never try to solve it.
     """
 
     name = "Checkers"
     slug = "checkers"
     base_url = "https://www.checkers.co.za"
-    search_url = "https://www.checkers.co.za/search/all?q={q}"
+    search_url = "https://www.checkers.co.za/search?Search={q}"
     selectors = {
         "card": [
             ".product-frame",
