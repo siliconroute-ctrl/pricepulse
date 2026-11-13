@@ -24,7 +24,7 @@ _Last updated 2026-11-13 (evening). Claude: rewrite this section at the end of e
 - Guessed internal data-feed addresses are switched off (`use_api = False` on every scraper) until a real run proves them. Pick n Pay, Woolworths and Dis-Chem search addresses match TrolleyUp's confirmed ones; their page layouts are unverified. Ultra Liquors and Liquorland addresses are guesses: the owner must send the real ones.
 - Ideas noted, not built: match products by barcode across stores (needs a migration and other stores' feeds); show "Special" on specials; rank search hits by closeness to the term; per-region prices (test first whether they differ).
 
-**Next (owner's plan, 13 Nov evening):** (1) Pick n Pay liquor done; (2) owner checks tops.co.za for a public price page (SPAR/TOPS): if none, mark "no price source yet"; (3) decide, with the owner, to scrape once per store and share the default prices across the seven towns (recommended, not decided); (4) an email alert when a scraper fails (not built); (5) one-command upload of `latest_{town}.json` from the PC, then `admin.py ingest` and `admin.py purge-sample --yes` on the server; (6) PayFast sandbox. Scrapers done and checked by the owner: Checkers (incl. liquor), Pick n Pay, Woolworths, Dis-Chem. Ultra Liquors and Liquorland on hold.
+**Next (owner's plan, 13 Nov evening):** (1) Pick n Pay liquor done; (2) TOPS dropped; (3) one scrape per store for all towns is DECIDED and built (not yet run end to end: first full run is `run_scrapers.py --limit 3 --no-db` with no `--region`); (4) an email alert when a scraper fails (not built); (5) one-command upload of `latest_{town}.json` from the PC, then `admin.py ingest` and `admin.py purge-sample --yes` on the server; (6) PayFast sandbox. Scrapers done and checked by the owner: Checkers (incl. liquor), Pick n Pay, Woolworths, Dis-Chem. Ultra Liquors and Liquorland on hold.
 
 **Waiting on the owner**
 - Port 80 check; a Contabo snapshot of the working app; try Google sign-in and Delete my data.
@@ -49,6 +49,10 @@ _Last updated 2026-11-13 (evening). Claude: rewrite this section at the end of e
 - **Payments:** PayFast, R99 a month. Play Store billing is a later question (docs/PLAY_STORE_PLAN.md).
 - **Limits:** 45 looked-up items per session; removing an item does not free its slot; 3 sessions a day free; paid = unlimited sessions.
 - **TrolleyUp export:** a CSV file for TrolleyUp's existing import. A direct send would need TrolleyUp rule changes; not built.
+
+## Decisions (made by the owner, 2026-11-13)
+- **One scrape per store for all towns:** each store is searched once and its default prices (Checkers default store, Pick n Pay store `WC21`, Woolworths column `p30`) are written for all seven towns (`regions.yaml` says `national`; `run_scrapers.py` now defaults to `--region all` and lists the towns it serves). Per-town prices are a later question.
+- **Liquor stores:** Checkers Bottle Store and Pick n Pay Bottle Store only. TOPS at SPAR is left out (no public price site). Ultra Liquors and Liquorland stay in the code but are on hold.
 
 ## Decisions (made by the owner, 2026-11-11)
 - **Regions:** keep the seven Western Cape towns as they are (Paarl default). Do not add other provinces for now.

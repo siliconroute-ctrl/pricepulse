@@ -217,6 +217,10 @@ def run_once(args) -> int:
         )
         return 2
 
+    towns = ", ".join(regions.regions[r].name for r in region_list)
+    print(f"Towns served by this run ({len(region_list)}): {towns}.")
+    if len(region_list) > 1:
+        print("Each store is searched ONCE; its default prices are shared by all of these towns.")
     any_ok = False
     national_cache: dict[str, tuple[list[Item], StoreHealth]] = {}
     with sync_playwright() as pw:
@@ -338,7 +342,7 @@ def print_report(region: str, healths: list[StoreHealth], rows: list[dict]) -> N
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Scrape store prices for PricePulse ZA.")
-    ap.add_argument("--region", default="paarl", help="region name from regions.yaml, or 'all'")
+    ap.add_argument("--region", default="all", help="region name from regions.yaml, or 'all'")
     ap.add_argument("--store", action="append", help="only this store (repeat for more)")
     ap.add_argument("--products", default=str(BACKEND_DIR / "products.txt"))
     ap.add_argument("--limit", type=int, default=0, help="only the first N search terms")
