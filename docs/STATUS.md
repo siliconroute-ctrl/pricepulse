@@ -28,7 +28,8 @@ for items they look up. `python run_local.py` gives a test copy with example pri
 | Item | State |
 |---|---|
 | Six store scrapers with API-first, page-fallback, JSON-LD fallback | Built |
-| Selectors / data-feed URLs | **Unverified guesses.** Tested only on synthetic pages shaped like those guesses |
+| Checkers | **Verified by the owner (13 Nov 2026):** prices and product links matched checkers.co.za for the products he opened, signed out. Reads Checkers' own product feed (prices, specials, links, barcode, stock) |
+| Other five stores | **Unverified.** Selectors and feed addresses are guesses; tested only on synthetic pages. Guessed feed addresses are switched off (`use_api = False`) |
 | `--debug`: first 5 rows; screenshot + page saved to `debug/{store}/` on zero results | Done, and checked with a real browser against a local test site |
 | Health report per store (found, not found, errors, suspect prices, BLOCKED) | Done |
 | Backoff on 403/429/CAPTCHA, stop after 3 refusals, other stores continue | Done, checked with a real browser |
