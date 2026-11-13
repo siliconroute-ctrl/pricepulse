@@ -57,6 +57,13 @@ def read_terms(path: Path) -> list[tuple[str, str]]:
     return terms
 
 
+def filter_terms(terms: list[tuple[str, str]], category: str | None) -> list[tuple[str, str]]:
+    """Keep only the search terms of one category (case does not matter), or all when empty."""
+    if not category:
+        return terms
+    return [t for t in terms if t[1].lower() == category.strip().lower()]
+
+
 def write_atomic(path: Path, data: dict) -> None:
     """Write JSON to a temp file then rename, so readers never see a half-written file."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -167,7 +174,10 @@ def run_once(args) -> int:
     """One full run. Returns 0 when at least one store worked."""
     settings = get_settings()
     regions = load_regions(str(settings.regions_file))
-    terms = read_terms(Path(args.products))
+    terms = filter_terms(read_terms(Path(args.products)), args.category)
+    if not terms:
+        print(f"No search terms in category '{args.category}'. See the '# category:' lines in products.txt.")
+        return 2
     if args.limit:
         terms = terms[: args.limit]
     if args.region == "all":
@@ -298,6 +308,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--store", action="append", help="only this store (repeat for more)")
     ap.add_argument("--products", default=str(BACKEND_DIR / "products.txt"))
     ap.add_argument("--limit", type=int, default=0, help="only the first N search terms")
+    ap.add_argument("--category", help='only terms of one category, e.g. "Health & Beauty" or Liquor')
     ap.add_argument(
         "--debug", action="store_true", help="print the first rows and save pages when nothing is found"
     )

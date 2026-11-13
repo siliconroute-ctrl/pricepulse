@@ -4,7 +4,7 @@ import json
 import types
 
 from pricepulse.scrapers.base import BaseScraper, BlockedError, Item, WrongAddressError
-from run_scrapers import other_stores, previous_rows, read_terms, scrape_store, write_atomic
+from run_scrapers import filter_terms, other_stores, previous_rows, read_terms, scrape_store, write_atomic
 
 
 def test_products_txt_has_categories_and_enough_terms():
@@ -151,3 +151,11 @@ def test_scraper_gets_desktop_browser_settings(settings):
 
     scrape_store(make_scraper(lambda t, c: []), SpyBrowser(), "paarl", {}, [("a", "X")], _args())
     assert seen["viewport"]["width"] >= 1280 and "Mobile" not in seen["user_agent"]
+
+
+def test_filter_terms_by_category():
+    terms = [("milk", "Fresh"), ("castle lite", "Liquor"), ("panado", "Health & Beauty"), ("beer", "Liquor")]
+    assert filter_terms(terms, "liquor") == [("castle lite", "Liquor"), ("beer", "Liquor")]
+    assert filter_terms(terms, " Health & Beauty ") == [("panado", "Health & Beauty")]
+    assert filter_terms(terms, None) == terms and filter_terms(terms, "") == terms
+    assert filter_terms(terms, "Pets") == []
