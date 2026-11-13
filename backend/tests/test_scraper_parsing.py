@@ -225,11 +225,28 @@ class _FakeResp:
         self.status = status
 
 
+class _FakeJson:
+    def __init__(self, url, body, kind="application/json"):
+        self.url, self.status, self._body, self.headers = url, 200, body, {"content-type": kind}
+
+    def text(self):
+        return self._body
+
+
 class _FakePage:
-    def __init__(self, status, html):
-        self.status, self.html = status, html
+    def __init__(self, status, html, feeds=()):
+        self.status, self.html, self.feeds, self.handler = status, html, list(feeds), None
+
+    def on(self, event, handler):
+        self.handler = handler
+
+    def remove_listener(self, event, handler):
+        self.handler = None
 
     def goto(self, *a, **k):
+        for feed in self.feeds:  # the page's data feeds arrive while it loads
+            if self.handler:
+                self.handler(feed)
         return _FakeResp(self.status)
 
     def wait_for_selector(self, *a, **k):
@@ -262,3 +279,28 @@ def test_failures_leave_a_screenshot_and_page(tmp_path):
     empty = Checkers(debug_dir=tmp_path)
     assert empty._search_page(_FakePage(200, "<html>no products</html>"), "eggs", "Fresh") == []
     assert (tmp_path / "checkers" / "eggs.html").exists()
+
+
+def test_products_are_read_from_the_pages_data_feed():
+    feed = _FakeJson(
+        "https://api.shop.example/v2/search?q=bread",
+        '{"results":[{"name":"Albany Superior White Bread 700g","price":19.99},'
+        '{"name":"Albany Brown Bread 700g","price":18.49}]}',
+    )
+    page = _FakePage(200, "<html><body>placeholders only</body></html>", [feed])
+    items = Checkers()._search_page(page, "albany bread", "Groceries")
+    assert [(i.name, i.price) for i in items] == [
+        ("Albany Superior White Bread 700g", 19.99),
+        ("Albany Brown Bread 700g", 18.49),
+    ]
+    assert page.handler is None  # the listener was removed
+
+
+def test_data_feeds_are_saved_when_nothing_is_found(tmp_path):
+    feed = _FakeJson("https://api.shop.example/config", '{"theme":"dark"}')
+    other = _FakeJson("https://cdn.example/app.js", "var x = 1;", kind="text/javascript")
+    scraper = Checkers(debug_dir=tmp_path)
+    assert scraper._search_page(_FakePage(200, "<html>none</html>", [feed, other]), "milk", "Fresh") == []
+    text = (tmp_path / "checkers" / "milk.network.txt").read_text()
+    assert "https://api.shop.example/config" in text and '"theme":"dark"' in text
+    assert "app.js" not in text  # only JSON answers are kept

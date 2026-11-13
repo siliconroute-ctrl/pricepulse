@@ -30,6 +30,7 @@ What went wrong first time, so you can recognise it:
 |---|---|---|
 | Screenshot shows the store's own "404 / page not found" | Wrong search address | Use the address that works in your own browser. The scraper now says `Search address not found (HTTP 404)` and stops that store at once |
 | Screenshot shows a phone-style app instead of the shop | The store serves phones a different site | The scraper presents as a desktop Chrome (`context_options` in `scrapers/base.py`) |
+| Screenshot shows grey placeholder boxes, no products | The shop fills its list after the page loads, from a data feed | The scraper now reads that feed. When a store finds nothing it also saves `debug\{store}\{term}.network.txt`: the web addresses and first part of every data feed the page loaded. Send that file too: it shows how the shop really works |
 | "BLOCKED" | The store refused or showed a bot check | Do not try to get around it (section 5) |
 
 ## 1. See what is wrong

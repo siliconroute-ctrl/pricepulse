@@ -487,8 +487,52 @@ class BaseScraper:
         self._save_fixture(term, body, "json")
         return self.parse_json(json.loads(body), category)
 
-    def _save_debug(self, page: Any, term: str, html: str | None = None) -> None:
-        """Keep the page and a screenshot in debug/{store}/ so a failure can be looked at."""
+    def _watch_json(self, page: Any) -> tuple[list, Any]:
+        """Remember the JSON answers a page receives while loading.
+
+        Many shops show a grey placeholder first and fill the list from a data feed. The feed is
+        steadier to read than the page layout, and its address tells us how the shop works.
+        """
+        seen: list = []
+
+        def on_response(resp: Any) -> None:
+            try:
+                kind = (resp.headers or {}).get("content-type", "")
+            except Exception:  # noqa: BLE001
+                return
+            if "json" in kind.lower() and len(seen) < 40:
+                seen.append(resp)
+
+        page.on("response", on_response)
+        return seen, on_response
+
+    def _read_json(self, seen: list) -> list[tuple[str, int, str]]:
+        out = []
+        for resp in seen:
+            try:
+                body = resp.text()
+            except Exception:  # noqa: BLE001 - some answers are gone after navigation
+                continue
+            if len(body) <= 3_000_000:
+                out.append((resp.url, resp.status, body))
+        return out
+
+    def _items_from_json(self, answers: list[tuple[str, int, str]], category: str) -> list[Item]:
+        items: list[Item] = []
+        seen: set[tuple[str, float]] = set()
+        for _url, _status, body in answers:
+            try:
+                data = json.loads(body)
+            except ValueError:
+                continue
+            for item in self.parse_json(data, category):
+                if (item.name, item.price) not in seen:
+                    seen.add((item.name, item.price))
+                    items.append(item)
+        return items
+
+    def _save_debug(self, page: Any, term: str, html: str | None = None, answers: list | None = None) -> None:
+        """Keep the page, a screenshot and the data feeds in debug/{store}/ to look at a failure."""
         if not self.debug_dir:
             return
         d = self.debug_dir / self.slug
@@ -497,31 +541,46 @@ class BaseScraper:
         try:
             (d / f"{stem}.html").write_text(html if html is not None else page.content(), encoding="utf-8")
             page.screenshot(path=str(d / f"{stem}.png"), full_page=True)
+            if answers:
+                lines = []
+                for url, status, body in answers:
+                    lines += [f"=== {status} {url}  ({len(body)} characters)", body[:6000], ""]
+                (d / f"{stem}.network.txt").write_text("\n".join(lines), encoding="utf-8")
         except Exception as exc:  # noqa: BLE001 - evidence is a bonus, never a new failure
             log.debug("%s: could not save debug files: %s", self.name, exc)
         log.info("%s: saved the page and a screenshot for '%s' to %s", self.name, term, d)
 
     def _search_page(self, page: Any, term: str, category: str) -> list[Item]:
         url = self.search_url.format(q=quote_plus(term), **self.region_setting)
-        resp = page.goto(url, wait_until="domcontentloaded", timeout=45000)
-        status = resp.status if resp else 0
-        if status in (404, 410):
-            self._save_debug(page, term)
-            raise WrongAddressError(f"Search address not found (HTTP {status}): {url}")
-        card_sel = ", ".join(self.selectors.get("card", [])) or "body"
+        seen, handler = self._watch_json(page)
         try:
-            page.wait_for_selector(card_sel, timeout=12000)
-        except Exception:  # noqa: BLE001 - no cards is a normal outcome
-            pass
-        html = page.content()
+            resp = page.goto(url, wait_until="domcontentloaded", timeout=45000)
+            status = resp.status if resp else 0
+            if status in (404, 410):
+                self._save_debug(page, term)
+                raise WrongAddressError(f"Search address not found (HTTP {status}): {url}")
+            card_sel = ", ".join(self.selectors.get("card", [])) or "body"
+            try:
+                page.wait_for_selector(card_sel, timeout=12000)
+            except Exception:  # noqa: BLE001 - no cards is a normal outcome
+                pass
+            html = page.content()
+            answers = self._read_json(seen)
+        finally:
+            try:
+                page.remove_listener("response", handler)
+            except Exception:  # noqa: BLE001
+                pass
         if looks_blocked(status, html):
-            self._save_debug(page, term, html)
+            self._save_debug(page, term, html, answers)
             self._blocked(f"HTTP {status} or CAPTCHA on search page")
             return []
         self._save_fixture(term, html, "html")
         items = self.parse_html(html, category)
+        if not items and answers:
+            items = self._items_from_json(answers, category)
         if not items:
-            self._save_debug(page, term, html)
+            self._save_debug(page, term, html, answers)
         return items
 
     def search(self, page: Any, term: str, category: str = "") -> list[Item]:
