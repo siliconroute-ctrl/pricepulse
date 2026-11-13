@@ -498,3 +498,11 @@ def test_woolworths_other_answers_give_nothing():
 
     assert Woolworths().parse_json({"menu": []}) == []
     assert Woolworths().parse_json({"response": {"results": []}}) == []
+
+
+def test_size_with_backtick_or_curly_apostrophe():
+    """Dis-Chem writes 24`s with a backtick (13 Nov 2026)."""
+    from pricepulse.sizes import split_size
+
+    assert split_size("Disprin Regular Strength Tablets 24`s") == ("Disprin Regular Strength Tablets", "24's")
+    assert split_size("Panado Tablets 24’s")[1] == "24's"
