@@ -126,6 +126,7 @@ def scrape_store(
                             (f" (promo R{it.promo_price:.2f})" if it.promo_price else "")
                             + (" [SPECIAL]" if it.special else "")
                             + ("" if it.in_stock else " [OUT OF STOCK]")
+                            + (f" [{it.deal}]" if it.deal else "")
                         )
                         print(f"   {it.name} | {it.size or '-'} | R{it.price:.2f}{tags}")
                         print(f"      {it.url}")
