@@ -115,15 +115,6 @@ def test_pick_n_pay_store_code_optional():
     )
 
 
-def test_woolworths_json():
-    items = Woolworths().parse_json(js("woolworths/search_milk.json"))
-    assert [(i.name, i.size, i.price) for i in items] == [
-        ("Full Cream Fresh Milk 2 L", "2 L", 31.99),
-        ("Clover Full Cream Milk 2 L", "2 L", 41.99),
-    ]
-    assert items[0].url.startswith("https://www.woolworths.co.za/prod/")
-
-
 def test_ultra_liquors_json_promo():
     items = UltraLiquors().parse_json(js("ultra-liquors/search_castle.json"), "Liquor")
     assert (items[0].name, items[0].price, items[0].promo_price) == (
@@ -484,3 +475,26 @@ def test_split_feeds_round_trips():
         ("=== 200 https://a/x  (5 characters)", '{\n "a": 1\n}'),
         ("=== 200 https://b/y  (2 characters)", "[]"),
     ]
+
+
+def test_woolworths_real_feed():
+    """tests/fixtures/woolworths/search_feed.json is a REAL trimmed answer (13 Nov 2026)."""
+
+    doc = js("woolworths/search_feed.json")
+    items = {i.name: i for i in Woolworths().parse_json(doc, "Groceries")}
+    assert len(items) == 6
+    milk = items["Fresh Full Cream Milk 2 L"]
+    assert milk.price == 38.99 and milk.promo_price is None and milk.store_ref == "p10"
+    assert milk.barcode == ""  # 8-digit id is a Woolworths code, not a barcode
+    assert milk.url.startswith("https://www.woolworths.co.za/prod/Food/Milk-Dairy-Eggs/")
+    assert milk.url.endswith("/A-20011697")
+    long_life = items["Long Life Full Cream Milk 6 x 1 L"]  # was R126.99, now R104.99
+    assert (long_life.price, long_life.promo_price) == (126.99, 104.99)
+    assert long_life.barcode == "6009171091446"
+    assert items["Coca-Cola Original Soft Drink 2 L"].barcode == "5449000009067"
+
+
+def test_woolworths_other_answers_give_nothing():
+
+    assert Woolworths().parse_json({"menu": []}) == []
+    assert Woolworths().parse_json({"response": {"results": []}}) == []

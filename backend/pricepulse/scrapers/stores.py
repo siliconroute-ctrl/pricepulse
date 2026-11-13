@@ -201,12 +201,23 @@ def pnp_slug(name: str) -> str:
 
 
 class Woolworths(BaseScraper):
-    """Woolworths. Guess: the search page loads results from a JSON endpoint."""
+    """Woolworths. The search page is run by Constructor.io (``cnstrc.com/v1/search/<words>``).
+
+    Read from a real saved answer (tests/fixtures/woolworths/search_feed.json). Each result has
+    the barcode (``data.id``, 13 digits; shorter ids are Woolworths' own codes), the description,
+    a product path and three price columns ``p10``, ``p30``, ``p60`` with was-prices ``*_wp``
+    (0 = no was-price). The three columns often differ for one product (e.g. 38.99 / 40.99 /
+    39.99), so they look like price lists for different delivery areas or store groups.
+    WHICH column an anonymous visitor sees is NOT yet confirmed: ``PRICE_COLUMN`` is a
+    provisional choice, recorded in each price's store_ref so it can be corrected.
+    """
 
     name = "Woolworths"
     slug = "woolworths"
     base_url = "https://www.woolworths.co.za"
     search_url = "https://www.woolworths.co.za/cat?Ntt={q}&Dy=1"
+    json_first = True
+    PRICE_COLUMN = "p10"  # provisional: confirm against the live site (see docs)
     api_url = "https://www.woolworths.co.za/server/searchCategory?pageURL=%2Fcat&Ntt={q}&Dy=1"
     selectors = {
         "card": [".product-list__item", ".product--view", "[data-testid='product-card']"],
@@ -217,6 +228,38 @@ class Woolworths(BaseScraper):
         "size": [],
         "link": ["a.range--title", "a.product--desc", "a"],
     }
+
+    def parse_json(self, data: Any, category: str = "") -> list[Item]:
+        """Read Woolworths' search answer. Other answers (menus, settings) give nothing."""
+        response = data.get("response") if isinstance(data, dict) else None
+        results = response.get("results") if isinstance(response, dict) else None
+        if not isinstance(results, list) or not all(isinstance(r, dict) for r in results):
+            return []
+        col = self.PRICE_COLUMN
+        items: list[Item] = []
+        for r in results:
+            d = r.get("data")
+            if not isinstance(d, dict) or not d.get("url") or not isinstance(d.get(col), (int, float)):
+                continue
+            price, was = float(d[col]), d.get(f"{col}_wp") or 0
+            regular, promo = price, None
+            if isinstance(was, (int, float)) and was > price + 0.004:
+                regular, promo = float(was), price
+            code = str(d.get("id", ""))
+            item = make_item(
+                self.name,
+                r.get("value") or d.get("description") or "",
+                regular,
+                "Liquor" if d.get("liquor") else category,
+                promo=promo,
+                url="/" + str(d["url"]).lstrip("/"),
+                base_url=self.base_url,
+                barcode=code if re.fullmatch(r"\d{13}", code) else "",
+                store_ref=col,
+            )
+            if item:
+                items.append(item)
+        return items
 
 
 class UltraLiquors(BaseScraper):
