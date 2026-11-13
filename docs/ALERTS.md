@@ -6,13 +6,13 @@ their date. Test runs (`--limit`, `--term`) and `--no-alert` never email.
 
 ## Set up on the scraper PC (once)
 
-You need a mailbox to send from (for example admin@trolleyup.com) and its mail-server name. Ask
+You need a mailbox to send from (admin@trolleyup.com) and its mail-server name (outgoing server smtp.trolleyup.com, port 465, SSL on, login required: these are the values xneelo showed). Ask
 your host for "SMTP server, port and an app password". **Type the password only into your own
 PowerShell window, never into a file, git or the chat.**
 
 ```powershell
-setx PP_ALERT_SMTP_HOST "mail.trolleyup.com"
-setx PP_ALERT_SMTP_PORT "587"
+setx PP_ALERT_SMTP_HOST "smtp.trolleyup.com"
+setx PP_ALERT_SMTP_PORT "465"
 setx PP_ALERT_SMTP_USER "admin@trolleyup.com"
 setx PP_ALERT_SMTP_PASSWORD "type the password here"
 setx PP_ALERT_TO "the address that should get the alerts"
