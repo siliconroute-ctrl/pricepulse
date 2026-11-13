@@ -517,6 +517,13 @@ class BaseScraper:
                 out.append((resp.url, resp.status, body))
         return out
 
+    @staticmethod
+    def _feeds_text(answers: list[tuple[str, int, str]], limit: int) -> str:
+        lines: list[str] = []
+        for url, status, body in answers:
+            lines += [f"=== {status} {url}  ({len(body)} characters)", body[:limit], ""]
+        return "\n".join(lines)
+
     def _items_from_json(self, answers: list[tuple[str, int, str]], category: str) -> list[Item]:
         items: list[Item] = []
         seen: set[tuple[str, float]] = set()
@@ -542,10 +549,7 @@ class BaseScraper:
             (d / f"{stem}.html").write_text(html if html is not None else page.content(), encoding="utf-8")
             page.screenshot(path=str(d / f"{stem}.png"), full_page=True)
             if answers:
-                lines = []
-                for url, status, body in answers:
-                    lines += [f"=== {status} {url}  ({len(body)} characters)", body[:6000], ""]
-                (d / f"{stem}.network.txt").write_text("\n".join(lines), encoding="utf-8")
+                (d / f"{stem}.network.txt").write_text(self._feeds_text(answers, 6000), encoding="utf-8")
         except Exception as exc:  # noqa: BLE001 - evidence is a bonus, never a new failure
             log.debug("%s: could not save debug files: %s", self.name, exc)
         log.info("%s: saved the page and a screenshot for '%s' to %s", self.name, term, d)
@@ -576,6 +580,8 @@ class BaseScraper:
             self._blocked(f"HTTP {status} or CAPTCHA on search page")
             return []
         self._save_fixture(term, html, "html")
+        if answers:
+            self._save_fixture(term, self._feeds_text(answers, 400_000), "network.txt")
         items = self.parse_html(html, category)
         if not items and answers:
             items = self._items_from_json(answers, category)

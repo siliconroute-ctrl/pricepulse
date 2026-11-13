@@ -281,14 +281,16 @@ def test_failures_leave_a_screenshot_and_page(tmp_path):
     assert (tmp_path / "checkers" / "eggs.html").exists()
 
 
-def test_products_are_read_from_the_pages_data_feed():
+def test_products_are_read_from_the_pages_data_feed(tmp_path):
     feed = _FakeJson(
         "https://api.shop.example/v2/search?q=bread",
         '{"results":[{"name":"Albany Superior White Bread 700g","price":19.99},'
         '{"name":"Albany Brown Bread 700g","price":18.49}]}',
     )
     page = _FakePage(200, "<html><body>placeholders only</body></html>", [feed])
-    items = Checkers()._search_page(page, "albany bread", "Groceries")
+    items = Checkers(fixture_dir=tmp_path)._search_page(page, "albany bread", "Groceries")
+    saved = (tmp_path / "checkers" / "albany_bread.network.txt").read_text()
+    assert "https://api.shop.example/v2/search?q=bread" in saved and "Albany Brown Bread 700g" in saved
     assert [(i.name, i.price) for i in items] == [
         ("Albany Superior White Bread 700g", 19.99),
         ("Albany Brown Bread 700g", 18.49),
