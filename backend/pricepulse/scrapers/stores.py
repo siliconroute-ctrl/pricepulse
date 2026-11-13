@@ -83,15 +83,21 @@ class Checkers(BaseScraper):
             regular, promo = price, None
             if price is not None and old > float(price) + 0.004:  # the shop gave a higher usual price
                 regular, promo, on_special = old, price, False
+            offers = [
+                str(b.get("shortDescription") or b.get("name") or "").strip()
+                for b in p.get("bonusBuys") or []
+                if isinstance(b, dict)
+            ]
             code = f"{p.get('articleNumber', '')}{p.get('unitOfMeasure', '')}"
             link = f"/product/{checkers_slug(p.get('name', ''))}-{code}" if code else ""
             item = make_item(
                 self.name,
                 p.get("name", ""),
                 regular,
-                "Liquor" if p.get("hasAlcohol") else category,
+                "Liquor" if p.get("hasAlcohol") or p.get("forOver18") else category,
                 promo=promo,
                 url=link,
+                deal="; ".join(o for o in offers[:2] if o),
                 base_url=self.base_url,
                 brand=p.get("brand") or "",
                 barcode=(p.get("barcodes") or [""])[0],

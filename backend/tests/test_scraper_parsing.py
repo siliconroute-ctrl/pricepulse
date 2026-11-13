@@ -506,3 +506,14 @@ def test_size_with_backtick_or_curly_apostrophe():
 
     assert split_size("Disprin Regular Strength Tablets 24`s") == ("Disprin Regular Strength Tablets", "24's")
     assert split_size("Panado Tablets 24’s")[1] == "24's"
+
+
+def test_checkers_multibuy_offer_text_and_over_18_flag():
+    """Real liquor page (13 Nov 2026): Castle Lite 6 x 500ml R114.99, 'Buy 2 For R170', for over 18s."""
+    doc = js("checkers/get_products_filter.json")
+    p = dict(doc["products"][0])
+    p.update({"hasAlcohol": False, "forOver18": True, "bonusBuys": [{"shortDescription": "Buy 2 For R170"}]})
+    item = Checkers().parse_json({"products": [p]}, "Groceries")[0]
+    assert item.category == "Liquor"
+    assert item.deal == "Buy 2 For R170"
+    assert item.price == p["price"] and item.promo_price is None  # the shelf price is never replaced
