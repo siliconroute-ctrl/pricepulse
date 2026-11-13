@@ -227,6 +227,7 @@ def run_once(args) -> int:
     if len(region_list) > 1:
         print("Each store is searched ONCE; its default prices are shared by all of these towns.")
     any_ok = False
+    first_healths: list[StoreHealth] = []
     national_cache: dict[str, tuple[list[Item], StoreHealth]] = {}
     with sync_playwright() as pw:
         launch = {"headless": not args.show}
@@ -308,7 +309,14 @@ def run_once(args) -> int:
             if not args.no_db and all_rows:
                 load_into_db(payload, healths, settings)
             print_report(region, healths, all_rows)
+            if not first_healths:
+                first_healths = healths
         browser.close()
+    # Real runs only: not a test run (--limit, --term) and not --no-alert.
+    if first_healths and not (args.no_alert or args.limit or args.term):
+        from pricepulse.alerts import alert_if_needed
+
+        alert_if_needed(first_healths, settings.data_dir / "alerts_state.json", f"{sa_now():%d %b %Y, %H:%M}")
     return 0 if any_ok else 1
 
 
@@ -354,6 +362,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--region", default="all", help="region name from regions.yaml, or 'all'")
     ap.add_argument("--store", action="append", help="only this store (repeat for more)")
     ap.add_argument("--products", default=str(BACKEND_DIR / "products.txt"))
+    ap.add_argument("--no-alert", action="store_true", help="do not email about failed stores")
     ap.add_argument("--limit", type=int, default=0, help="only the first N search terms")
     ap.add_argument(
         "--term",
