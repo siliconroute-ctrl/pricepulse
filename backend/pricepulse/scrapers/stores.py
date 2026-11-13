@@ -208,8 +208,10 @@ class Woolworths(BaseScraper):
     a product path and three price columns ``p10``, ``p30``, ``p60`` with was-prices ``*_wp``
     (0 = no was-price). The three columns often differ for one product (e.g. 38.99 / 40.99 /
     39.99), so they look like price lists for different delivery areas or store groups.
-    WHICH column an anonymous visitor sees is NOT yet confirmed: ``PRICE_COLUMN`` is a
-    provisional choice, recorded in each price's store_ref so it can be corrected.
+    The owner checked the live site signed out (13 Nov 2026): milk 2 L R38.99, Ayrshire milk
+    2 L R45.99, Coca-Cola Zero 2 L R19.99 and Long Life milk 6 x 1 L was R126.99 now R104.99 all
+    match ``p10``, so ``PRICE_COLUMN = "p10"`` is what an anonymous visitor sees. It is saved in
+    each price's store_ref in case other areas turn out to use the other columns.
     """
 
     name = "Woolworths"
@@ -217,7 +219,7 @@ class Woolworths(BaseScraper):
     base_url = "https://www.woolworths.co.za"
     search_url = "https://www.woolworths.co.za/cat?Ntt={q}&Dy=1"
     json_first = True
-    PRICE_COLUMN = "p10"  # provisional: confirm against the live site (see docs)
+    PRICE_COLUMN = "p10"  # confirmed by the owner for an anonymous visitor
     api_url = "https://www.woolworths.co.za/server/searchCategory?pageURL=%2Fcat&Ntt={q}&Dy=1"
     selectors = {
         "card": [".product-list__item", ".product--view", "[data-testid='product-card']"],
