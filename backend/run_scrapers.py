@@ -83,6 +83,13 @@ def write_atomic(path: Path, data: dict) -> None:
     os.replace(tmp, path)
 
 
+def terms_for(cls: type[BaseScraper], terms: list[tuple[str, str]], args) -> list[tuple[str, str]]:
+    """The terms one store is searched for: typed --term words always; else its own categories."""
+    if not args.term and cls.categories is not None:
+        terms = [t for t in terms if t[1] in cls.categories]
+    return terms[: args.limit] if args.limit else terms
+
+
 def scrape_store(
     cls: type[BaseScraper], browser, region: str, setting: dict, terms: list[tuple[str, str]], args
 ) -> tuple[list[Item], StoreHealth]:
@@ -192,8 +199,6 @@ def run_once(args) -> int:
     if not terms:
         print(f"No search terms in category '{args.category}'. See the '# category:' lines in products.txt.")
         return 2
-    if args.limit:
-        terms = terms[: args.limit]
     if args.region == "all":
         region_list = list(regions.regions)
     else:
@@ -235,6 +240,10 @@ def run_once(args) -> int:
             healths: list[StoreHealth] = []
             latest = settings.data_dir / f"latest_{region}.json"
             for cls in classes:
+                store_terms = terms_for(cls, terms, args)
+                if not store_terms:
+                    print(f"  {cls.name}: nothing to search here (it does not carry this category).")
+                    continue
                 mode = regions.pricing_mode(cls.name)
                 setting = regions.store_setting(region, cls.name)
                 if mode in ("national", "unknown") and cls.name in national_cache:
@@ -243,9 +252,9 @@ def run_once(args) -> int:
                     bundle_wanted = False
                     print(f"  {cls.name}: same prices nationally, reusing the first region's results.")
                 else:
-                    print(f"  {cls.name}: searching {len(terms)} products...")
+                    print(f"  {cls.name}: searching {len(store_terms)} products...")
                     store_started, bundle_wanted = time.time(), bool(args.save_fixtures)
-                    items, health = scrape_store(cls, browser, region, setting, terms, args)
+                    items, health = scrape_store(cls, browser, region, setting, store_terms, args)
                     if mode in ("national", "unknown"):
                         national_cache[cls.name] = (items, health)
                     # Stagger stores with a random pause.

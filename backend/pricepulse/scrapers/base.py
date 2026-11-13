@@ -449,6 +449,8 @@ class BaseScraper:
     # Only call ``api_url`` directly after a real run proved the address (the saved
     # {term}.network.txt shows it). A guessed address must not be called on a shop's site.
     use_api = False
+    # Categories (as in products.txt) this store is searched for; None = all of them.
+    categories: tuple[str, ...] | None = None
     # True once the store's own data feed is proven: read it before the page layout.
     json_first = False
     feed_url = ""

@@ -525,3 +525,25 @@ def test_default_run_leaves_out_liquor_stores_on_hold():
     names = [c.name for c in ACTIVE_SCRAPERS]
     assert names == ["Checkers", "Pick n Pay", "Woolworths", "Dis-Chem"]
     assert find_scraper("Ultra Liquors") is not None and find_scraper("liquorland") is not None
+
+
+def test_each_store_is_searched_only_for_what_it_sells():
+    from types import SimpleNamespace
+
+    from run_scrapers import terms_for
+
+    terms = [
+        ("milk", "Groceries"),
+        ("beer", "Liquor"),
+        ("panado", "Health & Beauty"),
+        ("soap", "Health & Beauty"),
+    ]
+    args = SimpleNamespace(term=None, limit=0)
+    assert [t for t, _ in terms_for(DisChem, terms, args)] == ["panado", "soap"]
+    assert [t for t, _ in terms_for(Checkers, terms, args)] == ["milk", "beer", "panado", "soap"]
+    from pricepulse.scrapers.stores import Woolworths
+
+    assert "beer" not in [t for t, _ in terms_for(Woolworths, terms, args)]
+    assert [t for t, _ in terms_for(DisChem, terms, SimpleNamespace(term=None, limit=1))] == ["panado"]
+    typed = SimpleNamespace(term=["x"], limit=0)  # typed words are always used
+    assert terms_for(DisChem, [("x", "Groceries")], typed) == [("x", "Groceries")]
