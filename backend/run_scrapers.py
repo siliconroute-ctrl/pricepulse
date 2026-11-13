@@ -115,10 +115,13 @@ def scrape_store(
                 for it in found:
                     if args.debug and shown < 5:
                         shown += 1
-                        print(
-                            f"   {it.name} | {it.size or '-'} | R{it.price:.2f}"
-                            f"{f' (promo R{it.promo_price:.2f})' if it.promo_price else ''} | {it.url}"
+                        tags = (
+                            (f" (promo R{it.promo_price:.2f})" if it.promo_price else "")
+                            + (" [SPECIAL]" if it.special else "")
+                            + ("" if it.in_stock else " [OUT OF STOCK]")
                         )
+                        print(f"   {it.name} | {it.size or '-'} | R{it.price:.2f}{tags}")
+                        print(f"      {it.url}")
             else:
                 health.terms_missing.append(term)
             scraper.pause()

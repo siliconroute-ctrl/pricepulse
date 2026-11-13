@@ -13,9 +13,10 @@ health report says so.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
-from .base import BaseScraper, Item, walk_json_products
+from .base import BaseScraper, Item, make_item, walk_json_products
 
 
 class Checkers(BaseScraper):
@@ -58,6 +59,54 @@ class Checkers(BaseScraper):
         "size": [".item-product__size", ".product-size"],
         "link": ["a.product-listening-click", ".item-product__name a", "a[href*='/p/']", "a"],
     }
+
+    def parse_json(self, data: Any, category: str = "") -> list[Item]:
+        """Read Checkers' product feed (``/api/catalogue/get-products-filter``).
+
+        Verified against a real saved answer (tests/fixtures/checkers/). Fields used:
+        ``price`` (rand), ``isOnPromotion`` / ``oldPrice`` (cents; equals ``price`` on the
+        specials seen so far, so the usual price is then unknown), ``articleNumber`` +
+        ``unitOfMeasure`` (the code at the end of the product's web address), ``brand``,
+        ``barcodes``, ``hasAlcohol``, ``isStockAvailable`` and ``storeId``.
+        """
+        products = data.get("products") if isinstance(data, dict) else None
+        if not isinstance(products, list) or not all(isinstance(p, dict) for p in products):
+            return walk_json_products(data, self.name, self.base_url, category, self.api_minor_units)
+        items: list[Item] = []
+        for p in products:
+            if p.get("hasTobacco"):
+                continue  # not part of this app
+            price = p.get("price")
+            old = (p.get("oldPrice") or 0) / 100
+            on_special = bool(p.get("isOnPromotion"))
+            regular, promo = price, None
+            if price is not None and old > float(price) + 0.004:  # the shop gave a higher usual price
+                regular, promo, on_special = old, price, False
+            code = f"{p.get('articleNumber', '')}{p.get('unitOfMeasure', '')}"
+            link = f"/product/{checkers_slug(p.get('name', ''))}-{code}" if code else ""
+            item = make_item(
+                self.name,
+                p.get("name", ""),
+                regular,
+                "Liquor" if p.get("hasAlcohol") else category,
+                promo=promo,
+                url=link,
+                base_url=self.base_url,
+                brand=p.get("brand") or "",
+                barcode=(p.get("barcodes") or [""])[0],
+                store_ref=p.get("storeId") or (p.get("store") or {}).get("storeId", ""),
+                special=on_special,
+                in_stock=bool(p.get("isStockAvailable", True)) and not p.get("outOfStock", False),
+            )
+            if item:
+                items.append(item)
+        return items
+
+
+def checkers_slug(name: str) -> str:
+    """Checkers' web-address words for a product: "SASKO Low G.I Bread 800g" -> "sasko-low-gi-bread-800g"."""
+    text = re.sub(r"['\u2019.]", "", name.lower().replace("&", " and "))
+    return re.sub(r"[^a-z0-9]+", "-", text).strip("-")
 
 
 class PickNPay(BaseScraper):

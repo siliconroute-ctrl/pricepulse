@@ -306,3 +306,84 @@ def test_data_feeds_are_saved_when_nothing_is_found(tmp_path):
     text = (tmp_path / "checkers" / "milk.network.txt").read_text()
     assert "https://api.shop.example/config" in text and '"theme":"dark"' in text
     assert "app.js" not in text  # only JSON answers are kept
+
+
+def test_checkers_real_feed():
+    """tests/fixtures/checkers/get_products_filter.json is a REAL saved answer (13 Nov 2026)."""
+    items = Checkers().parse_json(js("checkers/get_products_filter.json"), "Groceries")
+    by = {(i.name, i.price): i for i in items}
+    assert len(items) == 5
+
+    albany = by[("Albany Superior White Bread 700g", 18.99)]
+    assert albany.size == "700g" and albany.brand == "Albany" and albany.barcode == "6001253010178"
+    assert albany.url == "https://www.checkers.co.za/product/albany-superior-white-bread-700g-10136301EA"
+    assert albany.promo_price is None and albany.special is False and albany.in_stock is True
+    assert albany.store_ref == "5ece6935faafe599532665b2" and albany.category == "Groceries"
+
+    # Two different products with the same name: the web-address code tells them apart.
+    plain = by[("SASKO Low G.I Wholewheat Brown Bread 800g", 29.99)]
+    special = by[("SASKO Low G.I Wholewheat Brown Bread 800g", 19.99)]
+    assert plain.url.endswith("sasko-low-gi-wholewheat-brown-bread-800g-10348248EA")
+    assert special.url.endswith("sasko-low-gi-wholewheat-brown-bread-800g-10241938EA")
+    assert special.special is True and special.promo_price is None  # usual price not given: not invented
+    assert plain.special is False
+
+    assert by[("Albany Superior White Buns 6-Pack", 26.99)].in_stock is False
+    assert all(i.price > 0 for i in items)
+    row = special.to_dict()
+    assert row["special"] is True and "promo_price" not in row and "in_stock" not in row
+
+
+def test_checkers_usual_price_when_the_shop_gives_one():
+    feed = {
+        "products": [
+            {
+                "name": "Test Milk 2L",
+                "price": 30.0,
+                "oldPrice": 3699,
+                "isOnPromotion": True,
+                "articleNumber": "1",
+                "unitOfMeasure": "EA",
+                "brand": "Clover",
+            }
+        ]
+    }
+    (item,) = Checkers().parse_json(feed, "Fresh")
+    assert (item.price, item.promo_price, item.special) == (36.99, 30.0, False)
+
+
+def test_checkers_alcohol_and_tobacco():
+    feed = {
+        "products": [
+            {
+                "name": "Cooking Wine 750ml",
+                "price": 50.0,
+                "hasAlcohol": True,
+                "articleNumber": "2",
+                "unitOfMeasure": "EA",
+            },
+            {
+                "name": "Cigarettes 20s",
+                "price": 90.0,
+                "hasTobacco": True,
+                "articleNumber": "3",
+                "unitOfMeasure": "EA",
+            },
+        ]
+    }
+    items = Checkers().parse_json(feed, "Groceries")
+    assert [(i.name, i.category) for i in items] == [("Cooking Wine 750ml", "Liquor")]
+
+
+def test_checkers_slug_matches_the_shops_addresses():
+    from pricepulse.scrapers.stores import checkers_slug
+
+    assert (
+        checkers_slug("SASKO Low G.I Wholewheat Brown Bread 800g")
+        == "sasko-low-gi-wholewheat-brown-bread-800g"
+    )
+    assert checkers_slug("Nestle Kit Kat & Co's 2x40g") == "nestle-kit-kat-and-cos-2x40g"
+
+
+def test_other_feeds_fall_back_to_the_generic_reader():
+    assert Checkers().parse_json({"terms": [{"term": "Bread", "count": 5}]}, "Groceries") == []

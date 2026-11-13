@@ -52,13 +52,22 @@ class Item:
     promo_price: float | None = None
     url: str = ""
     brand: str = ""
+    barcode: str = ""  # EAN, the best way to tell that two stores sell the same product
+    store_ref: str = ""  # the shop's own branch/store ID the price came from, when it says
+    special: bool = False  # on a special; the shop did not say what the usual price is
+    in_stock: bool = True
 
     def to_dict(self) -> dict:
         d = asdict(self)
         if d["promo_price"] is None:
             d.pop("promo_price")
-        if not d["brand"]:
-            d.pop("brand")
+        for key in ("brand", "barcode", "store_ref"):
+            if not d[key]:
+                d.pop(key)
+        if not d["special"]:
+            d.pop("special")
+        if d["in_stock"]:
+            d.pop("in_stock")
         return d
 
 
@@ -176,6 +185,10 @@ def make_item(
     url: str = "",
     base_url: str = "",
     brand: str = "",
+    barcode: str = "",
+    store_ref: str = "",
+    special: bool = False,
+    in_stock: bool = True,
 ) -> Item | None:
     """Build an Item, splitting size out of the name and handling promo vs regular."""
     name = re.sub(r"\s+", " ", (name or "")).strip()
@@ -202,6 +215,10 @@ def make_item(
         promo_price=pr,
         url=url,
         brand=brand or "",
+        barcode=barcode or "",
+        store_ref=store_ref or "",
+        special=bool(special),
+        in_stock=bool(in_stock),
     )
 
 
