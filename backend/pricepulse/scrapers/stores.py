@@ -33,6 +33,7 @@ class Checkers(BaseScraper):
     slug = "checkers"
     base_url = "https://www.checkers.co.za"
     search_url = "https://www.checkers.co.za/search?Search={q}"
+    json_first = True
     selectors = {
         "card": [
             ".product-frame",
@@ -110,16 +111,20 @@ def checkers_slug(name: str) -> str:
 
 
 class PickNPay(BaseScraper):
-    """Pick n Pay. Angular single-page site on SAP Commerce.
+    """Pick n Pay. Angular single-page site on SAP Commerce (Hybris).
 
-    Guess: the site calls a JSON product-search endpoint. The store code chooses
-    the branch, which sets regional prices; put it in regions.yaml when found.
+    Read from a real saved answer (tests/fixtures/pick-n-pay/search_feed.json). The page calls
+    ``/pnphybris/v2/pnp-spa/products/search?...&query=<words>&storeCode=WC21``. ``WC21`` is the
+    store an anonymous visitor gets; the store code is what sets the prices, so other regions
+    will need a different store chosen on the site. The feed has no barcode.
     """
 
     name = "Pick n Pay"
     slug = "pick-n-pay"
     base_url = "https://www.pnp.co.za"
     search_url = "https://www.pnp.co.za/search/{q}"
+    json_first = True
+    # Guess kept for later; never called while use_api is False.
     api_url = (
         "https://www.pnp.co.za/pnphybris/v2/pnp-spa/products/search"
         "?query={q}&pageSize=20&fields=FULL&storeCode={store_code}"
@@ -146,23 +151,53 @@ class PickNPay(BaseScraper):
             self.api_url = self.api_url.replace("&storeCode={store_code}", "")
 
     def parse_json(self, data: Any, category: str = "") -> list[Item]:
-        rows = data.get("products") if isinstance(data, dict) else None
-        if not isinstance(rows, list):
-            return walk_json_products(data, self.name, self.base_url, category)
-        items = []
-        for p in rows:
-            price = (p.get("price") or {}).get("value")
-            promo = None
-            for promo_block in p.get("potentialPromotions") or []:
-                promo = promo_block.get("promotionalPrice", {}).get("value") or promo
-            item = walk_json_products(
-                {"name": p.get("name", ""), "price": price, "promoPrice": promo, "url": p.get("url", "")},
+        """Read Pick n Pay's product search answer. Other answers (menus, settings) give nothing.
+
+        ``price.value`` is the shelf price. A higher ``oldPrice`` means a real was/now. Smart
+        Shopper (loyalty card) and combo offers sit in ``potentialPromotions``: they are kept as
+        text in ``deal`` and never replace the shelf price.
+        """
+        products = data.get("products") if isinstance(data, dict) else None
+        if not isinstance(products, list) or not all(isinstance(p, dict) for p in products):
+            return []
+        match = re.search(r"storeCode=([A-Za-z0-9]+)", self.feed_url)
+        store_ref = match.group(1) if match else ""
+        items: list[Item] = []
+        for p in products:
+            if not isinstance(p.get("price"), dict) or not p.get("code"):
+                continue
+            value, old = p["price"].get("value"), p["price"].get("oldPrice") or 0
+            regular, promo = value, None
+            if value is not None and old > float(value) + 0.004:
+                regular, promo = old, value
+            offers = []
+            for offer in p.get("potentialPromotions") or []:
+                text = str(offer.get("promotionTextMessage") or "").strip()
+                if text:
+                    kind = str(offer.get("promotionDisplayType") or "").replace("_", " ").title()
+                    offers.append(f"{kind}: {text}" if kind else text)
+            stock = (p.get("stock") or {}).get("stockLevelStatus", "inStock")
+            item = make_item(
                 self.name,
-                self.base_url,
+                p.get("name", ""),
+                regular,
                 category,
+                promo=promo,
+                url=f"/{pnp_slug(p.get('name', ''))}/p/{p['code']}",
+                base_url=self.base_url,
+                store_ref=store_ref,
+                in_stock=bool(p.get("available", True)) and stock != "outOfStock",
+                deal="; ".join(offers[:2]),
             )
-            items.extend(item)
+            if item:
+                items.append(item)
         return items
+
+
+def pnp_slug(name: str) -> str:
+    """Pick n Pay's web-address words: "White Star Maize Meal 2.5kg" -> "white-star-maize-meal-2.5kg"."""
+    text = re.sub(r"['\u2019]", "", name.lower().replace("&", " and "))
+    return re.sub(r"[^a-z0-9.]+", "-", text).strip("-")
 
 
 class Woolworths(BaseScraper):

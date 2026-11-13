@@ -38,6 +38,19 @@ BLOCK_MARKERS = (
 )
 # Real shop pages are large and may mention a captcha script. Bot-check pages are small.
 BLOCK_PAGE_MAX = 60000
+# Advertising, tracking and bot-check answers: never product data.
+NOISE_HOSTS = (
+    "fullstory.com",
+    "doubleclick.net",
+    "useinsider.com",
+    "awswaf.com",
+    "eskimi.com",
+    "googleapis.com",
+    "google-analytics.com",
+    "tiktok.com",
+    "bing.net",
+    "facebook.net",
+)
 
 
 @dataclass
@@ -56,12 +69,13 @@ class Item:
     store_ref: str = ""  # the shop's own branch/store ID the price came from, when it says
     special: bool = False  # on a special; the shop did not say what the usual price is
     in_stock: bool = True
+    deal: str = ""  # a loyalty-card or multi-buy offer, as the shop words it; never mixed into price
 
     def to_dict(self) -> dict:
         d = asdict(self)
         if d["promo_price"] is None:
             d.pop("promo_price")
-        for key in ("brand", "barcode", "store_ref"):
+        for key in ("brand", "barcode", "store_ref", "deal"):
             if not d[key]:
                 d.pop(key)
         if not d["special"]:
@@ -189,6 +203,7 @@ def make_item(
     store_ref: str = "",
     special: bool = False,
     in_stock: bool = True,
+    deal: str = "",
 ) -> Item | None:
     """Build an Item, splitting size out of the name and handling promo vs regular."""
     name = re.sub(r"\s+", " ", (name or "")).strip()
@@ -219,6 +234,7 @@ def make_item(
         store_ref=store_ref or "",
         special=bool(special),
         in_stock=bool(in_stock),
+        deal=deal or "",
     )
 
 
@@ -406,6 +422,9 @@ class BaseScraper:
     # Only call ``api_url`` directly after a real run proved the address (the saved
     # {term}.network.txt shows it). A guessed address must not be called on a shop's site.
     use_api = False
+    # True once the store's own data feed is proven: read it before the page layout.
+    json_first = False
+    feed_url = ""
     api_minor_units = False  # API prices are in cents
     selectors: dict[str, list[str]] = {}
     verified = False  # set True only after checking against the live site
@@ -512,6 +531,7 @@ class BaseScraper:
 
         Many shops show a grey placeholder first and fill the list from a data feed. The feed is
         steadier to read than the page layout, and its address tells us how the shop works.
+        Each answer is read the moment it arrives: read later, some are already gone.
         """
         seen: list = []
 
@@ -520,19 +540,27 @@ class BaseScraper:
                 kind = (resp.headers or {}).get("content-type", "")
             except Exception:  # noqa: BLE001
                 return
-            if "json" in kind.lower() and len(seen) < 40:
-                seen.append(resp)
+            if "json" not in kind.lower() or len(seen) >= 80:
+                return
+            if any(host in resp.url for host in NOISE_HOSTS):
+                return
+            try:
+                body = resp.text()
+            except Exception:  # noqa: BLE001 - try again later in _read_json
+                body = None
+            seen.append((resp, body))
 
         page.on("response", on_response)
         return seen, on_response
 
     def _read_json(self, seen: list) -> list[tuple[str, int, str]]:
         out = []
-        for resp in seen:
-            try:
-                body = resp.text()
-            except Exception:  # noqa: BLE001 - some answers are gone after navigation
-                continue
+        for resp, body in seen:
+            if body is None:
+                try:
+                    body = resp.text()
+                except Exception:  # noqa: BLE001 - some answers are gone after navigation
+                    continue
             if len(body) <= 3_000_000:
                 out.append((resp.url, resp.status, body))
         return out
@@ -541,17 +569,20 @@ class BaseScraper:
     def _feeds_text(answers: list[tuple[str, int, str]], limit: int) -> str:
         lines: list[str] = []
         for url, status, body in answers:
-            lines += [f"=== {status} {url}  ({len(body)} characters)", body[:limit], ""]
+            # Feeds with prices in them get the full limit; menus, settings and the rest stay short.
+            cap = limit if '"price"' in body.lower() else min(limit, 3000)
+            lines += [f"=== {status} {url}  ({len(body)} characters)", body[:cap], ""]
         return "\n".join(lines)
 
     def _items_from_json(self, answers: list[tuple[str, int, str]], category: str) -> list[Item]:
         items: list[Item] = []
         seen: set[tuple[str, float]] = set()
-        for _url, _status, body in answers:
+        for url, _status, body in answers:
             try:
                 data = json.loads(body)
             except ValueError:
                 continue
+            self.feed_url = url  # lets a store's reader see which branch the answer was for
             for item in self.parse_json(data, category):
                 if (item.name, item.price) not in seen:
                     seen.add((item.name, item.price))
@@ -602,9 +633,11 @@ class BaseScraper:
         self._save_fixture(term, html, "html")
         if answers:
             self._save_fixture(term, self._feeds_text(answers, 400_000), "network.txt")
-        items = self.parse_html(html, category)
-        if not items and answers:
-            items = self._items_from_json(answers, category)
+        from_feed = self._items_from_json(answers, category) if answers else []
+        if self.json_first:
+            items = from_feed or self.parse_html(html, category)
+        else:
+            items = self.parse_html(html, category) or from_feed
         if not items:
             self._save_debug(page, term, html, answers)
         return items

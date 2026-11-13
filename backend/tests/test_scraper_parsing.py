@@ -49,13 +49,61 @@ def test_checkers_html():
     assert len(items) == 3
 
 
-def test_pick_n_pay_json_and_html():
-    items = PickNPay().parse_json(js("pick-n-pay/search_milk.json"))
-    assert [(i.name, i.price, i.promo_price) for i in items] == [
-        ("Clover Fresh Full Cream Milk 2l", 38.49, None),
-        ("PnP Full Cream Fresh Milk 2l", 32.99, 29.99),
-    ]
-    assert items[0].url == "https://www.pnp.co.za/clover-fresh-full-cream-milk-2l/p/000000000000123456_EA"
+def test_pick_n_pay_real_feed():
+    """tests/fixtures/pick-n-pay/search_feed.json is a REAL saved answer (13 Nov 2026)."""
+    from pricepulse.scrapers.stores import pnp_slug
+
+    doc = js("pick-n-pay/search_feed.json")
+    scraper = PickNPay()
+    scraper.feed_url = doc["_feed_url"]
+    items = {i.name: i for i in scraper.parse_json(doc, "Groceries")}
+    assert len(items) == 4
+
+    plain = items["Albany Superior White Sliced Bread 700g"]
+    assert (plain.price, plain.promo_price, plain.size) == (17.99, None, "700g")
+    assert (
+        plain.url == "https://www.pnp.co.za/albany-superior-white-sliced-bread-700g/p/000000000000129009_EA"
+    )
+    assert (
+        plain.store_ref == "WC21" and plain.deal == "" and plain.in_stock is True and plain.special is False
+    )
+
+    # Smart Shopper (loyalty card) price: kept as text, the shelf price stays R20.99.
+    card = items["Sasko More Slices White Bread 700g"]
+    assert card.price == 20.99 and card.promo_price is None
+    assert card.deal == "Smart Shopper: R17.99"
+    assert items["Blue Ribbon White Toaster Bread 700g"].deal == "Smart Shopper: Combo For R49.99"
+    assert "deal" in card.to_dict() and "deal" not in plain.to_dict()
+
+    assert pnp_slug("White Star Maize Meal Super 2.5kg") == "white-star-maize-meal-super-2.5kg"
+    assert (
+        pnp_slug("Sasko Low Gi Whole Wheat Brown Bread 800g") == "sasko-low-gi-whole-wheat-brown-bread-800g"
+    )
+    assert pnp_slug("Nando's Peri & Mild 250ml") == "nandos-peri-and-mild-250ml"
+
+
+def test_pick_n_pay_was_now_price_and_stock():
+    feed = {
+        "products": [
+            {
+                "code": "1_EA",
+                "name": "Test Milk 2L",
+                "available": True,
+                "price": {"value": 30.0, "oldPrice": 36.99},
+                "stock": {"stockLevelStatus": "outOfStock"},
+            }
+        ]
+    }
+    (item,) = PickNPay().parse_json(feed, "Fresh")
+    assert (item.price, item.promo_price, item.in_stock) == (36.99, 30.0, False)
+
+
+def test_pick_n_pay_other_answers_give_nothing():
+    assert PickNPay().parse_json({"components": [{"name": "Menu", "price": 5}]}, "Groceries") == []
+    assert PickNPay().parse_json([{"x": 1}], "Groceries") == []
+
+
+def test_pick_n_pay_page_cards_still_work_as_fallback():
     page = PickNPay().parse_html(html("pick-n-pay/search_milk.html"))
     assert [(i.name, i.price) for i in page] == [("Clover Fresh Full Cream Milk 2l", 38.49)]
 

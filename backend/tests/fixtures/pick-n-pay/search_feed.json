@@ -1,0 +1,209 @@
+{
+ "_comment": "REAL excerpt of https://www.pnp.co.za/pnphybris/v2/pnp-spa/products/search (storeCode=WC21), saved 13 Nov 2026 from the owner's PC.",
+ "_feed_url": "https://www.pnp.co.za/pnphybris/v2/pnp-spa/products/search?fields=products(variantMatrix(FULL)%2CproductIdForTracking%2CsponsoredProduct%2ConlineSalesAdId%2ConlineSalesExtendedAdId%2Ccode%2Cname%2CbrandSellerId%2CaverageWeight%2Csummary%2Cprice(FULL)%2Cimages(DEFAULT)%2Cstock(FULL)%2CaverageRating%2CnumberOfReviews%2CvariantOptions%2CmaxOrderQuantity%2CproductDisplayBadges(DEFAULT)%2CallowedQuantities(DEFAULT)%2Cavailable%2CquantityType%2CdefaultQuantityOfUom%2CinStockIndicator%2CdefaultUnitOfMeasure%2CpotentialPromotions(FULL)%2CcategoryNames)%2Cfacets%2Cbreadcrumbs%2Cpagination(DEFAULT)%2Csorts(DEFAULT)%2CfreeTextSearch%2CcurrentQuery%2CresponseJson%2CseoCategoryContent%2CseoCategoryTitle%2CrefinedContent%2CcategoryDescription%2CkeywordRedirectUrl&query=albany%2Bsuperior%2Bwhite%2Bbread%2B700g&pageSize=72&storeCode=WC21&lang=en&curr=ZAR",
+ "products": [
+  {
+   "available": true,
+   "brandSellerId": "TIGER BRANDS",
+   "categoryNames": [
+    "All Products",
+    "Bakery",
+    "Bread & Rolls",
+    "White Bread"
+   ],
+   "code": "000000000000129009_EA",
+   "defaultQuantityOfUom": 1,
+   "images": [
+    {
+     "format": "thumbnail",
+     "imageType": "PRIMARY",
+     "url": "https://cdn-prd-02.pnp.co.za/sys-master/images/h3d/h51/80628238286878/silo-product-image-v2-02Oct2026-060046-6001253010178-Straight_on-470827-278_96Wx96H"
+    }
+   ],
+   "inStockIndicator": true,
+   "name": "Albany Superior White Sliced Bread 700g",
+   "numberOfReviews": 0,
+   "price": {
+    "average": false,
+    "currencyIso": "ZAR",
+    "formattedValue": "R17.99",
+    "oldPrice": 0,
+    "oldPriceFormattedValue": "R0.00",
+    "onlineOnlyPrice": false,
+    "priceDisplayType": "SELLING",
+    "priceType": "BUY",
+    "savings": 0,
+    "savingsFormattedValue": "R0.00",
+    "value": 17.99
+   },
+   "productIdForTracking": "000000000000129009_EA",
+   "quantityType": "NORMAL",
+   "sponsoredProduct": false,
+   "stock": {
+    "stockLevelStatus": "inStock"
+   }
+  },
+  {
+   "available": true,
+   "brandSellerId": "TIGER BRANDS",
+   "categoryNames": [
+    "All Products",
+    "Bakery",
+    "Bread & Rolls",
+    "White Bread"
+   ],
+   "code": "000000000000156472_EA",
+   "defaultQuantityOfUom": 1,
+   "images": [
+    {
+     "format": "thumbnail",
+     "imageType": "PRIMARY",
+     "url": "https://cdn-prd-02.pnp.co.za/sys-master/images/h93/h51/80628238254110/silo-product-image-v2-02Oct2026-060046-6001253010307-Straight_on-470831-279_96Wx96H"
+    }
+   ],
+   "inStockIndicator": true,
+   "name": "Albany Superior Best of Both White Bread 700g",
+   "numberOfReviews": 0,
+   "price": {
+    "average": false,
+    "currencyIso": "ZAR",
+    "formattedValue": "R24.99",
+    "oldPrice": 0,
+    "oldPriceFormattedValue": "R0.00",
+    "onlineOnlyPrice": false,
+    "priceDisplayType": "SELLING",
+    "priceType": "BUY",
+    "savings": 0,
+    "savingsFormattedValue": "R0.00",
+    "value": 24.99
+   },
+   "productIdForTracking": "000000000000156472_EA",
+   "quantityType": "NORMAL",
+   "sponsoredProduct": false,
+   "stock": {
+    "stockLevelStatus": "inStock"
+   }
+  },
+  {
+   "available": true,
+   "brandSellerId": "PREMIER FMCG",
+   "categoryNames": [
+    "All Products",
+    "Bakery",
+    "Bread & Rolls",
+    "White Bread"
+   ],
+   "code": "000000000000185430_EA",
+   "defaultQuantityOfUom": 1,
+   "images": [
+    {
+     "format": "thumbnail",
+     "imageType": "PRIMARY",
+     "url": "https://cdn-prd-02.pnp.co.za/sys-master/images/h3d/ha6/84283891941406/silo-product-image-v2-06Nov2026-060105-6009629182221-Straight_on-482176-416_96Wx96H"
+    }
+   ],
+   "inStockIndicator": true,
+   "name": "Blue Ribbon White Toaster Bread 700g",
+   "numberOfReviews": 0,
+   "potentialPromotions": [
+    {
+     "code": "SCRIPT20261003140359-3000727247",
+     "endDate": "2027-01-24T21:59:59+0000",
+     "promotionDisplayType": "SMART_SHOPPER",
+     "promotionTextMessage": "Combo For R49.99 ",
+     "startDate": "2026-10-06T22:00:00+0000",
+     "valid": false
+    }
+   ],
+   "price": {
+    "average": false,
+    "currencyIso": "ZAR",
+    "formattedValue": "R20.99",
+    "oldPrice": 0,
+    "oldPriceFormattedValue": "R0.00",
+    "onlineOnlyPrice": false,
+    "priceDisplayType": "SELLING",
+    "priceType": "BUY",
+    "savings": 0,
+    "savingsFormattedValue": "R0.00",
+    "value": 20.99
+   },
+   "productDisplayBadges": [
+    {
+     "displayGroup": "group4",
+     "displayName": "SMART SHOPPER"
+    }
+   ],
+   "productIdForTracking": "000000000000185430_EA",
+   "quantityType": "NORMAL",
+   "sponsoredProduct": false,
+   "stock": {
+    "stockLevelStatus": "inStock"
+   }
+  },
+  {
+   "available": true,
+   "brandSellerId": "PREMIER FMCG ",
+   "categoryNames": [
+    "All Products",
+    "Bakery",
+    "Bread & Rolls",
+    "White Bread"
+   ],
+   "code": "000000000000398207_EA",
+   "defaultQuantityOfUom": 1,
+   "images": [
+    {
+     "format": "thumbnail",
+     "imageType": "PRIMARY",
+     "url": "https://cdn-prd-02.pnp.co.za/sys-master/images/h07/h47/11550833541150/silo-product-image-v2-08Jan2025-180111-6001710010178-Straight_on-280699-3985_96Wx96H"
+    }
+   ],
+   "inStockIndicator": true,
+   "name": "Sasko More Slices White Bread 700g",
+   "numberOfReviews": 0,
+   "potentialPromotions": [
+    {
+     "code": "SCRIPT20261108113412-3000725433",
+     "endDate": "2026-11-29T21:59:59+0000",
+     "promotionDisplayType": "SMART_SHOPPER",
+     "promotionTextMessage": "R17.99 ",
+     "startDate": "2026-11-08T22:00:00+0000",
+     "valid": false
+    }
+   ],
+   "price": {
+    "average": false,
+    "currencyIso": "ZAR",
+    "formattedValue": "R20.99",
+    "oldPrice": 0,
+    "oldPriceFormattedValue": "R0.00",
+    "onlineOnlyPrice": false,
+    "priceDisplayType": "SELLING",
+    "priceType": "BUY",
+    "savings": 0,
+    "savingsFormattedValue": "R0.00",
+    "value": 20.99
+   },
+   "productDisplayBadges": [
+    {
+     "displayGroup": "group4",
+     "displayName": "SMART SHOPPER"
+    }
+   ],
+   "productIdForTracking": "000000000000398207_EA",
+   "quantityType": "NORMAL",
+   "sponsoredProduct": false,
+   "stock": {
+    "stockLevelStatus": "inStock"
+   }
+  }
+ ],
+ "pagination": {
+  "currentPage": 0,
+  "pageSize": 72,
+  "sort": "relevance",
+  "totalPages": 1,
+  "totalResults": 14
+ }
+}
