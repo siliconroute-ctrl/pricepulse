@@ -487,11 +487,26 @@ class BaseScraper:
         self._save_fixture(term, body, "json")
         return self.parse_json(json.loads(body), category)
 
+    def _save_debug(self, page: Any, term: str, html: str | None = None) -> None:
+        """Keep the page and a screenshot in debug/{store}/ so a failure can be looked at."""
+        if not self.debug_dir:
+            return
+        d = self.debug_dir / self.slug
+        d.mkdir(parents=True, exist_ok=True)
+        stem = re.sub(r"[^a-z0-9]+", "_", term.lower())
+        try:
+            (d / f"{stem}.html").write_text(html if html is not None else page.content(), encoding="utf-8")
+            page.screenshot(path=str(d / f"{stem}.png"), full_page=True)
+        except Exception as exc:  # noqa: BLE001 - evidence is a bonus, never a new failure
+            log.debug("%s: could not save debug files: %s", self.name, exc)
+        log.info("%s: saved the page and a screenshot for '%s' to %s", self.name, term, d)
+
     def _search_page(self, page: Any, term: str, category: str) -> list[Item]:
         url = self.search_url.format(q=quote_plus(term), **self.region_setting)
         resp = page.goto(url, wait_until="domcontentloaded", timeout=45000)
         status = resp.status if resp else 0
         if status in (404, 410):
+            self._save_debug(page, term)
             raise WrongAddressError(f"Search address not found (HTTP {status}): {url}")
         card_sel = ", ".join(self.selectors.get("card", [])) or "body"
         try:
@@ -500,20 +515,13 @@ class BaseScraper:
             pass
         html = page.content()
         if looks_blocked(status, html):
+            self._save_debug(page, term, html)
             self._blocked(f"HTTP {status} or CAPTCHA on search page")
             return []
         self._save_fixture(term, html, "html")
         items = self.parse_html(html, category)
-        if not items and self.debug_dir:
-            d = self.debug_dir / self.slug
-            d.mkdir(parents=True, exist_ok=True)
-            stem = re.sub(r"[^a-z0-9]+", "_", term.lower())
-            (d / f"{stem}.html").write_text(html, encoding="utf-8")
-            try:
-                page.screenshot(path=str(d / f"{stem}.png"), full_page=True)
-            except Exception:  # noqa: BLE001
-                pass
-            log.info("%s: nothing found for '%s'. Saved page and screenshot to %s", self.name, term, d)
+        if not items:
+            self._save_debug(page, term, html)
         return items
 
     def search(self, page: Any, term: str, category: str = "") -> list[Item]:

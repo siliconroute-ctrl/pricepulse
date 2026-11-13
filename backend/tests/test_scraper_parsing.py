@@ -218,3 +218,47 @@ def test_wrong_address_is_reported_plainly():
     h.status = "failed"
     assert h.summary().startswith("Checkers: 0 of 3 products found")
     assert "FAILED - Search address not found (HTTP 404)" in h.summary()
+
+
+class _FakeResp:
+    def __init__(self, status):
+        self.status = status
+
+
+class _FakePage:
+    def __init__(self, status, html):
+        self.status, self.html = status, html
+
+    def goto(self, *a, **k):
+        return _FakeResp(self.status)
+
+    def wait_for_selector(self, *a, **k):
+        raise TimeoutError
+
+    def content(self):
+        return self.html
+
+    def screenshot(self, path, **k):
+        __import__("pathlib").Path(path).write_bytes(b"png")
+
+
+def test_failures_leave_a_screenshot_and_page(tmp_path):
+    import pytest as _pt
+
+    from pricepulse.scrapers.base import BlockedError, WrongAddressError
+
+    wrong = Checkers(debug_dir=tmp_path)
+    with _pt.raises(WrongAddressError):
+        wrong._search_page(_FakePage(404, "<html>Lost in aisle</html>"), "milk 2l", "Fresh")
+    assert (tmp_path / "checkers" / "milk_2l.png").exists()
+    assert "Lost in aisle" in (tmp_path / "checkers" / "milk_2l.html").read_text()
+
+    blocked = Checkers(debug_dir=tmp_path, backoff_seconds=0)
+    blocked.max_blocks = 1
+    with _pt.raises(BlockedError):
+        blocked._search_page(_FakePage(403, "<html>Access denied</html>"), "bread", "Groceries")
+    assert (tmp_path / "checkers" / "bread.png").exists()
+
+    empty = Checkers(debug_dir=tmp_path)
+    assert empty._search_page(_FakePage(200, "<html>no products</html>"), "eggs", "Fresh") == []
+    assert (tmp_path / "checkers" / "eggs.html").exists()
