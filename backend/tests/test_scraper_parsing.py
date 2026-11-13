@@ -387,3 +387,19 @@ def test_checkers_slug_matches_the_shops_addresses():
 
 def test_other_feeds_fall_back_to_the_generic_reader():
     assert Checkers().parse_json({"terms": [{"term": "Bread", "count": 5}]}, "Groceries") == []
+
+
+def test_guessed_data_feed_addresses_are_not_called():
+    from pricepulse.scrapers.stores import ALL_SCRAPERS
+
+    assert all(cls.use_api is False for cls in ALL_SCRAPERS)  # none proven yet
+
+    class Boom(_FakePage):
+        @property
+        def request(self):
+            raise AssertionError("the guessed API address was called")
+
+    scraper = PickNPay()
+    assert scraper.api_url  # a guess exists...
+    page = Boom(200, "<html>none</html>")
+    assert scraper.search(page, "milk", "Fresh") == []  # ...but only the page is used

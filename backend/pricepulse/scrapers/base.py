@@ -402,7 +402,10 @@ class BaseScraper:
     slug = "store"
     base_url = ""
     search_url = ""  # with {q}
-    api_url = ""  # JSON search endpoint with {q}; tried first when set
+    api_url = ""  # JSON search endpoint with {q}
+    # Only call ``api_url`` directly after a real run proved the address (the saved
+    # {term}.network.txt shows it). A guessed address must not be called on a shop's site.
+    use_api = False
     api_minor_units = False  # API prices are in cents
     selectors: dict[str, list[str]] = {}
     verified = False  # set True only after checking against the live site
@@ -612,7 +615,7 @@ class BaseScraper:
         for attempt in range(self.retries + 1):
             try:
                 items: list[Item] = []
-                if self.api_url:
+                if self.api_url and self.use_api:
                     try:
                         items = self._search_api(page, term, category)
                     except (BlockedError, WrongAddressError):
