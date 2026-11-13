@@ -20,8 +20,12 @@ python run_scrapers.py --region paarl --store Checkers --limit 3 --debug --no-db
 explorer debug\checkers
 ```
 
-When a store finds nothing, send Claude the screenshots (`.png`) and one `.html` from that
-folder (drag them into the chat). A screenshot shows what the browser really saw; the page
+Every run with `--save-fixtures` also writes ONE small file, `backend\send_to_claude\{store}.txt`
+(open the folder with `explorer send_to_claude`). Drag just that file into the chat. Add
+`--term "white bread 700g"` (repeatable) to search your own words instead of products.txt.
+
+When a store finds nothing, also send the newest screenshot (`.png`) from its `debug` folder
+(a screenshot shows what the browser really saw). A screenshot shows what the browser really saw; the page
 shows what the scraper can read. Add `--show` to watch the browser window while it runs.
 
 What went wrong first time, so you can recognise it:

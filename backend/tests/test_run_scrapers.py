@@ -159,3 +159,17 @@ def test_filter_terms_by_category():
     assert filter_terms(terms, " Health & Beauty ") == [("panado", "Health & Beauty")]
     assert filter_terms(terms, None) == terms and filter_terms(terms, "") == terms
     assert filter_terms(terms, "Pets") == []
+
+
+def test_explicit_terms_replace_products_txt(tmp_path):
+    from run_scrapers import choose_terms
+
+    products = tmp_path / "p.txt"
+    products.write_text("# category: Liquor\nbeer\n# category: Fresh\nmilk\n")
+    assert choose_terms(products, None, ["white bread 700g", " ", "coca-cola 2l"]) == [
+        ("white bread 700g", "Groceries"),
+        ("coca-cola 2l", "Groceries"),
+    ]
+    assert choose_terms(products, "Fresh", ["eggs"]) == [("eggs", "Fresh")]
+    assert choose_terms(products, "liquor", None) == [("beer", "Liquor")]
+    assert choose_terms(products, None, None) == [("beer", "Liquor"), ("milk", "Fresh")]

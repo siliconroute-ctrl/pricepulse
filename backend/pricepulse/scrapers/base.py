@@ -169,6 +169,33 @@ def _net_reason(error: str) -> str:
     return next((v for k, v in _NET_REASONS.items() if code.startswith(k)), code)
 
 
+# Words that appear many times in a product feed, whatever the shop calls its fields
+# (Checkers "price", Pick n Pay "price", Woolworths "p10"/"p30"/"p60", barcodes, sale flags).
+PRICE_MARKERS = ('"price', '"p10"', '"p30"', '"p60"', '"sale', '"amount"', '"ean"', '"barcode')
+
+
+def looks_like_products(body: str) -> bool:
+    """True when a JSON answer carries product data (menus and settings do not repeat these words)."""
+    low = body[:300_000].lower()
+    return sum(low.count(m) for m in PRICE_MARKERS) >= 3
+
+
+def split_feeds(text: str) -> list[tuple[str, str]]:
+    """Split a saved ``.network.txt`` into (header line, body) pairs."""
+    feeds: list[tuple[str, str]] = []
+    header, body = None, []
+    for line in text.split("\n"):
+        if line.startswith("=== "):
+            if header is not None:
+                feeds.append((header, "\n".join(body).strip()))
+            header, body = line, []
+        elif header is not None:
+            body.append(line)
+    if header is not None:
+        feeds.append((header, "\n".join(body).strip()))
+    return feeds
+
+
 # --- Parsing helpers (pure, no network) ---------------------------------------
 
 
@@ -570,7 +597,7 @@ class BaseScraper:
         lines: list[str] = []
         for url, status, body in answers:
             # Feeds with prices in them get the full limit; menus, settings and the rest stay short.
-            cap = limit if '"price"' in body.lower() else min(limit, 3000)
+            cap = limit if looks_like_products(body) else min(limit, 3000)
             lines += [f"=== {status} {url}  ({len(body)} characters)", body[:cap], ""]
         return "\n".join(lines)
 

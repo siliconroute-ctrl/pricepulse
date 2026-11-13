@@ -451,3 +451,36 @@ def test_guessed_data_feed_addresses_are_not_called():
     assert scraper.api_url  # a guess exists...
     page = Boom(200, "<html>none</html>")
     assert scraper.search(page, "milk", "Fresh") == []  # ...but only the page is used
+
+
+def test_a_product_feed_without_the_word_price_is_still_a_product_feed():
+    """Real case: Woolworths' search feed names its prices p10, p30 and p60."""
+    from pricepulse.scrapers.base import looks_like_products
+
+    woolies = '{"results":[{"data":{"id":"6009226001468","p60":34.99,"p30":34.99,"p10":34.99,"p10_wp":0}}]}'
+    assert looks_like_products(
+        woolies.replace('"p60":34.99,"p30":34.99,"p10":34.99', '"p10":1,"p30":2,"p60":3')
+    )
+    assert not looks_like_products('{"links":[{"name":"Dashboard","url":"/dashboard"}]}')
+    assert not looks_like_products('{"allowAllDomains":true}')
+
+
+def test_saved_feeds_keep_product_answers_whole(tmp_path):
+    big = (
+        '{"results":['
+        + ",".join('{"data":{"p10":1.5,"p30":1.5,"p60":1.5,"name":"x"}}' for _ in range(400))
+        + "]}"
+    )
+    menu = '{"menu":[' + ",".join('{"label":"item","url":"/a"}' for _ in range(400)) + "]}"
+    text = Checkers._feeds_text([("https://s/search", 200, big), ("https://s/nav", 200, menu)], 400_000)
+    assert big in text and menu not in text and "(" + str(len(menu)) + " characters)" in text
+
+
+def test_split_feeds_round_trips():
+    from pricepulse.scrapers.base import split_feeds
+
+    text = '=== 200 https://a/x  (5 characters)\n{\n "a": 1\n}\n\n=== 200 https://b/y  (2 characters)\n[]\n'
+    assert split_feeds(text) == [
+        ("=== 200 https://a/x  (5 characters)", '{\n "a": 1\n}'),
+        ("=== 200 https://b/y  (2 characters)", "[]"),
+    ]

@@ -24,6 +24,7 @@ import time
 from datetime import timedelta
 from pathlib import Path
 
+from pricepulse.bundle import write_bundle
 from pricepulse.config import BACKEND_DIR, get_settings
 from pricepulse.ingest import sa_now
 from pricepulse.regions import load_regions, valid_region
@@ -62,6 +63,15 @@ def filter_terms(terms: list[tuple[str, str]], category: str | None) -> list[tup
     if not category:
         return terms
     return [t for t in terms if t[1].lower() == category.strip().lower()]
+
+
+def choose_terms(
+    products_file: Path, category: str | None, explicit: list[str] | None
+) -> list[tuple[str, str]]:
+    """Search terms to use: ones typed with --term, else products.txt (optionally one category)."""
+    if explicit:
+        return [(t.strip(), category or "Groceries") for t in explicit if t.strip()]
+    return filter_terms(read_terms(products_file), category)
 
 
 def write_atomic(path: Path, data: dict) -> None:
@@ -175,7 +185,7 @@ def run_once(args) -> int:
     """One full run. Returns 0 when at least one store worked."""
     settings = get_settings()
     regions = load_regions(str(settings.regions_file))
-    terms = filter_terms(read_terms(Path(args.products)), args.category)
+    terms = choose_terms(Path(args.products), args.category, args.term)
     if not terms:
         print(f"No search terms in category '{args.category}'. See the '# category:' lines in products.txt.")
         return 2
@@ -223,9 +233,11 @@ def run_once(args) -> int:
                 if mode in ("national", "unknown") and cls.name in national_cache:
                     items, health0 = national_cache[cls.name]
                     health = StoreHealth(**{**health0.__dict__, "region": region})
+                    bundle_wanted = False
                     print(f"  {cls.name}: same prices nationally, reusing the first region's results.")
                 else:
                     print(f"  {cls.name}: searching {len(terms)} products...")
+                    store_started, bundle_wanted = time.time(), bool(args.save_fixtures)
                     items, health = scrape_store(cls, browser, region, setting, terms, args)
                     if mode in ("national", "unknown"):
                         national_cache[cls.name] = (items, health)
@@ -233,6 +245,24 @@ def run_once(args) -> int:
                     time.sleep(random.uniform(2, 6))
                 healths.append(health)
                 print("  " + health.summary())
+                if bundle_wanted:
+                    try:
+                        bundle = write_bundle(
+                            BACKEND_DIR / "send_to_claude",
+                            cls.name,
+                            cls.slug,
+                            region,
+                            health.summary(),
+                            [i.to_dict() for i in items],
+                            [
+                                BACKEND_DIR / "tests" / "fixtures" / "live" / cls.slug,
+                                BACKEND_DIR / "debug" / cls.slug,
+                            ],
+                            store_started,
+                        )
+                        print(f"  Send this ONE file to Claude: {bundle}")
+                    except Exception as exc:  # noqa: BLE001 - a bundle is a convenience, never a failure
+                        print(f"  (Could not make the bundle file: {exc})")
                 if items:
                     all_rows.extend(i.to_dict() for i in items)
                     any_ok = True
@@ -309,6 +339,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--store", action="append", help="only this store (repeat for more)")
     ap.add_argument("--products", default=str(BACKEND_DIR / "products.txt"))
     ap.add_argument("--limit", type=int, default=0, help="only the first N search terms")
+    ap.add_argument(
+        "--term",
+        action="append",
+        help='search this instead of products.txt (repeat for more), e.g. --term "milk 2l"',
+    )
     ap.add_argument("--category", help='only terms of one category, e.g. "Health & Beauty" or Liquor')
     ap.add_argument(
         "--debug", action="store_true", help="print the first rows and save pages when nothing is found"
