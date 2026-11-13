@@ -40,7 +40,7 @@ def seed(settings, region="paarl", when=None, extra=()):
 
 def test_empty_database(client):
     h = client.get("/api/v1/health").json()
-    assert h["status"] == "empty" and len(h["stores"]) == 6
+    assert h["status"] == "empty" and len(h["stores"]) == 4
     assert all(s["status"] == "never" and s["verified"] is False for s in h["stores"])
     r = client.get("/api/v1/products", params={"region": "paarl"})
     assert r.status_code == 200

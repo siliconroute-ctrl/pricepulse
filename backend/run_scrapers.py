@@ -36,7 +36,7 @@ from pricepulse.scrapers.base import (
     WrongAddressError,
     check_items,
 )
-from pricepulse.scrapers.stores import ALL_SCRAPERS, find_scraper
+from pricepulse.scrapers.stores import ACTIVE_SCRAPERS, ALL_SCRAPERS, find_scraper
 
 log = logging.getLogger("pricepulse.run")
 
@@ -198,7 +198,7 @@ def run_once(args) -> int:
         region_list = list(regions.regions)
     else:
         region_list = [args.region]
-    classes = ALL_SCRAPERS
+    classes = ACTIVE_SCRAPERS
     if args.store:
         classes = []
         for name in args.store:

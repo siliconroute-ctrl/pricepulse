@@ -366,6 +366,10 @@ class DisChem(BaseScraper):
 
 ALL_SCRAPERS: list[type[BaseScraper]] = [Checkers, PickNPay, Woolworths, UltraLiquors, Liquorland, DisChem]
 
+# Searched by default (owner, 13 Nov 2026). Ultra Liquors and Liquorland are on hold: they stay
+# in ALL_SCRAPERS so `--store "Ultra Liquors"` still works, but no normal run touches them.
+ACTIVE_SCRAPERS: list[type[BaseScraper]] = [Checkers, PickNPay, Woolworths, DisChem]
+
 
 def find_scraper(name: str) -> type[BaseScraper] | None:
     """Look up a scraper by display name or slug, ignoring case and spaces."""

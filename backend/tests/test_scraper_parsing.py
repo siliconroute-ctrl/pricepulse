@@ -517,3 +517,11 @@ def test_checkers_multibuy_offer_text_and_over_18_flag():
     assert item.category == "Liquor"
     assert item.deal == "Buy 2 For R170"
     assert item.price == p["price"] and item.promo_price is None  # the shelf price is never replaced
+
+
+def test_default_run_leaves_out_liquor_stores_on_hold():
+    from pricepulse.scrapers.stores import ACTIVE_SCRAPERS, find_scraper
+
+    names = [c.name for c in ACTIVE_SCRAPERS]
+    assert names == ["Checkers", "Pick n Pay", "Woolworths", "Dis-Chem"]
+    assert find_scraper("Ultra Liquors") is not None and find_scraper("liquorland") is not None

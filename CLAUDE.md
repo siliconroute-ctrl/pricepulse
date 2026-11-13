@@ -52,7 +52,7 @@ _Last updated 2026-11-13 (evening). Claude: rewrite this section at the end of e
 
 ## Decisions (made by the owner, 2026-11-13)
 - **One scrape per store for all towns:** each store is searched once and its default prices (Checkers default store, Pick n Pay store `WC21`, Woolworths column `p30`) are written for all seven towns (`regions.yaml` says `national`; `run_scrapers.py` now defaults to `--region all` and lists the towns it serves). Per-town prices are a later question.
-- **Liquor stores:** Checkers Bottle Store and Pick n Pay Bottle Store only. TOPS at SPAR is left out (no public price site). Ultra Liquors and Liquorland stay in the code but are on hold.
+- **Liquor stores:** Checkers Bottle Store and Pick n Pay Bottle Store only. TOPS at SPAR is left out (no public price site). Ultra Liquors and Liquorland stay in the code but are on hold: left out of every normal run, the scheduler and the health page (`ACTIVE_SCRAPERS` in `stores.py`); `--store "Ultra Liquors"` still works. Default run = Checkers, Pick n Pay, Woolworths, Dis-Chem.
 
 ## Decisions (made by the owner, 2026-11-11)
 - **Regions:** keep the seven Western Cape towns as they are (Paarl default). Do not add other provinces for now.
