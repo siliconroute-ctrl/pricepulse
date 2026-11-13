@@ -128,7 +128,10 @@ def scrape_store(
             found = check_items(found, health)
             if found:
                 health.terms_found += 1
-                items.extend(found)
+                have = {i.url for i in items if i.url}
+                items.extend(
+                    i for i in found if not (i.url and i.url in have)
+                )  # same product from two searches
                 for it in found:
                     if args.debug and shown < 5:
                         shown += 1
