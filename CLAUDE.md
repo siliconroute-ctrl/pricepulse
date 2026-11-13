@@ -1,7 +1,7 @@
 # PricePulse ZA
 
 ## Current status
-_Last updated 2026-11-11 (evening). Claude: rewrite this section at the end of every work session. Keep it short and plain English._
+_Last updated 2026-11-13 (evening). Claude: rewrite this section at the end of every work session. Keep it short and plain English._
 
 **Test copy is live** at https://pricepulse.trolleyup.com, with **example (made-up) prices only** for paarl and wellington. Nothing is public to ordinary users yet.
 
@@ -23,7 +23,7 @@ _Last updated 2026-11-11 (evening). Claude: rewrite this section at the end of e
 - Guessed internal data-feed addresses are switched off (`use_api = False` on every scraper) until a real run proves them. Pick n Pay, Woolworths and Dis-Chem search addresses match TrolleyUp's confirmed ones; their page layouts are unverified. Ultra Liquors and Liquorland addresses are guesses: the owner must send the real ones.
 - Ideas noted, not built: match products by barcode across stores (needs a migration and other stores' feeds); show "Special" on specials; rank search hits by closeness to the term; per-region prices (test first whether they differ).
 
-**Next (owner's plan):** (1) make the other scrapers real **on the owner's Windows PC** (never from the EU server for now), starting with Pick n Pay: set up Python, git and Playwright there, run one store at a time with `--debug --save-fixtures`, send Claude the saved pages so selectors can be fixed; (2) a one-command upload of `latest_{town}.json` from the PC (key login, no password in scripts), then `admin.py ingest` on the server and `admin.py purge-sample --yes`; (3) PayFast sandbox.
+**Next (owner's plan, 13 Nov evening):** (1) owner runs `run_scrapers.py --store "Pick n Pay" --category Liquor ...` and sends `send_to_claude\pick-n-pay.txt` (if an age page appears, report it, never click through); (2) owner checks tops.co.za for a public price page (SPAR/TOPS): if none, mark "no price source yet"; (3) decide, with the owner, to scrape once per store and share the default prices across the seven towns (recommended, not decided); (4) an email alert when a scraper fails (not built); (5) one-command upload of `latest_{town}.json` from the PC, then `admin.py ingest` and `admin.py purge-sample --yes` on the server; (6) PayFast sandbox. Scrapers done and checked by the owner: Checkers (incl. liquor), Pick n Pay, Woolworths, Dis-Chem. Ultra Liquors and Liquorland on hold.
 
 **Waiting on the owner**
 - Port 80 check; a Contabo snapshot of the working app; try Google sign-in and Delete my data.
