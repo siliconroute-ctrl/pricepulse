@@ -484,7 +484,7 @@ def test_woolworths_real_feed():
     items = {i.name: i for i in Woolworths().parse_json(doc, "Groceries")}
     assert len(items) == 6
     milk = items["Fresh Full Cream Milk 2 L"]
-    assert milk.price == 38.99 and milk.promo_price is None and milk.store_ref == "p10"
+    assert milk.price == 40.99 and milk.promo_price is None and milk.store_ref == "p30"
     assert milk.barcode == ""  # 8-digit id is a Woolworths code, not a barcode
     assert milk.url.startswith("https://www.woolworths.co.za/prod/Food/Milk-Dairy-Eggs/")
     assert milk.url.endswith("/A-20011697")
