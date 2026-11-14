@@ -56,3 +56,12 @@ nomatch,OMO Auto Washing Powder 2kg,,OMO Hand Washing Powder 2kg,,auto vs hand
 nomatch,Sunfoil Sunflower Oil 2L,,Sunfoil Sunflower Oil 750ml,,size
 nomatch,White Star Super Maize Meal 5kg,,White Star Special Maize Meal 5kg,,super vs special
 nomatch,Mystery Product,,Mystery Product,,no size: never auto-match
+match,Albany Superior White Bread 700g,,Albany Superior White Sliced Bread 700g,,real Checkers vs Pick n Pay: sliced is only a descriptor
+match,SASKO Low G.I Wholewheat Brown Bread 800g,,Sasko Low Gi Whole Wheat Brown Bread 800g,,real: G.I / Gi and Whole Wheat / Wholewheat
+match,SASKO Premium Slices Brown Bread 700g,,Sasko Premium Sliced Brown Bread 700g,,real: Slices / Sliced
+match,White Star Super Maize Meal 2.5kg,,White Star Maize Meal Super 2.5kg,,real: word order
+nomatch,SASKO More Slices Brown Bread 700g,,SASKO Premium Slices Brown Bread 700g,,real: different Sasko lines
+nomatch,Albany Superior White Bread 700g,,Albany Superior Best of Both White Bread 700g,,real: Best of Both is a different loaf
+nomatch,Albany Superior White Bread 700g,,Albany Superior Low Gi White Bread 700g,,real: Low Gi is a different loaf
+nomatch,Albany Everyday White Bread 700g,,Albany Superior White Bread 700g,,real: Everyday vs Superior
+nomatch,White Star Super Maize Meal 1kg,,White Star Super Maize Meal 2.5kg,,real: sizes differ

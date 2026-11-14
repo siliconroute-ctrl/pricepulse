@@ -3,8 +3,8 @@
 import json
 import types
 
-from pricepulse.scrapers.base import BaseScraper, BlockedError, Item
-from run_scrapers import other_stores, previous_rows, read_terms, scrape_store, write_atomic
+from pricepulse.scrapers.base import BaseScraper, BlockedError, Item, WrongAddressError
+from run_scrapers import filter_terms, other_stores, previous_rows, read_terms, scrape_store, write_atomic
 
 
 def test_products_txt_has_categories_and_enough_terms():
@@ -122,3 +122,54 @@ def test_setup_failure_fails_only_that_store(settings):
 
     items, h = scrape_store(Broken, FakeBrowser(), "paarl", {}, [("a", "X")], _args())
     assert items == [] and h.status == "failed" and "site down" in h.errors[0]
+
+
+def test_wrong_address_stops_the_store_at_once(settings):
+    calls = []
+
+    def b(term, cat):
+        calls.append(term)
+        raise WrongAddressError("Search address not found (HTTP 404): https://x.example/s?q=" + term)
+
+    items, h = scrape_store(
+        make_scraper(b), FakeBrowser(), "paarl", {}, [("a", "X"), ("b", "X"), ("c", "X")], _args()
+    )
+    assert calls == ["a"] and items == []
+    assert h.status == "failed" and h.terms_missing == ["a", "b", "c"]
+    assert "Search address not found" in h.summary()
+
+
+def test_scraper_gets_desktop_browser_settings(settings):
+    seen = {}
+
+    class SpyBrowser(FakeBrowser):
+        version = "156.0.1.2"
+
+        def new_context(self, **kw):
+            seen.update(kw)
+            return super().new_context(**kw)
+
+    scrape_store(make_scraper(lambda t, c: []), SpyBrowser(), "paarl", {}, [("a", "X")], _args())
+    assert seen["viewport"]["width"] >= 1280 and "Mobile" not in seen["user_agent"]
+
+
+def test_filter_terms_by_category():
+    terms = [("milk", "Fresh"), ("castle lite", "Liquor"), ("panado", "Health & Beauty"), ("beer", "Liquor")]
+    assert filter_terms(terms, "liquor") == [("castle lite", "Liquor"), ("beer", "Liquor")]
+    assert filter_terms(terms, " Health & Beauty ") == [("panado", "Health & Beauty")]
+    assert filter_terms(terms, None) == terms and filter_terms(terms, "") == terms
+    assert filter_terms(terms, "Pets") == []
+
+
+def test_explicit_terms_replace_products_txt(tmp_path):
+    from run_scrapers import choose_terms
+
+    products = tmp_path / "p.txt"
+    products.write_text("# category: Liquor\nbeer\n# category: Fresh\nmilk\n")
+    assert choose_terms(products, None, ["white bread 700g", " ", "coca-cola 2l"]) == [
+        ("white bread 700g", "Groceries"),
+        ("coca-cola 2l", "Groceries"),
+    ]
+    assert choose_terms(products, "Fresh", ["eggs"]) == [("eggs", "Fresh")]
+    assert choose_terms(products, "liquor", None) == [("beer", "Liquor")]
+    assert choose_terms(products, None, None) == [("beer", "Liquor"), ("milk", "Fresh")]

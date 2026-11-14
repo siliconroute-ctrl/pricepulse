@@ -327,6 +327,7 @@ GENERIC_STOP = {"large", "medium", "small", "extra", "fresh"}
 # Extra words that describe the product type without changing it. "Castle Lite" and
 # "Castle Lite Beer" are the same; "Coca-Cola" and "Coca-Cola No Sugar" are not.
 DESCRIPTOR_WORDS = {
+    "sliced",
     "beer",
     "lager",
     "cider",
@@ -384,6 +385,15 @@ def detect_brand(name: str, brand_hint: str | None = None) -> str:
     return ""
 
 
+# Words that shops write apart or together. Found in real Checkers and Pick n Pay names.
+_COMPOUNDS = [
+    (r"\bg i\b", "gi"),
+    (r"\bwhole wheat\b", "wholewheat"),
+    (r"\bwhole grain\b", "wholegrain"),
+    (r"\bmulti grain\b", "multigrain"),
+]
+
+
 def _singular(word: str) -> str:
     if len(word) > 3 and word.endswith("s") and not word.endswith(("ss", "us", "is")):
         return word[:-1]
@@ -394,6 +404,8 @@ def normalise_name(name: str, brand: str = "") -> str:
     """Lowercase, drop size text, brand and marketing words; sort tokens."""
     base, _size = split_size(name)
     t = " " + _brand_key(base) + " "
+    for pattern, joined in _COMPOUNDS:  # "G.I" and "Gi", "Whole Wheat" and "Wholewheat" are one thing
+        t = re.sub(pattern, joined, t)
     if brand:
         names = [brand] + [alias for alias, target in BRAND_ALIASES.items() if target == brand]
         for n in sorted(names, key=len, reverse=True):

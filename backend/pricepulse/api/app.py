@@ -27,7 +27,7 @@ from ..db import Listing, Price, Product, Store, session_factory, utcnow
 from ..money import from_cents
 from ..queries import ProductPrices, last_success_per_store, latest_prices, regions_with_data
 from ..regions import haversine_km, load_regions, valid_region
-from ..scrapers.stores import ALL_SCRAPERS
+from ..scrapers.stores import ACTIVE_SCRAPERS, ALL_SCRAPERS
 from . import schemas as S
 from .account_routes import register_account_routes
 
@@ -223,7 +223,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         last = last_success_per_store(s)
         with_data = sorted(regions_with_data(s))
         stores = []
-        for cls in ALL_SCRAPERS:
+        for cls in ACTIVE_SCRAPERS:
             run = last.get(cls.name)
             stores.append(
                 S.StoreStatus(

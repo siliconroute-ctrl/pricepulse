@@ -19,13 +19,13 @@ import time
 from pathlib import Path
 
 from pricepulse.ingest import sa_now
-from pricepulse.scrapers.stores import ALL_SCRAPERS
+from pricepulse.scrapers.stores import ACTIVE_SCRAPERS
 
 HERE = Path(__file__).resolve().parent
 
 
 def one_round(regions: list[str], gap: tuple[float, float]) -> None:
-    stores = [c.name for c in ALL_SCRAPERS]
+    stores = [c.name for c in ACTIVE_SCRAPERS]
     random.shuffle(stores)
     print(f"[{sa_now():%d %b %H:%M}] Starting a price check: {', '.join(stores)}", flush=True)
     for i, store in enumerate(stores):
@@ -50,7 +50,7 @@ def main() -> int:
     ap.add_argument("--once", action="store_true")
     args = ap.parse_args()
     every = float(os.environ.get("PP_SCRAPE_EVERY_HOURS", "6"))
-    regions = [r.strip() for r in os.environ.get("PP_SCRAPE_REGIONS", "paarl").split(",") if r.strip()]
+    regions = [r.strip() for r in os.environ.get("PP_SCRAPE_REGIONS", "all").split(",") if r.strip()]
     gap = (60.0, 300.0)
     # Start a little after boot, at a random moment, so restarts don't all hit at once.
     time.sleep(random.uniform(5, 60) if not args.once else 0)

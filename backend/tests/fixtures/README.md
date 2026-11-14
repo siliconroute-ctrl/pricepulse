@@ -1,5 +1,8 @@
 # Test fixtures
 
+**`checkers/get_products_filter.json` is REAL**: an excerpt of Checkers' own product feed,
+saved from the owner's PC on 13 Nov 2026 (long text trimmed). Everything else below is synthetic.
+
 **These are SYNTHETIC pages**, written to match our best guess of each store's
 markup. They test the parsing code, not whether the guesses are right: the build
 environment could not reach the retailer websites.

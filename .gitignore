@@ -8,3 +8,5 @@ backend/data/*
 backend/debug/*
 !backend/debug/.gitkeep
 backend/tests/fixtures/live/
+
+backend/send_to_claude/

@@ -24,11 +24,19 @@ import time
 from datetime import timedelta
 from pathlib import Path
 
+from pricepulse.bundle import write_bundle
 from pricepulse.config import BACKEND_DIR, get_settings
 from pricepulse.ingest import sa_now
 from pricepulse.regions import load_regions, valid_region
-from pricepulse.scrapers.base import BaseScraper, BlockedError, Item, StoreHealth, check_items
-from pricepulse.scrapers.stores import ALL_SCRAPERS, find_scraper
+from pricepulse.scrapers.base import (
+    BaseScraper,
+    BlockedError,
+    Item,
+    StoreHealth,
+    WrongAddressError,
+    check_items,
+)
+from pricepulse.scrapers.stores import ACTIVE_SCRAPERS, ALL_SCRAPERS, find_scraper
 
 log = logging.getLogger("pricepulse.run")
 
@@ -50,6 +58,22 @@ def read_terms(path: Path) -> list[tuple[str, str]]:
     return terms
 
 
+def filter_terms(terms: list[tuple[str, str]], category: str | None) -> list[tuple[str, str]]:
+    """Keep only the search terms of one category (case does not matter), or all when empty."""
+    if not category:
+        return terms
+    return [t for t in terms if t[1].lower() == category.strip().lower()]
+
+
+def choose_terms(
+    products_file: Path, category: str | None, explicit: list[str] | None
+) -> list[tuple[str, str]]:
+    """Search terms to use: ones typed with --term, else products.txt (optionally one category)."""
+    if explicit:
+        return [(t.strip(), category or "Groceries") for t in explicit if t.strip()]
+    return filter_terms(read_terms(products_file), category)
+
+
 def write_atomic(path: Path, data: dict) -> None:
     """Write JSON to a temp file then rename, so readers never see a half-written file."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -57,6 +81,13 @@ def write_atomic(path: Path, data: dict) -> None:
     with os.fdopen(fd, "w", encoding="utf-8") as fh:
         json.dump(data, fh, ensure_ascii=False, indent=1)
     os.replace(tmp, path)
+
+
+def terms_for(cls: type[BaseScraper], terms: list[tuple[str, str]], args) -> list[tuple[str, str]]:
+    """The terms one store is searched for: typed --term words always; else its own categories."""
+    if not args.term and cls.categories is not None:
+        terms = [t for t in terms if t[1] in cls.categories]
+    return terms[: args.limit] if args.limit else terms
 
 
 def scrape_store(
@@ -81,15 +112,7 @@ def scrape_store(
     )
     items: list[Item] = []
     shown = 0
-    context = browser.new_context(
-        locale="en-ZA",
-        timezone_id="Africa/Johannesburg",
-        user_agent=(
-            "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0 Mobile Safari/537.36 PricePulseZA-price-check"
-        ),
-        viewport={"width": 412, "height": 915},
-    )
+    context = browser.new_context(**scraper.context_options(browser))
     page = context.new_page()
     try:
         scraper.setup(page)
@@ -101,20 +124,32 @@ def scrape_store(
                 health.errors.append(f"Blocked: {exc}")
                 health.terms_missing.extend(t for t, _ in terms[terms.index((term, category)) :])
                 break
+            except WrongAddressError as exc:
+                health.status = "failed"
+                health.errors.append(str(exc))
+                health.terms_missing.extend(t for t, _ in terms[terms.index((term, category)) :])
+                break
             except Exception as exc:  # noqa: BLE001 - one term must not stop the store
                 health.errors.append(f"{term}: {exc}")
                 found = []
             found = check_items(found, health)
             if found:
                 health.terms_found += 1
-                items.extend(found)
+                have = {i.url for i in items if i.url}
+                items.extend(
+                    i for i in found if not (i.url and i.url in have)
+                )  # same product from two searches
                 for it in found:
                     if args.debug and shown < 5:
                         shown += 1
-                        print(
-                            f"   {it.name} | {it.size or '-'} | R{it.price:.2f}"
-                            f"{f' (promo R{it.promo_price:.2f})' if it.promo_price else ''} | {it.url}"
+                        tags = (
+                            (f" (promo R{it.promo_price:.2f})" if it.promo_price else "")
+                            + (" [SPECIAL]" if it.special else "")
+                            + ("" if it.in_stock else " [OUT OF STOCK]")
+                            + (f" [{it.deal}]" if it.deal else "")
                         )
+                        print(f"   {it.name} | {it.size or '-'} | R{it.price:.2f}{tags}")
+                        print(f"      {it.url}")
             else:
                 health.terms_missing.append(term)
             scraper.pause()
@@ -160,14 +195,15 @@ def run_once(args) -> int:
     """One full run. Returns 0 when at least one store worked."""
     settings = get_settings()
     regions = load_regions(str(settings.regions_file))
-    terms = read_terms(Path(args.products))
-    if args.limit:
-        terms = terms[: args.limit]
+    terms = choose_terms(Path(args.products), args.category, args.term)
+    if not terms:
+        print(f"No search terms in category '{args.category}'. See the '# category:' lines in products.txt.")
+        return 2
     if args.region == "all":
         region_list = list(regions.regions)
     else:
         region_list = [args.region]
-    classes = ALL_SCRAPERS
+    classes = ACTIVE_SCRAPERS
     if args.store:
         classes = []
         for name in args.store:
@@ -186,7 +222,12 @@ def run_once(args) -> int:
         )
         return 2
 
+    towns = ", ".join(regions.regions[r].name for r in region_list)
+    print(f"Towns served by this run ({len(region_list)}): {towns}.")
+    if len(region_list) > 1:
+        print("Each store is searched ONCE; its default prices are shared by all of these towns.")
     any_ok = False
+    first_healths: list[StoreHealth] = []
     national_cache: dict[str, tuple[list[Item], StoreHealth]] = {}
     with sync_playwright() as pw:
         launch = {"headless": not args.show}
@@ -200,21 +241,45 @@ def run_once(args) -> int:
             healths: list[StoreHealth] = []
             latest = settings.data_dir / f"latest_{region}.json"
             for cls in classes:
+                store_terms = terms_for(cls, terms, args)
+                if not store_terms:
+                    print(f"  {cls.name}: nothing to search here (it does not carry this category).")
+                    continue
                 mode = regions.pricing_mode(cls.name)
                 setting = regions.store_setting(region, cls.name)
                 if mode in ("national", "unknown") and cls.name in national_cache:
                     items, health0 = national_cache[cls.name]
                     health = StoreHealth(**{**health0.__dict__, "region": region})
+                    bundle_wanted = False
                     print(f"  {cls.name}: same prices nationally, reusing the first region's results.")
                 else:
-                    print(f"  {cls.name}: searching {len(terms)} products...")
-                    items, health = scrape_store(cls, browser, region, setting, terms, args)
+                    print(f"  {cls.name}: searching {len(store_terms)} products...")
+                    store_started, bundle_wanted = time.time(), bool(args.save_fixtures)
+                    items, health = scrape_store(cls, browser, region, setting, store_terms, args)
                     if mode in ("national", "unknown"):
                         national_cache[cls.name] = (items, health)
                     # Stagger stores with a random pause.
                     time.sleep(random.uniform(2, 6))
                 healths.append(health)
                 print("  " + health.summary())
+                if bundle_wanted:
+                    try:
+                        bundle = write_bundle(
+                            BACKEND_DIR / "send_to_claude",
+                            cls.name,
+                            cls.slug,
+                            region,
+                            health.summary(),
+                            [i.to_dict() for i in items],
+                            [
+                                BACKEND_DIR / "tests" / "fixtures" / "live" / cls.slug,
+                                BACKEND_DIR / "debug" / cls.slug,
+                            ],
+                            store_started,
+                        )
+                        print(f"  Send this ONE file to Claude: {bundle}")
+                    except Exception as exc:  # noqa: BLE001 - a bundle is a convenience, never a failure
+                        print(f"  (Could not make the bundle file: {exc})")
                 if items:
                     all_rows.extend(i.to_dict() for i in items)
                     any_ok = True
@@ -244,7 +309,14 @@ def run_once(args) -> int:
             if not args.no_db and all_rows:
                 load_into_db(payload, healths, settings)
             print_report(region, healths, all_rows)
+            if not first_healths:
+                first_healths = healths
         browser.close()
+    # Real runs only: not a test run (--limit, --term) and not --no-alert.
+    if first_healths and not (args.no_alert or args.limit or args.term):
+        from pricepulse.alerts import alert_if_needed
+
+        alert_if_needed(first_healths, settings.data_dir / "alerts_state.json", f"{sa_now():%d %b %Y, %H:%M}")
     return 0 if any_ok else 1
 
 
@@ -287,10 +359,17 @@ def print_report(region: str, healths: list[StoreHealth], rows: list[dict]) -> N
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Scrape store prices for PricePulse ZA.")
-    ap.add_argument("--region", default="paarl", help="region name from regions.yaml, or 'all'")
+    ap.add_argument("--region", default="all", help="region name from regions.yaml, or 'all'")
     ap.add_argument("--store", action="append", help="only this store (repeat for more)")
     ap.add_argument("--products", default=str(BACKEND_DIR / "products.txt"))
+    ap.add_argument("--no-alert", action="store_true", help="do not email about failed stores")
     ap.add_argument("--limit", type=int, default=0, help="only the first N search terms")
+    ap.add_argument(
+        "--term",
+        action="append",
+        help='search this instead of products.txt (repeat for more), e.g. --term "milk 2l"',
+    )
+    ap.add_argument("--category", help='only terms of one category, e.g. "Health & Beauty" or Liquor')
     ap.add_argument(
         "--debug", action="store_true", help="print the first rows and save pages when nothing is found"
     )

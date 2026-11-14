@@ -3,6 +3,40 @@
 Websites change. When one does, a store suddenly finds 0 products, or wrong prices.
 This guide fixes that in about 20 minutes. You do not need to understand all the code.
 
+## 0. The routine on the owner's Windows PC
+
+Open PowerShell and switch the Python workspace on (every new window):
+
+```
+cd $env:USERPROFILE\pricepulse\backend
+.venv\Scripts\Activate.ps1
+git pull
+```
+
+Run one store, 3 products, and keep the pages it sees:
+
+```
+python run_scrapers.py --region paarl --store Checkers --limit 3 --debug --no-db --save-fixtures
+explorer debug\checkers
+```
+
+Every run with `--save-fixtures` also writes ONE small file, `backend\send_to_claude\{store}.txt`
+(open the folder with `explorer send_to_claude`). Drag just that file into the chat. Add
+`--term "white bread 700g"` (repeatable) to search your own words instead of products.txt.
+
+When a store finds nothing, also send the newest screenshot (`.png`) from its `debug` folder
+(a screenshot shows what the browser really saw). A screenshot shows what the browser really saw; the page
+shows what the scraper can read. Add `--show` to watch the browser window while it runs.
+
+What went wrong first time, so you can recognise it:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Screenshot shows the store's own "404 / page not found" | Wrong search address | Use the address that works in your own browser. The scraper now says `Search address not found (HTTP 404)` and stops that store at once |
+| Screenshot shows a phone-style app instead of the shop | The store serves phones a different site | The scraper presents as a desktop Chrome (`context_options` in `scrapers/base.py`) |
+| Screenshot shows grey placeholder boxes, no products | The shop fills its list after the page loads, from a data feed | The scraper now reads that feed. When a store finds nothing it also saves `debug\{store}\{term}.network.txt`: the web addresses and first part of every data feed the page loaded. Send that file too: it shows how the shop really works |
+| "BLOCKED" | The store refused or showed a bot check | Do not try to get around it (section 5) |
+
 ## 1. See what is wrong
 
 Run just that store, with details:

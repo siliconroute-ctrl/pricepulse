@@ -91,6 +91,9 @@ class Size:
         return round(price / self.total * 100, 2), label
 
 
+_APOSTROPHES = str.maketrans({"`": "'", "\u2019": "'", "\u2018": "'", "\u00b4": "'"})
+
+
 def parse_size(text: str | None) -> Size | None:
     """Parse a size label. Returns None when nothing size-like is found.
 
@@ -101,7 +104,7 @@ def parse_size(text: str | None) -> Size | None:
     """
     if not text:
         return None
-    s = str(text).strip().lower().replace("×", "x")
+    s = str(text).strip().lower().replace("×", "x").translate(_APOSTROPHES)
     if not s:
         return None
     if _PER_KG_RE.search(s) or s in {"kg", "loose"}:
@@ -140,6 +143,7 @@ def split_size(name: str) -> tuple[str, str]:
     """
     if not name:
         return "", ""
+    name = name.translate(_APOSTROPHES)
     matches = list(SIZE_IN_NAME_RE.finditer(name))
     if not matches:
         return name.strip(), ""

@@ -11,19 +11,22 @@
 #   branch    - the scraper selects a branch/store code before searching.
 #   unknown   - not checked yet; treated as national until someone checks.
 
+# DECISION (owner, 13 Nov 2026): scrape each store ONCE and share those prices across all the
+# towns below. Each store's default (anonymous) prices are used: Checkers' default store,
+# Pick n Pay store WC21, Woolworths price column p30. Per-town prices are a later question.
 stores:
   Checkers:
-    regional_pricing: unknown
+    regional_pricing: national
   Pick n Pay:
-    regional_pricing: unknown
+    regional_pricing: national
   Woolworths:
-    regional_pricing: unknown
+    regional_pricing: national
   Ultra Liquors:
     regional_pricing: unknown
   Liquorland:
     regional_pricing: unknown
   Dis-Chem:
-    regional_pricing: unknown
+    regional_pricing: national
 
 regions:
   paarl:

@@ -1,0 +1,960 @@
+{
+ "_comment": "REAL excerpt of https://www.checkers.co.za/api/catalogue/get-products-filter, saved 13 Nov 2026 from the owner's PC (public catalogue data; long text trimmed).",
+ "products": [
+  {
+   "id": "5d3af63af434cf8420737d7f",
+   "storeId": "5ece6935faafe599532665b2",
+   "serviceOptionId": "sixty-min-delivery",
+   "primaryServiceOptionId": "sixty-min-delivery",
+   "unitOfMeasure": "EA",
+   "active": true,
+   "ranged": true,
+   "storeProductActive": true,
+   "storeProductPublished": true,
+   "name": "Albany Superior White Bread 700g",
+   "displayName": "Albany Superior White Bread 700g",
+   "description": "Albany Superior White Bread is a soft, tasty loaf with a lig",
+   "shortDescription": "Albany Superior White Bread is a soft, tasty loaf with a lig",
+   "longDescription": "Enjoy soft and tasty slices of Albany Superior White Bread, ",
+   "displayCategories": [
+    "Bakery",
+    "Bread, Rolls, Wraps & Bagels"
+   ],
+   "displayCategoryIds": [
+    "670437dc7a8738098af92e27",
+    "670437dc7a8738098af92e28"
+   ],
+   "imageId": "6a8841a1e136c9f1c4bbac1f",
+   "imageIds": [
+    "6a8841a1e136c9f1c4bbac1f",
+    "6a8c217a563830e60e2d9bbd"
+   ],
+   "replacementProductIds": [
+    "610d52a1331af62d8b0fd515",
+    "610d529d331af62d8b0fd502"
+   ],
+   "weightOptions": [],
+   "variableWeightOptions": null,
+   "priceFactor": 100,
+   "priceWithoutDecimal": 1899,
+   "currency": "ZAR",
+   "currencySymbol": "R",
+   "discount": 0,
+   "oldPrice": 1899,
+   "isOnPromotion": false,
+   "articleNumber": "10136301",
+   "packQuantity": 1,
+   "denominator": 1,
+   "replenishable": true,
+   "stockUpdatedOn": 0,
+   "isStockAvailable": true,
+   "stockOnHand": 91,
+   "brand": "Albany",
+   "hasAlcohol": false,
+   "hasTobacco": false,
+   "requiresOver18": false,
+   "barcodes": [
+    "6001253010178"
+   ],
+   "barcodeType": {
+    "id": "6825daee2c27ca02b1b928e3",
+    "createdOn": 1747311357384,
+    "createdBy": "5da03093aa06f5c09c75f615",
+    "updatedOn": 1747311357384,
+    "updatedBy": "5da03093aa06f5c09c75f615",
+    "active": true,
+    "code": "Z9",
+    "name": "Z9",
+    "description": "Z9",
+    "length": 0,
+    "priceDigits": 0
+   },
+   "barcodeTypes": [
+    {
+     "id": "6825daee2c27ca02b1b928e3",
+     "createdOn": 1747311357384,
+     "createdBy": "5da03093aa06f5c09c75f615",
+     "updatedOn": 1747311357384,
+     "updatedBy": "5da03093aa06f5c09c75f615",
+     "active": true,
+     "code": "Z9",
+     "name": "Z9",
+     "description": "Z9",
+     "length": 0,
+     "priceDigits": 0
+    }
+   ],
+   "taxEntry": {
+    "id": "5d3ad267a57a062a1b65a9e7",
+    "countryId": "000000000000000000000000",
+    "createdOn": 1564134832397,
+    "createdBy": "5c4ea4ccf6701fd7041470a9",
+    "updatedOn": 1564134832397,
+    "updatedBy": "5c4ea4ccf6701fd7041470a9",
+    "active": true,
+    "name": "Standard",
+    "description": "Standard",
+    "code": 1,
+    "rate": 15,
+    "symbol": ""
+   },
+   "categoryIds": [
+    "5d3454595e6fa244309e6a18",
+    "5f69add4eb0a30bb5a388b7f"
+   ],
+   "productServiceOptions": [
+    {
+     "serviceOptionId": "sixty-min-delivery",
+     "assignmentType": "exception",
+     "maxItemThreshold": 10
+    }
+   ],
+   "maxPerOrder": 10,
+   "width": 120,
+   "length": 116,
+   "height": 302,
+   "isImmediateRefundAllowed": true,
+   "merchandiseCategory": "40400202",
+   "bonusBuyIds": [],
+   "boxContent": "<p>1 x 700g Albany Superior White Bread </p>",
+   "media": {
+    "embeddedVideoFromExternalSource": "",
+    "relatedDocuments": {
+     "url": "",
+     "altText": "",
+     "mimeType": "",
+     "fileName": ""
+    },
+    "relatedVideos": {
+     "url": "",
+     "altText": "",
+     "mimeType": "",
+     "fileName": ""
+    }
+   },
+   "attributes": [
+    {
+     "name": "Benefits & Features",
+     "value": "<ul>\n\t<li>\u2022 Low in fat</li>\n\t<li>\u2022 Low i"
+    },
+    {
+     "name": "Allergens",
+     "value": "Wheat, gluten and soy."
+    }
+   ],
+   "eligibilityType": "Request Credit",
+   "returnServiceOption": "",
+   "eligibleForCredit": true,
+   "itemDamaged": false,
+   "allowAutoInjection": true,
+   "deviceConfig": 0,
+   "isSponsored": false,
+   "isPersonalised": false,
+   "reviews": {
+    "numberOfReviews": 0,
+    "reviewAverage": 0,
+    "reviewsPerStar": null
+   },
+   "fulfilmentPattern": "",
+   "hideBackUps": false,
+   "nappiCode": "",
+   "scheduleCode": "",
+   "dosageForm": "",
+   "atclCategory": "",
+   "activeIngredient": "",
+   "manufacturer": "",
+   "isMedicalAidClaimable": false,
+   "packSize": 100,
+   "imageURL": "https://catalog.sixty60.co.za/files/6a8841a1e136c9f1c4bbac1f",
+   "imageProductCardURL": "https://catalog.sixty60.co.za/v2/files/6a8841a1e136c9f1c4bbac1f?width=600&height=600",
+   "imagePDPURL": "https://catalog.sixty60.co.za/v2/files/6a8841a1e136c9f1c4bbac1f?width=300&height=300",
+   "price": 18.99,
+   "outOfStock": false,
+   "discountedPrice": 18.99,
+   "store": {
+    "storeId": "5ece6935faafe599532665b2",
+    "serviceOptionIds": [
+     "sixty-min-delivery",
+     "one-day-delivery"
+    ],
+    "brandPriority": 2,
+    "hasCapacity": [
+     "sixty-min-delivery",
+     "one-day-delivery"
+    ],
+    "distanceFromCustomer": 0.005583459286111866,
+    "returnServiceOptionIds": [
+     "one-day-collection"
+    ],
+    "hasReturnCapacity": [
+     "one-day-collection"
+    ],
+    "isDispensary": false
+   },
+   "forOver18": false
+  },
+  {
+   "id": "5d3af64ff434cf842073842a",
+   "storeId": "5ece6935faafe599532665b2",
+   "serviceOptionId": "sixty-min-delivery",
+   "primaryServiceOptionId": "sixty-min-delivery",
+   "unitOfMeasure": "EA",
+   "active": true,
+   "ranged": true,
+   "storeProductActive": true,
+   "storeProductPublished": true,
+   "name": "Albany Superior White Buns 6-Pack",
+   "displayName": "Albany Superior White Buns 6-Pack",
+   "description": "Enjoy the soft, fluffy texture and freshly baked aroma of Al",
+   "shortDescription": "Enjoy the soft, fluffy texture and freshly baked aroma of Al",
+   "longDescription": "Albany Superior White Buns are soft, fluffy, and perfect for",
+   "displayCategories": [
+    "Bakery",
+    "Bread, Rolls, Wraps & Bagels"
+   ],
+   "displayCategoryIds": [
+    "670437dc7a8738098af92e27",
+    "670437dc7a8738098af92e28"
+   ],
+   "imageId": "6a9ab690ac52d45b5b62255a",
+   "imageIds": [
+    "6a9ab690ac52d45b5b62255a",
+    "6a9e6c412e103b62b68c4f88"
+   ],
+   "replacementProductIds": [
+    "5d3af64ff434cf842073842c",
+    "5d3af67af434cf842073898b"
+   ],
+   "weightOptions": [],
+   "variableWeightOptions": null,
+   "priceFactor": 100,
+   "priceWithoutDecimal": 2699,
+   "currency": "ZAR",
+   "currencySymbol": "R",
+   "discount": 0,
+   "oldPrice": 2699,
+   "isOnPromotion": false,
+   "articleNumber": "10417318",
+   "packQuantity": 1,
+   "denominator": 1,
+   "replenishable": true,
+   "stockUpdatedOn": 0,
+   "isStockAvailable": false,
+   "stockOnHand": 0,
+   "brand": "Albany",
+   "hasAlcohol": false,
+   "hasTobacco": false,
+   "requiresOver18": false,
+   "barcodes": [
+    "6009518601482"
+   ],
+   "barcodeType": {
+    "id": "5d3ad268a57a062a1b65aa01",
+    "createdOn": 1564134832397,
+    "createdBy": "5c4ea4ccf6701fd7041470a9",
+    "updatedOn": 1564134832397,
+    "updatedBy": "5c4ea4ccf6701fd7041470a9",
+    "active": true,
+    "code": "Z6",
+    "name": "Z6",
+    "description": "Z6",
+    "length": 0,
+    "priceDigits": 0
+   },
+   "barcodeTypes": [
+    {
+     "id": "5d3ad268a57a062a1b65aa01",
+     "createdOn": 1564134832397,
+     "createdBy": "5c4ea4ccf6701fd7041470a9",
+     "updatedOn": 1564134832397,
+     "updatedBy": "5c4ea4ccf6701fd7041470a9",
+     "active": true,
+     "code": "Z6",
+     "name": "Z6",
+     "description": "Z6",
+     "length": 0,
+     "priceDigits": 0
+    }
+   ],
+   "taxEntry": {
+    "id": "5d3ad267a57a062a1b65a9e7",
+    "countryId": "000000000000000000000000",
+    "createdOn": 1564134832397,
+    "createdBy": "5c4ea4ccf6701fd7041470a9",
+    "updatedOn": 1564134832397,
+    "updatedBy": "5c4ea4ccf6701fd7041470a9",
+    "active": true,
+    "name": "Standard",
+    "description": "Standard",
+    "code": 1,
+    "rate": 15,
+    "symbol": ""
+   },
+   "categoryIds": [
+    "5cf8cc4cf8294cd73793f0d9",
+    "5d3454595e6fa244309e6a06"
+   ],
+   "productServiceOptions": [],
+   "maxPerOrder": 10,
+   "width": 211,
+   "length": 59,
+   "height": 50,
+   "isImmediateRefundAllowed": true,
+   "merchandiseCategory": "40400208",
+   "bonusBuyIds": [],
+   "boxContent": "<p>6-Pack Albany Superior White Buns </p>",
+   "media": {
+    "embeddedVideoFromExternalSource": "",
+    "relatedDocuments": {
+     "url": "",
+     "altText": "",
+     "mimeType": "",
+     "fileName": ""
+    },
+    "relatedVideos": {
+     "url": "",
+     "altText": "",
+     "mimeType": "",
+     "fileName": ""
+    }
+   },
+   "attributes": [
+    {
+     "name": "Benefits & Features",
+     "value": "<ul>\n\t<li>\u2022 Soft and tasty</li>\n\t<li>\u2022 P"
+    },
+    {
+     "name": "Allergens",
+     "value": "Made in a facility that also uses cow's "
+    }
+   ],
+   "eligibilityType": "Request Credit",
+   "returnServiceOption": "",
+   "eligibleForCredit": true,
+   "itemDamaged": false,
+   "allowAutoInjection": false,
+   "deviceConfig": 0,
+   "isSponsored": false,
+   "isPersonalised": false,
+   "reviews": {
+    "numberOfReviews": 0,
+    "reviewAverage": 0,
+    "reviewsPerStar": null
+   },
+   "fulfilmentPattern": "",
+   "hideBackUps": false,
+   "nappiCode": "",
+   "scheduleCode": "",
+   "dosageForm": "",
+   "atclCategory": "",
+   "activeIngredient": "",
+   "manufacturer": "",
+   "isMedicalAidClaimable": false,
+   "packSize": 0,
+   "imageURL": "https://catalog.sixty60.co.za/files/6a9ab690ac52d45b5b62255a",
+   "imageProductCardURL": "https://catalog.sixty60.co.za/v2/files/6a9ab690ac52d45b5b62255a?width=600&height=600",
+   "imagePDPURL": "https://catalog.sixty60.co.za/v2/files/6a9ab690ac52d45b5b62255a?width=300&height=300",
+   "price": 26.99,
+   "outOfStock": true,
+   "discountedPrice": 26.99,
+   "store": {
+    "storeId": "5ece6935faafe599532665b2",
+    "serviceOptionIds": [
+     "sixty-min-delivery",
+     "one-day-delivery"
+    ],
+    "brandPriority": 2,
+    "hasCapacity": [
+     "sixty-min-delivery",
+     "one-day-delivery"
+    ],
+    "distanceFromCustomer": 0.005583459286111866,
+    "returnServiceOptionIds": [
+     "one-day-collection"
+    ],
+    "hasReturnCapacity": [
+     "one-day-collection"
+    ],
+    "isDispensary": false
+   },
+   "forOver18": false
+  },
+  {
+   "id": "5f355692cfec80b3c7280d93",
+   "storeId": "5ece6935faafe599532665b2",
+   "serviceOptionId": "sixty-min-delivery",
+   "primaryServiceOptionId": "sixty-min-delivery",
+   "unitOfMeasure": "EA",
+   "active": true,
+   "ranged": true,
+   "storeProductActive": true,
+   "storeProductPublished": true,
+   "name": "SASKO More Slices Brown Bread 700g",
+   "displayName": "SASKO More Slices Brown Bread 700g",
+   "description": "This brown bread is enriched with essential vitamins and min",
+   "shortDescription": "This brown bread is enriched with essential vitamins and min",
+   "longDescription": "Fortified with essential vitamins and minerals, this brown b",
+   "displayCategories": [
+    "Bakery",
+    "Bread, Rolls, Wraps & Bagels"
+   ],
+   "displayCategoryIds": [
+    "670437dc7a8738098af92e27",
+    "670437dc7a8738098af92e28"
+   ],
+   "imageId": "6accd35f308481fa3516bb91",
+   "imageIds": [
+    "6accd35f308481fa3516bb91",
+    "6accd35f308481fa3516bb93"
+   ],
+   "replacementProductIds": [
+    "5d3af63bf434cf8420737dc8",
+    "608f2a8fafd01a81c49fc0bc"
+   ],
+   "weightOptions": [],
+   "variableWeightOptions": null,
+   "priceFactor": 100,
+   "priceWithoutDecimal": 1499,
+   "currency": "ZAR",
+   "currencySymbol": "R",
+   "discount": 0,
+   "oldPrice": 1499,
+   "isOnPromotion": true,
+   "articleNumber": "10241931",
+   "packQuantity": 1,
+   "denominator": 1,
+   "replenishable": true,
+   "stockUpdatedOn": 0,
+   "isStockAvailable": true,
+   "stockOnHand": 41,
+   "brand": "SASKO",
+   "hasAlcohol": false,
+   "hasTobacco": false,
+   "requiresOver18": false,
+   "barcodes": [
+    "6001710010239"
+   ],
+   "barcodeType": {
+    "id": "6825daee2c27ca02b1b928e3",
+    "createdOn": 1747311357384,
+    "createdBy": "5da03093aa06f5c09c75f615",
+    "updatedOn": 1747311357384,
+    "updatedBy": "5da03093aa06f5c09c75f615",
+    "active": true,
+    "code": "Z9",
+    "name": "Z9",
+    "description": "Z9",
+    "length": 0,
+    "priceDigits": 0
+   },
+   "barcodeTypes": [
+    {
+     "id": "6825daee2c27ca02b1b928e3",
+     "createdOn": 1747311357384,
+     "createdBy": "5da03093aa06f5c09c75f615",
+     "updatedOn": 1747311357384,
+     "updatedBy": "5da03093aa06f5c09c75f615",
+     "active": true,
+     "code": "Z9",
+     "name": "Z9",
+     "description": "Z9",
+     "length": 0,
+     "priceDigits": 0
+    }
+   ],
+   "taxEntry": {
+    "id": "5d3ad267a57a062a1b65a9ec",
+    "countryId": "000000000000000000000000",
+    "createdOn": 1564134832397,
+    "createdBy": "5c4ea4ccf6701fd7041470a9",
+    "updatedOn": 1564134832397,
+    "updatedBy": "5c4ea4ccf6701fd7041470a9",
+    "active": true,
+    "name": "Zero",
+    "description": "Zero",
+    "code": 8,
+    "rate": 0,
+    "symbol": "*"
+   },
+   "categoryIds": [
+    "5d3454595e6fa244309e6a18",
+    "5f69add4eb0a30bb5a388b7f"
+   ],
+   "productServiceOptions": [
+    {
+     "serviceOptionId": "sixty-min-delivery",
+     "assignmentType": "exception",
+     "maxItemThreshold": 10
+    }
+   ],
+   "maxPerOrder": 10,
+   "width": 97,
+   "length": 115,
+   "height": 328,
+   "isImmediateRefundAllowed": true,
+   "merchandiseCategory": "40400202",
+   "bonusBuyIds": [],
+   "boxContent": "1 x 700g SASKO More Slices Brown Bread",
+   "media": {
+    "embeddedVideoFromExternalSource": "",
+    "relatedDocuments": {
+     "url": "",
+     "altText": "",
+     "mimeType": "",
+     "fileName": ""
+    },
+    "relatedVideos": {
+     "url": "",
+     "altText": "",
+     "mimeType": "",
+     "fileName": ""
+    }
+   },
+   "attributes": [
+    {
+     "name": "Benefits & Features",
+     "value": "<ul>\n\t<li>Fortified with essential vitam"
+    },
+    {
+     "name": "Allergens",
+     "value": "Wheat, wheat gluten, soya."
+    }
+   ],
+   "eligibilityType": "Request Credit",
+   "returnServiceOption": "",
+   "eligibleForCredit": true,
+   "itemDamaged": false,
+   "allowAutoInjection": true,
+   "deviceConfig": 0,
+   "isSponsored": false,
+   "isPersonalised": false,
+   "reviews": {
+    "numberOfReviews": 0,
+    "reviewAverage": 0,
+    "reviewsPerStar": null
+   },
+   "fulfilmentPattern": "",
+   "hideBackUps": false,
+   "nappiCode": "",
+   "scheduleCode": "",
+   "dosageForm": "",
+   "atclCategory": "",
+   "activeIngredient": "",
+   "manufacturer": "",
+   "isMedicalAidClaimable": false,
+   "packSize": 100,
+   "imageURL": "https://catalog.sixty60.co.za/files/6accd35f308481fa3516bb91",
+   "imageProductCardURL": "https://catalog.sixty60.co.za/v2/files/6accd35f308481fa3516bb91?width=600&height=600",
+   "imagePDPURL": "https://catalog.sixty60.co.za/v2/files/6accd35f308481fa3516bb91?width=300&height=300",
+   "price": 14.99,
+   "outOfStock": false,
+   "discountedPrice": 14.99,
+   "store": {
+    "storeId": "5ece6935faafe599532665b2",
+    "serviceOptionIds": [
+     "sixty-min-delivery",
+     "one-day-delivery"
+    ],
+    "brandPriority": 2,
+    "hasCapacity": [
+     "sixty-min-delivery",
+     "one-day-delivery"
+    ],
+    "distanceFromCustomer": 0.005583459286111866,
+    "returnServiceOptionIds": [
+     "one-day-collection"
+    ],
+    "hasReturnCapacity": [
+     "one-day-collection"
+    ],
+    "isDispensary": false
+   },
+   "forOver18": false
+  },
+  {
+   "id": "5f217f30c5223d4966d0c97c",
+   "storeId": "5ece6935faafe599532665b2",
+   "serviceOptionId": "sixty-min-delivery",
+   "primaryServiceOptionId": "sixty-min-delivery",
+   "unitOfMeasure": "EA",
+   "active": true,
+   "ranged": true,
+   "storeProductActive": true,
+   "storeProductPublished": true,
+   "name": "SASKO Low G.I Wholewheat Brown Bread 800g",
+   "displayName": "SASKO Low G.I Wholewheat Brown Bread 800g",
+   "description": "Our Wholewheat Brown bread is high in fibre to help keep you",
+   "shortDescription": "Our Wholewheat Brown bread is high in fibre to help keep you",
+   "longDescription": "We bake with every family in mind, so we understand how impo",
+   "displayCategories": [
+    "Bakery",
+    "Bread, Rolls, Wraps & Bagels"
+   ],
+   "displayCategoryIds": [
+    "670437dc7a8738098af92e27",
+    "670437dc7a8738098af92e28"
+   ],
+   "imageId": "6accd348e60c5fc935b89b61",
+   "imageIds": [
+    "6accd348e60c5fc935b89b61",
+    "6accd349e60c5fc935b89b63"
+   ],
+   "replacementProductIds": [
+    "5d3af63bf434cf8420737dca",
+    "5db2b6b9280e5b57ebe9a24d"
+   ],
+   "weightOptions": [],
+   "variableWeightOptions": null,
+   "priceFactor": 100,
+   "priceWithoutDecimal": 2999,
+   "currency": "ZAR",
+   "currencySymbol": "R",
+   "discount": 0,
+   "oldPrice": 2999,
+   "isOnPromotion": false,
+   "articleNumber": "10348248",
+   "packQuantity": 1,
+   "denominator": 1,
+   "replenishable": true,
+   "stockUpdatedOn": 0,
+   "isStockAvailable": true,
+   "stockOnHand": 38,
+   "brand": "SASKO",
+   "hasAlcohol": false,
+   "hasTobacco": false,
+   "requiresOver18": false,
+   "barcodes": [
+    "6001710010604"
+   ],
+   "barcodeType": {
+    "id": "6825daee2c27ca02b1b928e3",
+    "createdOn": 1747311357384,
+    "createdBy": "5da03093aa06f5c09c75f615",
+    "updatedOn": 1747311357384,
+    "updatedBy": "5da03093aa06f5c09c75f615",
+    "active": true,
+    "code": "Z9",
+    "name": "Z9",
+    "description": "Z9",
+    "length": 0,
+    "priceDigits": 0
+   },
+   "barcodeTypes": [
+    {
+     "id": "6825daee2c27ca02b1b928e3",
+     "createdOn": 1747311357384,
+     "createdBy": "5da03093aa06f5c09c75f615",
+     "updatedOn": 1747311357384,
+     "updatedBy": "5da03093aa06f5c09c75f615",
+     "active": true,
+     "code": "Z9",
+     "name": "Z9",
+     "description": "Z9",
+     "length": 0,
+     "priceDigits": 0
+    }
+   ],
+   "taxEntry": {
+    "id": "5d3ad267a57a062a1b65a9ec",
+    "countryId": "000000000000000000000000",
+    "createdOn": 1564134832397,
+    "createdBy": "5c4ea4ccf6701fd7041470a9",
+    "updatedOn": 1564134832397,
+    "updatedBy": "5c4ea4ccf6701fd7041470a9",
+    "active": true,
+    "name": "Zero",
+    "description": "Zero",
+    "code": 8,
+    "rate": 0,
+    "symbol": "*"
+   },
+   "categoryIds": [
+    "5d3454595e6fa244309e6a18",
+    "5f69add4eb0a30bb5a388b7f"
+   ],
+   "productServiceOptions": [
+    {
+     "serviceOptionId": "sixty-min-delivery",
+     "assignmentType": "exception",
+     "maxItemThreshold": 10
+    }
+   ],
+   "maxPerOrder": 10,
+   "width": 113,
+   "length": 99,
+   "height": 297,
+   "isImmediateRefundAllowed": true,
+   "merchandiseCategory": "40400202",
+   "bonusBuyIds": [],
+   "boxContent": "",
+   "media": {
+    "embeddedVideoFromExternalSource": "",
+    "relatedDocuments": {
+     "url": "",
+     "altText": "",
+     "mimeType": "",
+     "fileName": ""
+    },
+    "relatedVideos": {
+     "url": "",
+     "altText": "",
+     "mimeType": "",
+     "fileName": ""
+    }
+   },
+   "attributes": [
+    {
+     "name": "Allergens",
+     "value": "Wheat, wheat gluten, soya."
+    },
+    {
+     "name": "Ingredients",
+     "value": "Water, Sasko White Bread Wheat Flour (Gl"
+    }
+   ],
+   "eligibilityType": "Request Credit",
+   "returnServiceOption": "",
+   "eligibleForCredit": true,
+   "itemDamaged": false,
+   "allowAutoInjection": true,
+   "deviceConfig": 0,
+   "isSponsored": false,
+   "isPersonalised": false,
+   "reviews": {
+    "numberOfReviews": 0,
+    "reviewAverage": 0,
+    "reviewsPerStar": null
+   },
+   "fulfilmentPattern": "",
+   "hideBackUps": false,
+   "nappiCode": "",
+   "scheduleCode": "",
+   "dosageForm": "",
+   "atclCategory": "",
+   "activeIngredient": "",
+   "manufacturer": "",
+   "isMedicalAidClaimable": false,
+   "packSize": 100,
+   "imageURL": "https://catalog.sixty60.co.za/files/6accd348e60c5fc935b89b61",
+   "imageProductCardURL": "https://catalog.sixty60.co.za/v2/files/6accd348e60c5fc935b89b61?width=600&height=600",
+   "imagePDPURL": "https://catalog.sixty60.co.za/v2/files/6accd348e60c5fc935b89b61?width=300&height=300",
+   "price": 29.99,
+   "outOfStock": false,
+   "discountedPrice": 29.99,
+   "store": {
+    "storeId": "5ece6935faafe599532665b2",
+    "serviceOptionIds": [
+     "sixty-min-delivery",
+     "one-day-delivery"
+    ],
+    "brandPriority": 2,
+    "hasCapacity": [
+     "sixty-min-delivery",
+     "one-day-delivery"
+    ],
+    "distanceFromCustomer": 0.005583459286111866,
+    "returnServiceOptionIds": [
+     "one-day-collection"
+    ],
+    "hasReturnCapacity": [
+     "one-day-collection"
+    ],
+    "isDispensary": false
+   },
+   "forOver18": false
+  },
+  {
+   "id": "5d3af63bf434cf8420737dca",
+   "storeId": "5ece6935faafe599532665b2",
+   "serviceOptionId": "sixty-min-delivery",
+   "primaryServiceOptionId": "sixty-min-delivery",
+   "unitOfMeasure": "EA",
+   "active": true,
+   "ranged": true,
+   "storeProductActive": true,
+   "storeProductPublished": true,
+   "name": "SASKO Low G.I Wholewheat Brown Bread 800g",
+   "displayName": "SASKO Low G.I Wholewheat Brown Bread 800g",
+   "description": "Our\u00a0Whole\u00a0Wheat\u00a0Brown Bread is the perfect choice for the he",
+   "shortDescription": "Our\u00a0Whole\u00a0Wheat\u00a0Brown Bread is the perfect choice for the he",
+   "longDescription": "<p>Our Whole Wheat Brown Bread is the perfect choice for the",
+   "displayCategories": [
+    "Bakery",
+    "Bread, Rolls, Wraps & Bagels"
+   ],
+   "displayCategoryIds": [
+    "670437dc7a8738098af92e27",
+    "670437dc7a8738098af92e28"
+   ],
+   "imageId": "6accd35ad568504fa843dd69",
+   "imageIds": [
+    "6accd35ad568504fa843dd69",
+    "6accd35bd568504fa843dd6b"
+   ],
+   "replacementProductIds": [
+    "5f217f30c5223d4966d0c97c",
+    "5db2b6b9280e5b57ebe9a24d"
+   ],
+   "weightOptions": [],
+   "variableWeightOptions": null,
+   "priceFactor": 100,
+   "priceWithoutDecimal": 1999,
+   "currency": "ZAR",
+   "currencySymbol": "R",
+   "discount": 0,
+   "oldPrice": 1999,
+   "isOnPromotion": true,
+   "articleNumber": "10241938",
+   "packQuantity": 1,
+   "denominator": 1,
+   "replenishable": true,
+   "stockUpdatedOn": 0,
+   "isStockAvailable": true,
+   "stockOnHand": 24,
+   "brand": "SASKO",
+   "hasAlcohol": false,
+   "hasTobacco": false,
+   "requiresOver18": false,
+   "barcodes": [
+    "6001710010369"
+   ],
+   "barcodeType": {
+    "id": "6825daee2c27ca02b1b928e3",
+    "createdOn": 1747311357384,
+    "createdBy": "5da03093aa06f5c09c75f615",
+    "updatedOn": 1747311357384,
+    "updatedBy": "5da03093aa06f5c09c75f615",
+    "active": true,
+    "code": "Z9",
+    "name": "Z9",
+    "description": "Z9",
+    "length": 0,
+    "priceDigits": 0
+   },
+   "barcodeTypes": [
+    {
+     "id": "6825daee2c27ca02b1b928e3",
+     "createdOn": 1747311357384,
+     "createdBy": "5da03093aa06f5c09c75f615",
+     "updatedOn": 1747311357384,
+     "updatedBy": "5da03093aa06f5c09c75f615",
+     "active": true,
+     "code": "Z9",
+     "name": "Z9",
+     "description": "Z9",
+     "length": 0,
+     "priceDigits": 0
+    }
+   ],
+   "taxEntry": {
+    "id": "5d3ad267a57a062a1b65a9ec",
+    "countryId": "000000000000000000000000",
+    "createdOn": 1564134832397,
+    "createdBy": "5c4ea4ccf6701fd7041470a9",
+    "updatedOn": 1564134832397,
+    "updatedBy": "5c4ea4ccf6701fd7041470a9",
+    "active": true,
+    "name": "Zero",
+    "description": "Zero",
+    "code": 8,
+    "rate": 0,
+    "symbol": "*"
+   },
+   "categoryIds": [
+    "5d3454595e6fa244309e6a18",
+    "5f69add4eb0a30bb5a388b7f"
+   ],
+   "productServiceOptions": [
+    {
+     "serviceOptionId": "sixty-min-delivery",
+     "assignmentType": "exception",
+     "maxItemThreshold": 10
+    }
+   ],
+   "maxPerOrder": 10,
+   "width": 118,
+   "length": 118,
+   "height": 321,
+   "isImmediateRefundAllowed": true,
+   "merchandiseCategory": "40400202",
+   "bonusBuyIds": [],
+   "boxContent": "",
+   "media": {
+    "embeddedVideoFromExternalSource": "",
+    "relatedDocuments": {
+     "url": "",
+     "altText": "",
+     "mimeType": "",
+     "fileName": ""
+    },
+    "relatedVideos": {
+     "url": "",
+     "altText": "",
+     "mimeType": "",
+     "fileName": ""
+    }
+   },
+   "attributes": [
+    {
+     "name": "Allergens",
+     "value": "Wheat, wheat gluten, soya."
+    },
+    {
+     "name": "Ingredients",
+     "value": "Sasko Whole Wheat Brown Flour (White Bre"
+    }
+   ],
+   "eligibilityType": "Request Credit",
+   "returnServiceOption": "",
+   "eligibleForCredit": true,
+   "itemDamaged": false,
+   "allowAutoInjection": true,
+   "deviceConfig": 0,
+   "isSponsored": false,
+   "isPersonalised": false,
+   "reviews": {
+    "numberOfReviews": 0,
+    "reviewAverage": 0,
+    "reviewsPerStar": null
+   },
+   "fulfilmentPattern": "",
+   "hideBackUps": false,
+   "nappiCode": "",
+   "scheduleCode": "",
+   "dosageForm": "",
+   "atclCategory": "",
+   "activeIngredient": "",
+   "manufacturer": "",
+   "isMedicalAidClaimable": false,
+   "packSize": 100,
+   "imageURL": "https://catalog.sixty60.co.za/files/6accd35ad568504fa843dd69",
+   "imageProductCardURL": "https://catalog.sixty60.co.za/v2/files/6accd35ad568504fa843dd69?width=600&height=600",
+   "imagePDPURL": "https://catalog.sixty60.co.za/v2/files/6accd35ad568504fa843dd69?width=300&height=300",
+   "price": 19.99,
+   "outOfStock": false,
+   "discountedPrice": 19.99,
+   "store": {
+    "storeId": "5ece6935faafe599532665b2",
+    "serviceOptionIds": [
+     "sixty-min-delivery",
+     "one-day-delivery"
+    ],
+    "brandPriority": 2,
+    "hasCapacity": [
+     "sixty-min-delivery",
+     "one-day-delivery"
+    ],
+    "distanceFromCustomer": 0.005583459286111866,
+    "returnServiceOptionIds": [
+     "one-day-collection"
+    ],
+    "hasReturnCapacity": [
+     "one-day-collection"
+    ],
+    "isDispensary": false
+   },
+   "forOver18": false
+  }
+ ],
+ "totalCount": 118
+}

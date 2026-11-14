@@ -34,6 +34,22 @@ BLOCK_MARKERS = (
     "are you a robot",
     "request unsuccessful. incapsula",
     "pardon our interruption",
+    "awswaf",
+)
+# Real shop pages are large and may mention a captcha script. Bot-check pages are small.
+BLOCK_PAGE_MAX = 60000
+# Advertising, tracking and bot-check answers: never product data.
+NOISE_HOSTS = (
+    "fullstory.com",
+    "doubleclick.net",
+    "useinsider.com",
+    "awswaf.com",
+    "eskimi.com",
+    "googleapis.com",
+    "google-analytics.com",
+    "tiktok.com",
+    "bing.net",
+    "facebook.net",
 )
 
 
@@ -49,18 +65,32 @@ class Item:
     promo_price: float | None = None
     url: str = ""
     brand: str = ""
+    barcode: str = ""  # EAN, the best way to tell that two stores sell the same product
+    store_ref: str = ""  # the shop's own branch/store ID the price came from, when it says
+    special: bool = False  # on a special; the shop did not say what the usual price is
+    in_stock: bool = True
+    deal: str = ""  # a loyalty-card or multi-buy offer, as the shop words it; never mixed into price
 
     def to_dict(self) -> dict:
         d = asdict(self)
         if d["promo_price"] is None:
             d.pop("promo_price")
-        if not d["brand"]:
-            d.pop("brand")
+        for key in ("brand", "barcode", "store_ref", "deal"):
+            if not d[key]:
+                d.pop(key)
+        if not d["special"]:
+            d.pop("special")
+        if d["in_stock"]:
+            d.pop("in_stock")
         return d
 
 
 class BlockedError(Exception):
     """The site refused us (HTTP 403/429 or a CAPTCHA page)."""
+
+
+class WrongAddressError(Exception):
+    """The store's search address does not exist (HTTP 404). Retrying cannot help: fix the address."""
 
 
 @dataclass
@@ -99,7 +129,10 @@ class StoreHealth:
             head += ". BLOCKED by the website - stopped this store and moved on"
         elif self.status == "failed":
             opened = next((e for e in self.errors if e.startswith("Could not open the website")), "")
-            if opened:
+            wrong = next((e for e in self.errors if e.startswith("Search address not found")), "")
+            if wrong:
+                head += f". FAILED - {wrong}"
+            elif opened:
                 head += f". FAILED - could not open the website ({_net_reason(opened)})"
             else:
                 head += ". FAILED - nothing found; see the debug folder"
@@ -136,6 +169,33 @@ def _net_reason(error: str) -> str:
     return next((v for k, v in _NET_REASONS.items() if code.startswith(k)), code)
 
 
+# Words that appear many times in a product feed, whatever the shop calls its fields
+# (Checkers "price", Pick n Pay "price", Woolworths "p10"/"p30"/"p60", barcodes, sale flags).
+PRICE_MARKERS = ('"price', '"p10"', '"p30"', '"p60"', '"sale', '"amount"', '"ean"', '"barcode')
+
+
+def looks_like_products(body: str) -> bool:
+    """True when a JSON answer carries product data (menus and settings do not repeat these words)."""
+    low = body[:300_000].lower()
+    return sum(low.count(m) for m in PRICE_MARKERS) >= 3
+
+
+def split_feeds(text: str) -> list[tuple[str, str]]:
+    """Split a saved ``.network.txt`` into (header line, body) pairs."""
+    feeds: list[tuple[str, str]] = []
+    header, body = None, []
+    for line in text.split("\n"):
+        if line.startswith("=== "):
+            if header is not None:
+                feeds.append((header, "\n".join(body).strip()))
+            header, body = line, []
+        elif header is not None:
+            body.append(line)
+    if header is not None:
+        feeds.append((header, "\n".join(body).strip()))
+    return feeds
+
+
 # --- Parsing helpers (pure, no network) ---------------------------------------
 
 
@@ -166,6 +226,11 @@ def make_item(
     url: str = "",
     base_url: str = "",
     brand: str = "",
+    barcode: str = "",
+    store_ref: str = "",
+    special: bool = False,
+    in_stock: bool = True,
+    deal: str = "",
 ) -> Item | None:
     """Build an Item, splitting size out of the name and handling promo vs regular."""
     name = re.sub(r"\s+", " ", (name or "")).strip()
@@ -192,6 +257,11 @@ def make_item(
         promo_price=pr,
         url=url,
         brand=brand or "",
+        barcode=barcode or "",
+        store_ref=store_ref or "",
+        special=bool(special),
+        in_stock=bool(in_stock),
+        deal=deal or "",
     )
 
 
@@ -353,10 +423,12 @@ def relevant(term: str, name: str) -> bool:
 
 
 def looks_blocked(status: int, body: str) -> bool:
+    """True when the site refused us (HTTP 403/429) or showed a small bot-check page."""
     if status in (403, 429):
         return True
-    low = body[:20000].lower()
-    return any(m in low for m in BLOCK_MARKERS) and len(low) < 200000
+    if len(body) > BLOCK_PAGE_MAX:
+        return False
+    return any(m in body[:20000].lower() for m in BLOCK_MARKERS)
 
 
 # --- Store scraper base class ---------------------------------------------------
@@ -373,7 +445,15 @@ class BaseScraper:
     slug = "store"
     base_url = ""
     search_url = ""  # with {q}
-    api_url = ""  # JSON search endpoint with {q}; tried first when set
+    api_url = ""  # JSON search endpoint with {q}
+    # Only call ``api_url`` directly after a real run proved the address (the saved
+    # {term}.network.txt shows it). A guessed address must not be called on a shop's site.
+    use_api = False
+    # Categories (as in products.txt) this store is searched for; None = all of them.
+    categories: tuple[str, ...] | None = None
+    # True once the store's own data feed is proven: read it before the page layout.
+    json_first = False
+    feed_url = ""
     api_minor_units = False  # API prices are in cents
     selectors: dict[str, list[str]] = {}
     verified = False  # set True only after checking against the live site
@@ -401,6 +481,25 @@ class BaseScraper:
         self.blocks = 0
 
     # Hooks -----------------------------------------------------------------
+    def context_options(self, browser: Any) -> dict:
+        """Browser settings for this store: desktop Chrome, South African locale, honest tag.
+
+        Some stores serve a different (phone app) site to phone browsers, so the scraper
+        presents as a desktop. The tag at the end says who we are and where to ask.
+        """
+        major = str(getattr(browser, "version", "") or "124").split(".")[0]
+        agent = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+            f"Chrome/{major}.0.0.0 Safari/537.36 "
+            "PricePulseZA/1.0 (+https://pricepulse.trolleyup.com; price comparison)"
+        )
+        return {
+            "locale": "en-ZA",
+            "timezone_id": "Africa/Johannesburg",
+            "user_agent": agent,
+            "viewport": {"width": 1366, "height": 900},
+        }
+
     def parse_html(self, html: str, category: str = "") -> list[Item]:
         items = parse_html_cards(html, self.name, self.base_url, self.selectors, category)
         return items or parse_json_ld(html, self.name, self.base_url, category)
@@ -456,31 +555,120 @@ class BaseScraper:
         self._save_fixture(term, body, "json")
         return self.parse_json(json.loads(body), category)
 
+    def _watch_json(self, page: Any) -> tuple[list, Any]:
+        """Remember the JSON answers a page receives while loading.
+
+        Many shops show a grey placeholder first and fill the list from a data feed. The feed is
+        steadier to read than the page layout, and its address tells us how the shop works.
+        Each answer is read the moment it arrives: read later, some are already gone.
+        """
+        seen: list = []
+
+        def on_response(resp: Any) -> None:
+            try:
+                kind = (resp.headers or {}).get("content-type", "")
+            except Exception:  # noqa: BLE001
+                return
+            if "json" not in kind.lower() or len(seen) >= 80:
+                return
+            if any(host in resp.url for host in NOISE_HOSTS):
+                return
+            try:
+                body = resp.text()
+            except Exception:  # noqa: BLE001 - try again later in _read_json
+                body = None
+            seen.append((resp, body))
+
+        page.on("response", on_response)
+        return seen, on_response
+
+    def _read_json(self, seen: list) -> list[tuple[str, int, str]]:
+        out = []
+        for resp, body in seen:
+            if body is None:
+                try:
+                    body = resp.text()
+                except Exception:  # noqa: BLE001 - some answers are gone after navigation
+                    continue
+            if len(body) <= 3_000_000:
+                out.append((resp.url, resp.status, body))
+        return out
+
+    @staticmethod
+    def _feeds_text(answers: list[tuple[str, int, str]], limit: int) -> str:
+        lines: list[str] = []
+        for url, status, body in answers:
+            # Feeds with prices in them get the full limit; menus, settings and the rest stay short.
+            cap = limit if looks_like_products(body) else min(limit, 3000)
+            lines += [f"=== {status} {url}  ({len(body)} characters)", body[:cap], ""]
+        return "\n".join(lines)
+
+    def _items_from_json(self, answers: list[tuple[str, int, str]], category: str) -> list[Item]:
+        items: list[Item] = []
+        seen: set[tuple[str, float]] = set()
+        for url, _status, body in answers:
+            try:
+                data = json.loads(body)
+            except ValueError:
+                continue
+            self.feed_url = url  # lets a store's reader see which branch the answer was for
+            for item in self.parse_json(data, category):
+                if (item.name, item.price) not in seen:
+                    seen.add((item.name, item.price))
+                    items.append(item)
+        return items
+
+    def _save_debug(self, page: Any, term: str, html: str | None = None, answers: list | None = None) -> None:
+        """Keep the page, a screenshot and the data feeds in debug/{store}/ to look at a failure."""
+        if not self.debug_dir:
+            return
+        d = self.debug_dir / self.slug
+        d.mkdir(parents=True, exist_ok=True)
+        stem = re.sub(r"[^a-z0-9]+", "_", term.lower())
+        try:
+            (d / f"{stem}.html").write_text(html if html is not None else page.content(), encoding="utf-8")
+            page.screenshot(path=str(d / f"{stem}.png"), full_page=True)
+            if answers:
+                (d / f"{stem}.network.txt").write_text(self._feeds_text(answers, 6000), encoding="utf-8")
+        except Exception as exc:  # noqa: BLE001 - evidence is a bonus, never a new failure
+            log.debug("%s: could not save debug files: %s", self.name, exc)
+        log.info("%s: saved the page and a screenshot for '%s' to %s", self.name, term, d)
+
     def _search_page(self, page: Any, term: str, category: str) -> list[Item]:
         url = self.search_url.format(q=quote_plus(term), **self.region_setting)
-        resp = page.goto(url, wait_until="domcontentloaded", timeout=45000)
-        status = resp.status if resp else 0
-        card_sel = ", ".join(self.selectors.get("card", [])) or "body"
+        seen, handler = self._watch_json(page)
         try:
-            page.wait_for_selector(card_sel, timeout=12000)
-        except Exception:  # noqa: BLE001 - no cards is a normal outcome
-            pass
-        html = page.content()
+            resp = page.goto(url, wait_until="domcontentloaded", timeout=45000)
+            status = resp.status if resp else 0
+            if status in (404, 410):
+                self._save_debug(page, term)
+                raise WrongAddressError(f"Search address not found (HTTP {status}): {url}")
+            card_sel = ", ".join(self.selectors.get("card", [])) or "body"
+            try:
+                page.wait_for_selector(card_sel, timeout=12000)
+            except Exception:  # noqa: BLE001 - no cards is a normal outcome
+                pass
+            html = page.content()
+            answers = self._read_json(seen)
+        finally:
+            try:
+                page.remove_listener("response", handler)
+            except Exception:  # noqa: BLE001
+                pass
         if looks_blocked(status, html):
+            self._save_debug(page, term, html, answers)
             self._blocked(f"HTTP {status} or CAPTCHA on search page")
             return []
         self._save_fixture(term, html, "html")
-        items = self.parse_html(html, category)
-        if not items and self.debug_dir:
-            d = self.debug_dir / self.slug
-            d.mkdir(parents=True, exist_ok=True)
-            stem = re.sub(r"[^a-z0-9]+", "_", term.lower())
-            (d / f"{stem}.html").write_text(html, encoding="utf-8")
-            try:
-                page.screenshot(path=str(d / f"{stem}.png"), full_page=True)
-            except Exception:  # noqa: BLE001
-                pass
-            log.info("%s: nothing found for '%s'. Saved page and screenshot to %s", self.name, term, d)
+        if answers:
+            self._save_fixture(term, self._feeds_text(answers, 400_000), "network.txt")
+        from_feed = self._items_from_json(answers, category) if answers else []
+        if self.json_first:
+            items = from_feed or self.parse_html(html, category)
+        else:
+            items = self.parse_html(html, category) or from_feed
+        if not items:
+            self._save_debug(page, term, html, answers)
         return items
 
     def search(self, page: Any, term: str, category: str = "") -> list[Item]:
@@ -489,10 +677,10 @@ class BaseScraper:
         for attempt in range(self.retries + 1):
             try:
                 items: list[Item] = []
-                if self.api_url:
+                if self.api_url and self.use_api:
                     try:
                         items = self._search_api(page, term, category)
-                    except BlockedError:
+                    except (BlockedError, WrongAddressError):
                         raise
                     except Exception as exc:  # noqa: BLE001 - fall back to the page
                         log.debug("%s: API search failed for '%s': %s", self.name, term, exc)
@@ -501,7 +689,7 @@ class BaseScraper:
                 self.blocks = 0 if items else self.blocks
                 hits = [i for i in items if relevant(term, i.name)]
                 return hits[: self.per_term]
-            except BlockedError:
+            except (BlockedError, WrongAddressError):
                 raise
             except Exception as exc:  # noqa: BLE001
                 last_error = exc

@@ -1,0 +1,103 @@
+{
+ "_note": "REAL excerpt of Woolworths' Constructor.io search answer, 13 Nov 2026 (trimmed)",
+ "response": {
+  "results": [
+   {
+    "data": {
+     "id": "20011697",
+     "url": "prod/Food/Milk-Dairy-Eggs/Milk/Fresh-Full-Cream-Milk-2-L/_/A-20011697",
+     "brand": "Woolies Brands",
+     "liquor": 0,
+     "p10": 38.99,
+     "p10_wp": 0,
+     "p30": 40.99,
+     "p30_wp": 0,
+     "p60": 39.99,
+     "p60_wp": 0,
+     "description": "Fresh Full Cream Milk 2 L"
+    },
+    "value": "Fresh Full Cream Milk 2 L"
+   },
+   {
+    "data": {
+     "id": "6009171091446",
+     "url": "prod/Food/Pantry/Long-Life-Milk-Dairy-Alternatives/Long-Life-Milk/Full-Cream/Long-Life-Full-Cream-Milk-6-x-1-L/_/A-6009171091446",
+     "brand": "Woolies Brands",
+     "liquor": 0,
+     "p10": 104.99,
+     "p10_wp": 126.99,
+     "p30": 104.99,
+     "p30_wp": 126.99,
+     "p60": 104.99,
+     "p60_wp": 126.99,
+     "description": "Long Life Full Cream Milk 6 x 1 L"
+    },
+    "value": "Long Life Full Cream Milk 6 x 1 L"
+   },
+   {
+    "data": {
+     "id": "20026875",
+     "url": "prod/Food/Milk-Dairy-Eggs/Milk/Fresh-Full-Cream-Ayrshire-Milk-2-L/_/A-20026875",
+     "brand": "Woolies Brands",
+     "liquor": 0,
+     "p10": 45.99,
+     "p10_wp": 0,
+     "p30": 42.99,
+     "p30_wp": 47.99,
+     "p60": 34.99,
+     "p60_wp": 39.99,
+     "description": "Fresh Full Cream Ayrshire Milk 2 L"
+    },
+    "value": "Fresh Full Cream Ayrshire Milk 2 L"
+   },
+   {
+    "data": {
+     "id": "20049706",
+     "url": "prod/Food/Milk-Dairy-Eggs/Milk/Fresh-Full-Cream-Ayrshire-Milk-1-L/_/A-20049706",
+     "brand": "Woolies Brands",
+     "liquor": 0,
+     "p10": 29.99,
+     "p10_wp": 0,
+     "p30": 31.99,
+     "p30_wp": 0,
+     "p60": 25.99,
+     "p60_wp": 0,
+     "description": "Fresh Full Cream Ayrshire Milk 1 L"
+    },
+    "value": "Fresh Full Cream Ayrshire Milk 1 L"
+   },
+   {
+    "data": {
+     "id": "5449000009067",
+     "url": "prod/Food/Beverages-Juices/Sodas/Branded-Soda/Coca-Cola-Original-Soft-Drink-2-L/_/A-5449000009067",
+     "brand": "Other Brands",
+     "liquor": 0,
+     "p10": 28.99,
+     "p10_wp": 0,
+     "p30": 28.99,
+     "p30_wp": 0,
+     "p60": 28.99,
+     "p60_wp": 0,
+     "description": "Coca-Cola Original Soft Drink 2 L"
+    },
+    "value": "Coca-Cola Original Soft Drink 2 L"
+   },
+   {
+    "data": {
+     "id": "5449000131843",
+     "url": "prod/Food/Beverages-Juices/Sodas/Branded-Soda/Coca-Cola-Zero-Sugar-Soft-Drink-2-L/_/A-5449000131843",
+     "brand": "Other Brands",
+     "liquor": 0,
+     "p10": 19.99,
+     "p10_wp": 0,
+     "p30": 18,
+     "p30_wp": 0,
+     "p60": 18,
+     "p60_wp": 0,
+     "description": "Coca-Cola Zero Sugar Soft Drink 2 L"
+    },
+    "value": "Coca-Cola Zero Sugar Soft Drink 2 L"
+   }
+  ]
+ }
+}
