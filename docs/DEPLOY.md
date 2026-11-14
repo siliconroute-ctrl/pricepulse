@@ -193,11 +193,37 @@ Copy it to your PC, then delete it from the server: from PowerShell,
 Contabo's Auto Backup (about EUR 3.35 a month) is worth switching on once real accounts
 exist.
 
-## Getting real prices onto the server (not built yet)
-Planned: run the scrapers on your PC, copy `data/latest_{town}.json` to the server with
-`scp` (key login, no password in any script), then load it with
-`docker compose exec api python admin.py ingest <file>`. A one-command PowerShell script
-for this will be written once the scrapers produce real data.
+## Getting real prices onto the server
+Run the scrapers on your PC (`python run_scrapers.py` writes `data/latest_{town}.json`), then one
+command sends the files and loads them. Key login only, no password in any script.
+
+**One-time setup**
+1. On the server, bring the code up to date and rebuild (the matching rules changed), and make
+   the folder the files land in:
+   ```
+   cd ~/pricepulse
+   git pull
+   sudo docker compose up -d --build api
+   mkdir -p ~/pricepulse-upload
+   ```
+2. On your PC, tell it where the server is (not a secret; your own `deploy` user and IP):
+   ```
+   setx PP_SERVER "deploy@YOUR_SERVER_IP"
+   ```
+   Close PowerShell and open a new window.
+
+**Every time**
+```
+cd C:\Users\joao\pricepulse
+git pull
+.\scripts\upload_prices.ps1
+```
+It checks the files first (all seven towns present, not older than 36 hours, not example data,
+prices per store shown) and stops with a plain message if anything is wrong. It asks for `y`
+before sending. On the server it loads the files, shows how many example prices exist, and
+deletes the uploaded files. Add `-RemoveExamples` once you are happy with the real prices:
+`.\scripts\upload_prices.ps1 -RemoveExamples` (removes only the made-up prices; accounts and
+age checks are not touched).
 
 ## Optional: app on Firebase Hosting, API on the server
 
