@@ -125,10 +125,15 @@ def scrape_store(
                 health.terms_missing.extend(t for t, _ in terms[terms.index((term, category)) :])
                 break
             except WrongAddressError as exc:
-                health.status = "failed"
-                health.errors.append(str(exc))
-                health.terms_missing.extend(t for t, _ in terms[terms.index((term, category)) :])
-                break
+                if health.terms_found > 0:
+                    # The address worked for other searches, so this 404 only means "no results
+                    # for this term" (Pick n Pay answers 404 for some searches): carry on.
+                    found = []
+                else:
+                    health.status = "failed"
+                    health.errors.append(str(exc))
+                    health.terms_missing.extend(t for t, _ in terms[terms.index((term, category)) :])
+                    break
             except Exception as exc:  # noqa: BLE001 - one term must not stop the store
                 health.errors.append(f"{term}: {exc}")
                 found = []
