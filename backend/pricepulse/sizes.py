@@ -37,7 +37,7 @@ _UNITS_RE = "|".join(sorted(_UNIT, key=len, reverse=True))
 _PACK_RE = re.compile(rf"(?P<n>\d+)\s*[x×*]\s*(?P<q>{_NUM})\s*(?P<u>{_UNITS_RE})\b", re.I)
 _PACK_REV_RE = re.compile(rf"(?P<q>{_NUM})\s*(?P<u>{_UNITS_RE})\s*[x×*]\s*(?P<n>\d+)\b", re.I)
 _AMOUNT_RE = re.compile(rf"(?P<q>{_NUM})\s*(?P<u>{_UNITS_RE})\b", re.I)
-_COUNT_RE = re.compile(rf"(?P<n>\d+)\s*(?P<w>{_COUNT_WORDS})(?![a-z])", re.I)
+_COUNT_RE = re.compile(rf"(?P<n>\d+)\s*-?\s*(?:tagless\s+)?(?P<w>{_COUNT_WORDS})(?![a-z])", re.I)
 _PER_KG_RE = re.compile(r"(?:\bper\s*kg\b|/\s*kg\b|\bloose\b|\bby weight\b)", re.I)
 
 # Anything the size parser understands, used to cut a size out of a product name.
@@ -45,7 +45,7 @@ SIZE_IN_NAME_RE = re.compile(
     rf"(?:\d+\s*[x×*]\s*{_NUM}\s*(?:{_UNITS_RE})\b"
     rf"|{_NUM}\s*(?:{_UNITS_RE})\s*[x×*]\s*\d+\b"
     rf"|{_NUM}\s*(?:{_UNITS_RE})\b(?!\s*[x×*])"
-    rf"|\b\d+\s*(?:{_COUNT_WORDS})(?![a-z])"
+    rf"|\b\d+\s*-?\s*(?:tagless\s+)?(?:{_COUNT_WORDS})(?![a-z])"
     rf"|\bper\s*kg\b)",
     re.I,
 )

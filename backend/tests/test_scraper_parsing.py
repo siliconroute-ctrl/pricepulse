@@ -547,3 +547,14 @@ def test_each_store_is_searched_only_for_what_it_sells():
     assert [t for t, _ in terms_for(DisChem, terms, SimpleNamespace(term=None, limit=1))] == ["panado"]
     typed = SimpleNamespace(term=["x"], limit=0)  # typed words are always used
     assert terms_for(DisChem, [("x", "Groceries")], typed) == [("x", "Groceries")]
+
+
+def test_count_sizes_with_a_hyphen_or_tagless():
+    """Checkers writes '24-Tablets', '18-Pack', '80 Tagless Teabags' (14 Nov 2026)."""
+    from pricepulse.sizes import parse_size, split_size
+
+    assert split_size("Panado Pain Relief 24-Tablets") == ("Panado Pain Relief", "24-Tablets")
+    assert split_size("Nulaid Extra Large Eggs 18-Pack")[1] == "18-Pack"
+    assert split_size("Joko Pure Rooibos Original Teabags 80 Tagless Teabags")[1] == "80 Tagless Teabags"
+    assert parse_size("24-Tablets").key == parse_size("24 Tablets").key
+    assert split_size("Five Roses 2-in-1 Tea")[1] == ""  # not a count
