@@ -87,6 +87,7 @@ class Listing(Base):
     size_text: Mapped[str] = mapped_column(String(40), default="")
     url: Mapped[str] = mapped_column(String(400), default="")
     category: Mapped[str] = mapped_column(String(40), default="")
+    barcode: Mapped[str] = mapped_column(String(20), default="", index=True)  # digits only, "" = unknown
     match_status: Mapped[str] = mapped_column(String(20), default="new", index=True)
     match_score: Mapped[float] = mapped_column(Float, default=0)
     match_reason: Mapped[str] = mapped_column(String(200), default="")
@@ -224,9 +225,18 @@ def _m2_accounts(conn: Connection) -> None:
     Base.metadata.create_all(conn, tables=tables)
 
 
+def _m3_barcode(conn: Connection) -> None:
+    """Add listing.barcode (adds a column only; fresh databases already have it from step 1)."""
+    cols = {c["name"] for c in inspect(conn).get_columns("listing")}
+    if "barcode" not in cols:
+        conn.execute(text("ALTER TABLE listing ADD COLUMN barcode VARCHAR(20) NOT NULL DEFAULT ''"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_listing_barcode ON listing (barcode)"))
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
+    (3, "listing barcode", _m3_barcode),
 ]
 
 
