@@ -139,6 +139,23 @@ def test_wrong_address_stops_the_store_at_once(settings):
     assert "Search address not found" in h.summary()
 
 
+def test_a_404_after_a_good_search_is_just_no_results(settings):
+    """Pick n Pay answered 404 for one search (13 Nov 2026) and the whole store was dropped."""
+    calls = []
+
+    def b(term, cat):
+        calls.append(term)
+        if term == "huletts":
+            raise WrongAddressError("Search address not found (HTTP 404): https://x.example/s?q=huletts")
+        return [Item("Fake", f"{term} thing", "", cat, 5.0)]
+
+    terms = [("milk", "X"), ("huletts", "X"), ("bread", "X")]
+    items, h = scrape_store(make_scraper(b), FakeBrowser(), "paarl", {}, terms, _args())
+    assert calls == ["milk", "huletts", "bread"]  # the store carried on
+    assert len(items) == 2 and h.terms_missing == ["huletts"]
+    assert h.status == "partial" and h.errors == []
+
+
 def test_scraper_gets_desktop_browser_settings(settings):
     seen = {}
 
