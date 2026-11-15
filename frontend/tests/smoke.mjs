@@ -50,6 +50,16 @@ await page.waitForSelector("#devform");
 check((await page.textContent("#main")).includes("3 lookup sessions a day"), "sign-in screen explains the free plan and R99");
 check(!(await page.isVisible("nav.tabs")), "no tabs or prices before sign-in");
 await shot(page, "1-signin");
+// Three-dot menu on the sign-in screen: only what makes sense before sign-in.
+await page.click("#menubtn");
+check(await page.isVisible("#menupop"), "three-dot menu opens on the sign-in screen");
+check(!(await page.isVisible('[data-menu="list"]')), "menu hides My list before sign-in");
+check(await page.isVisible("#menupop >> text=Privacy Policy") && await page.isVisible("#menupop >> text=Terms of Use"), "menu has Privacy Policy and Terms of Use");
+const waHref = await page.getAttribute("#menuwa", "href");
+check(/^https:\/\/wa\.me\/\?text=/.test(waHref) && decodeURIComponent(waHref).includes("pricepulse.trolleyup.com"), "WhatsApp share link carries the PricePulse address");
+check(/App update \(v\d+\)/.test(await page.textContent("#menuupdate")), "menu shows the app version: " + (await page.textContent("#menuupdate")));
+await page.keyboard.press("Escape");
+check(!(await page.isVisible("#menupop")), "Escape closes the menu");
 await signIn(page, "tester", null);
 check((await page.textContent("#main")).includes("throw it away"), "ID screen says the number is not kept");
 await page.fill("#idform [name=idnum]", "8001015009086");
@@ -62,6 +72,33 @@ await page.fill("#idform [name=idnum]", ADULT);
 await page.click("#idform button.btn");
 await page.waitForSelector(".pills");
 check(/3 free sessions left today/.test(await meter(page)), "meter before first lookup: " + await meter(page));
+
+// Three-dot menu once signed in: every section, sharing and the version check.
+await page.click("#menubtn");
+await shot(page, "menu-open");
+for (const [key, label] of [["find", "Find prices"], ["towns", "Town by town"], ["list", "My list"], ["account", "My account and plan"], ["signout", "Sign out"]])
+  check(await page.isVisible(`[data-menu="${key}"]`), "menu has " + label + " when signed in");
+const heights = await page.$$eval("#menupop .mi", (els) => els.filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect().height));
+check(heights.every((h) => h >= 48), "every menu row is at least 48px tall (smallest " + Math.min(...heights) + ")");
+await page.click('[data-menu="list"]');
+await page.waitForFunction(() => document.querySelector("nav.tabs [aria-current=page]").textContent.includes("List"));
+check(!(await page.isVisible("#menupop")), "choosing a menu item goes there and closes the menu");
+await page.click("#menubtn");
+await page.click('[data-menu="update"]');
+await page.click('[data-dlg="doupdate"]');
+await page.waitForFunction(() => /newest version|Could not/.test(document.getElementById("dlg").textContent));
+check(/newest version \(\d+\)/.test(await page.textContent("#dlg")), "App update says the newest version when up to date");
+await page.click('#dlg [data-dlg=""]');
+await page.click("#menubtn");
+await page.click('[data-menu="colours"]');
+await page.click('[data-dlg="theme-dark"]');
+check((await page.getAttribute("html", "data-theme")) === "dark", "Colours choice from the menu switches to dark");
+await page.click("#menubtn");
+await page.click('[data-menu="colours"]');
+await page.click('[data-dlg="theme-system"]');
+await page.click('[data-menu="find"]', { force: true }).catch(() => {});
+await page.goto(base + "/#find");
+await page.waitForSelector(".pills");
 
 // 2. Look up a price.
 await page.fill("#q", "milk");

@@ -28,6 +28,8 @@ _Last updated 2026-11-14. Claude: rewrite this section at the end of every work 
 
 **Next (owner's plan, 13 Nov evening):** (1) Pick n Pay liquor done; (2) TOPS dropped; (3) one scrape per store for all towns is DECIDED and built (not yet run end to end: first full run is `run_scrapers.py --limit 3 --no-db` with no `--region`); (4) email alert when a scraper fails: BUILT and WORKING (`pricepulse/alerts.py`, docs/ALERTS.md): the owner's test email sent from admin@trolleyup.com via xneelo (smtp.trolleyup.com, port 465) but landed in Junk because trolleyup.com has no SPF or DMARC record: ask xneelo to switch on SPF and DKIM (only edit those records; one SPF record only; the zone also serves the site, Google sign-in and mail); (5) one-command upload BUILT (`scripts/upload_prices.ps1`, `scripts/load_prices.sh`, `backend/upload_check.py`, docs/DEPLOY.md): checks the 7 town files, scp over the key login, loads with `admin.py ingest`, example prices removed only with `-RemoveExamples`; NOT yet run on the real server (needs `git pull` + rebuild on the server, `mkdir ~/pricepulse-upload`, and `setx PP_SERVER`); (6) PayFast sandbox. Scrapers done and checked by the owner: Checkers (incl. liquor), Pick n Pay, Woolworths, Dis-Chem. Ultra Liquors and Liquorland on hold.
 
+**Three-dot menu (14-15 Nov 2026, app version 3):** top right of every screen: Find prices, Town by town, My list, My account and plan (signed in only), Colours, Help, Privacy Policy, Terms of Use, Share PricePulse on WhatsApp (`wa.me` link with the address https://pricepulse.trolleyup.com), Share PricePulse link (phone share sheet or copy), Sign out (signed in only) and **App update (v3)**. App update asks the server for the number in `sw.js` (the service worker never answers `sw.js`), says "You have the newest version (3)", or, when behind, removes the app's saved files and reloads; sign-in and settings are kept. Rows are 56px+ tall, tested by the browser test (47 steps) at phone width.
+
 **Waiting on the owner**
 - Port 80 check; a Contabo snapshot of the working app; try Google sign-in and Delete my data.
 - PayFast sandbox account and test, then a live merchant account with subscriptions enabled (docs/PAYMENTS.md).
@@ -72,5 +74,5 @@ _Last updated 2026-11-14. Claude: rewrite this section at the end of every work 
 - `cd backend && python -m pytest && ruff check . && black --check .`
 - `python frontend/tests/run_smoke.py` (needs Node and Playwright).
 - When Terms or Privacy wording changes, raise `terms_version` in `backend/pricepulse/config.py` and update both pages.
-- Bump `VERSION` in `frontend/sw.js` with every app release.
+- Bump `VERSION` in `frontend/sw.js` (`pp-shell-vNN`) AND `APP_VERSION` in `frontend/index.html` with every app release, same number (a test checks it). The menu shows `App update (vNN)`.
 - `PP_AUTH_DEV` and `PP_OPEN_PRICES` are for tests and `run_local.py` only. The Docker image refuses to start with either on.

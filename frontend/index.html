@@ -155,6 +155,21 @@ nav.tabs button[aria-current="page"]{color:var(--ink);background:var(--chip);box
 dialog{border:0;border-radius:1rem;padding:1.1rem;max-width:min(34rem,calc(100vw - 2rem));width:100%;background:var(--card);color:var(--ink);box-shadow:0 10px 40px rgba(0,0,0,.4)}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 dialog h2{margin:0 0 .5rem;font-family:var(--font-display);font-size:1.55rem}
+/* Three-dot menu (top right of every screen) */
+.menubtn{flex:none;width:3rem;height:3rem;min-width:3rem;border:0;border-radius:.6rem;background:transparent;color:var(--brand-ink);display:inline-flex;align-items:center;justify-content:center}
+.menubtn svg{width:1.7rem;height:1.7rem;fill:currentColor}
+.menubtn[aria-expanded="true"]{background:rgba(255,255,255,.22)}
+header .row.top{position:relative;flex-wrap:nowrap}
+.menupop{position:absolute;right:0;top:100%;z-index:30;width:min(21rem,calc(100vw - 2rem));max-height:calc(100vh - 7rem);max-height:calc(100dvh - 7rem);overflow-y:auto;
+  background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:.8rem;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:.3rem 0}
+.menupop[hidden]{display:none}
+.menupop :focus-visible{outline-color:var(--focus);outline-offset:-3px}
+.menupop .mi{display:flex;align-items:center;gap:.7rem;width:100%;min-height:3.5rem;padding:.4rem 1rem;border:0;background:transparent;color:var(--ink);font-size:1.06rem;font-weight:600;text-align:left;text-decoration:none;cursor:pointer}
+.menupop .mi:hover,.menupop .mi:focus-visible{background:var(--chip)}
+.menupop .mi svg{width:1.4rem;height:1.4rem;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.menupop .mi small{display:block;font-weight:500;color:var(--muted);font-size:.9rem}
+.menupop hr{border:0;border-top:1px solid var(--line);margin:.3rem 0}
+.menupop[data-phase]:not([data-phase="app"]) [data-needs="user"]{display:none}
 body.plainhead .where,body.plainhead .search,body.plainhead .meter,body.plainhead .fresh,body.plainhead nav.tabs{display:none}
 </style>
 </head>
@@ -162,8 +177,30 @@ body.plainhead .where,body.plainhead .search,body.plainhead .meter,body.plainhea
 <a class="skip" href="#main">Skip to content</a>
 <div class="wrap">
 <header>
-  <div class="row">
+  <div class="row top">
     <h1>PricePulse ZA</h1>
+    <button class="menubtn" id="menubtn" type="button" aria-label="Menu" aria-haspopup="true" aria-expanded="false" aria-controls="menupop">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
+    </button>
+    <div class="menupop" id="menupop" role="menu" aria-label="PricePulse menu" hidden>
+      <button class="mi" type="button" role="menuitem" data-menu="find" data-needs="user"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>Find prices</button>
+      <button class="mi" type="button" role="menuitem" data-menu="towns" data-needs="user"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Town by town</button>
+      <button class="mi" type="button" role="menuitem" data-menu="list" data-needs="user"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>My list</button>
+      <button class="mi" type="button" role="menuitem" data-menu="account" data-needs="user"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>My account and plan</button>
+      <hr data-needs="user">
+      <button class="mi" type="button" role="menuitem" data-menu="colours">Colours</button>
+      <a class="mi" role="menuitem" id="menuhelp" href="mailto:admin@trolleyup.com">Help</a>
+      <a class="mi" role="menuitem" href="privacy.html">Privacy Policy</a>
+      <a class="mi" role="menuitem" href="terms.html">Terms of Use</a>
+      <hr>
+      <a class="mi" role="menuitem" id="menuwa" href="https://wa.me/" target="_blank" rel="noopener noreferrer">Share PricePulse on WhatsApp<span class="vh"> (opens WhatsApp)</span></a>
+      <button class="mi" type="button" role="menuitem" data-menu="sharelink">Share PricePulse link</button>
+      <hr>
+      <button class="mi" type="button" role="menuitem" data-menu="signout" data-needs="user">Sign out</button>
+      <button class="mi" type="button" role="menuitem" data-menu="update" id="menuupdate">App update</button>
+    </div>
+  </div>
+  <div class="row">
     <div class="where">
       <label for="base">Town</label>
       <select id="base"></select>
@@ -189,6 +226,10 @@ var CFG = window.PRICEPULSE_CONFIG || {};
 var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
+/* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
+var APP_VERSION = 3;
+var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
+var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
 var DISCLAIMER = "Prices are collected from public retailer websites and may differ in store. Always check at the till.";
 var STORES = {"Checkers":"#0a6e8a","Pick n Pay":"#1d4fa3","Woolworths":"#2b2b2b",
@@ -712,12 +753,92 @@ document.getElementById("dlg").addEventListener("click",function(e){
   if(a==="doexport"){b.disabled=true;return doExport().then(function(){b.disabled=false})}
   if(a==="sharefile"){if(state.exportFile)navigator.share({files:[state.exportFile],title:"PricePulse list for TrolleyUp"}).catch(function(){});return}
   if(a==="opentu"){window.open(TROLLEYUP_URL,"_blank","noopener");return}
+  if(a==="doupdate"){b.disabled=true;return doUpdate()}
+  if(a.indexOf("theme-")===0){state.theme=a.slice(6);savePrefs();d.close();render();say("Colours: "+({system:"like my phone",light:"light",dark:"dark"}[state.theme]));return}
   d.close();
   if(a==="golist")go("list");
   if(a==="upgrade")upgrade();
   if(a==="doclear")api("POST","/session/clear",{region:state.region}).then(function(s){applySession(s);state.detail=null;render();say("Session cleared. "+meterText()+".")}).catch(function(e){if(!handleAuthError(e))say(e.message)});
   if(a==="docancel")api("POST","/billing/cancel").then(function(m){state.me=m;render();say("Your plan is cancelled. You keep unlimited sessions until the paid-up date.")}).catch(function(e){ask("Could not cancel",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
   if(a==="dodelete")api("DELETE","/me").then(function(){["pp_session_"+state.region].forEach(drop);say("Your PricePulse data was deleted.");Auth.out()}).catch(function(e){ask("Could not delete",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+});
+
+/* ---------- Three-dot menu, share and app update ---------- */
+function menuEl(){return document.getElementById("menupop")}
+function menuOpen(){return !menuEl().hidden}
+function menuShow(on){
+  var pop=menuEl(),btn=document.getElementById("menubtn");
+  pop.dataset.phase=state.phase;
+  pop.hidden=!on;btn.setAttribute("aria-expanded",on?"true":"false");
+  if(on){var first=pop.querySelector(".mi:not([hidden])");var vis=[].slice.call(pop.querySelectorAll(".mi")).filter(function(x){return x.offsetParent!==null});if(vis[0])vis[0].focus()}
+}
+function shareUrl(){return SHARE_TEXT+APP_URL}
+function setupMenu(){
+  document.getElementById("menuwa").href="https://wa.me/?text="+encodeURIComponent(shareUrl());
+  document.getElementById("menuhelp").href="mailto:"+SUPPORT;
+  document.getElementById("menuupdate").textContent="App update (v"+APP_VERSION+")";
+}
+function shareLink(){
+  if(navigator.share)return void navigator.share({title:"PricePulse ZA",text:SHARE_TEXT,url:APP_URL}).catch(function(){});
+  var done=function(){say("Link copied. Paste it into a message.");ask("Link copied",'<p>The PricePulse link was copied:</p><p><b>'+esc(APP_URL)+'</b></p>',[["OK","","btn"]])};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(shareUrl()).then(done,function(){ask("Share PricePulse",'<p>Copy this and send it to a friend:</p><p><b>'+esc(shareUrl())+'</b></p>',[["OK","","btn"]])});
+  else ask("Share PricePulse",'<p>Copy this and send it to a friend:</p><p><b>'+esc(shareUrl())+'</b></p>',[["OK","","btn"]]);
+}
+function coloursDialog(){
+  ask("Colours",'<div class="seg" role="group" aria-label="Colour theme" style="flex-direction:column">'+
+    [["system","Like my phone"],["light","Light"],["dark","Dark"]].map(function(t){return '<button type="button" class="btn'+(state.theme===t[0]?'':' alt')+'" data-dlg="theme-'+t[0]+'" aria-pressed="'+(state.theme===t[0])+'">'+t[1]+'</button>'}).join("")+'</div>',[["Close","","btn plain"]]);
+}
+function appUpdate(){
+  ask("App update",'<p>You have version <b>'+APP_VERSION+'</b>.</p><p>Check for a newer version and update?</p>',[["Check now","doupdate","btn"],["Not now","","btn alt"]]);
+}
+/* Asks the server for the newest version number straight from sw.js (never from a saved copy). */
+function doUpdate(){
+  var d=document.getElementById("dlg");
+  return fetch("sw.js?check="+Date.now(),{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("server");return r.text()}).then(function(t){
+    var m=/pp-shell-v(\d+)/.exec(t),n=m?+m[1]:0;
+    if(!n)return ask("App update",'<p>Could not read the newest version. Please try again later.</p>',[["OK","","btn"]]);
+    if(n===APP_VERSION)return ask("App update",'<p>You have the newest version (<b>'+n+'</b>).</p>',[["OK","","btn"]]);
+    store("pp_updated",n);
+    var jobs=[];
+    if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(x){return x.unregister()}))}));
+    if(window.caches)jobs.push(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k.indexOf("pp-shell")===0}).map(function(k){return caches.delete(k)}))}));
+    return Promise.all(jobs).catch(function(){}).then(function(){location.replace(location.pathname+"?u="+Date.now()+location.hash)});
+  }).catch(function(){
+    ask("App update",'<p>Could not reach the server, so I cannot tell if there is a newer version. Check your connection and try again.</p>',[["OK","","btn"]]);
+  });
+}
+/* After an update the page reloads on ?u=...: tidy the address and say what happened. */
+function afterUpdateNote(){
+  if(/[?&]u=\d+/.test(location.search)){try{history.replaceState(null,"",location.pathname+location.hash)}catch(e){}}
+  var n=load("pp_updated");
+  if(n){drop("pp_updated");if(n===APP_VERSION)setTimeout(function(){ask("Updated",'<p>PricePulse is now on version <b>'+APP_VERSION+'</b>.</p>',[["OK","","btn"]])},400)}
+}
+function menuAction(act){
+  menuShow(false);
+  document.getElementById("menubtn").focus({preventScroll:true});
+  if(act==="find"||act==="towns"||act==="list"||act==="account")return go(act);
+  if(act==="colours")return coloursDialog();
+  if(act==="sharelink")return shareLink();
+  if(act==="signout")return void Auth.out();
+  if(act==="update")return appUpdate();
+}
+document.getElementById("menubtn").addEventListener("click",function(e){e.stopPropagation();menuShow(!menuOpen())});
+document.getElementById("menupop").addEventListener("click",function(e){
+  e.stopPropagation();
+  var b=e.target.closest("[data-menu]");
+  if(b)return menuAction(b.dataset.menu);
+  if(e.target.closest("a.mi"))menuShow(false);   /* links just open */
+});
+document.addEventListener("click",function(){if(menuOpen())menuShow(false)});
+document.addEventListener("keydown",function(e){
+  if(!menuOpen())return;
+  if(e.key==="Escape"){menuShow(false);document.getElementById("menubtn").focus();return}
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+    var items=[].slice.call(menuEl().querySelectorAll(".mi")).filter(function(x){return x.offsetParent!==null});
+    var i=items.indexOf(document.activeElement);
+    i=e.key==="ArrowDown"?(i+1)%items.length:(i<=0?items.length-1:i-1);
+    items[i].focus();e.preventDefault();
+  }
 });
 
 /* ---------- Rendering and navigation ---------- */
@@ -894,6 +1015,7 @@ if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener
 (function init(){
   state.region=load("pp_region")||"paarl";state.unitMode=!!load("pp_unit");state.theme=load("pp_theme")||"system";
   var rs=load("pp_regions");if(Array.isArray(rs)&&rs.length)state.regions=rs;
+  setupMenu();afterUpdateNote();
   fillRegions();render();loadRegions();
   Auth.start(onAuth).catch(function(){
     /* Sign-in could not load (no connection). Show the saved list if there is one. */
