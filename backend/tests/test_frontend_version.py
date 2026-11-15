@@ -30,5 +30,7 @@ def test_menu_has_the_required_items():
         "terms.html",
         'data-menu="update"',
         'data-menu="sharelink"',
+        'data-menu="how"',
+        'id="howdlg"',
     ):
         assert needed in page, needed

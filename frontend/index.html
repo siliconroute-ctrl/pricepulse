@@ -155,21 +155,41 @@ nav.tabs button[aria-current="page"]{color:var(--ink);background:var(--chip);box
 dialog{border:0;border-radius:1rem;padding:1.1rem;max-width:min(34rem,calc(100vw - 2rem));width:100%;background:var(--card);color:var(--ink);box-shadow:0 10px 40px rgba(0,0,0,.4)}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 dialog h2{margin:0 0 .5rem;font-family:var(--font-display);font-size:1.55rem}
-/* Three-dot menu (top right of every screen) */
+/* Three-dot menu (top right of every screen): compact, text-only rows, two to a line, like WhatsApp's menu */
 .menubtn{flex:none;width:3rem;height:3rem;min-width:3rem;border:0;border-radius:.6rem;background:transparent;color:var(--brand-ink);display:inline-flex;align-items:center;justify-content:center}
 .menubtn svg{width:1.7rem;height:1.7rem;fill:currentColor}
 .menubtn[aria-expanded="true"]{background:rgba(255,255,255,.22)}
 header .row.top{position:relative;flex-wrap:nowrap}
-.menupop{position:absolute;right:0;top:100%;z-index:30;width:min(21rem,calc(100vw - 2rem));max-height:calc(100vh - 7rem);max-height:calc(100dvh - 7rem);overflow-y:auto;
-  background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:.8rem;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:.3rem 0}
+.menupop{position:absolute;right:0;top:100%;z-index:30;width:min(22rem,calc(100vw - 1.5rem));max-height:calc(100vh - 6rem);max-height:calc(100dvh - 6rem);overflow-y:auto;
+  background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:.8rem;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:.2rem 0}
 .menupop[hidden]{display:none}
 .menupop :focus-visible{outline-color:var(--focus);outline-offset:-3px}
-.menupop .mi{display:flex;align-items:center;gap:.7rem;width:100%;min-height:3.5rem;padding:.4rem 1rem;border:0;background:transparent;color:var(--ink);font-size:1.06rem;font-weight:600;text-align:left;text-decoration:none;cursor:pointer}
+.menupop .mrow{display:flex}
+.menupop .mi{flex:1 1 0;min-width:0;display:flex;align-items:center;min-height:3rem;padding:.3rem .9rem;border:0;background:transparent;color:var(--ink);font-size:1.03rem;font-weight:600;text-align:left;text-decoration:none;cursor:pointer;line-height:1.2}
+.menupop .mi+.mi{border-left:1px solid var(--line)}
 .menupop .mi:hover,.menupop .mi:focus-visible{background:var(--chip)}
-.menupop .mi svg{width:1.4rem;height:1.4rem;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.menupop .mi small{display:block;font-weight:500;color:var(--muted);font-size:.9rem}
-.menupop hr{border:0;border-top:1px solid var(--line);margin:.3rem 0}
+.menupop hr{border:0;border-top:1px solid var(--line);margin:.15rem 0}
 .menupop[data-phase]:not([data-phase="app"]) [data-needs="user"]{display:none}
+/* How PricePulse works: a chat, like WhatsApp */
+dialog.how{padding:0;max-width:min(34rem,100vw);width:100%;height:min(46rem,100dvh);max-height:100dvh;display:flex;flex-direction:column;overflow:hidden;border-radius:.8rem}
+dialog.how:not([open]){display:none}
+.how .hhead{flex:none;display:flex;align-items:center;gap:.5rem;background:var(--brand);color:var(--brand-ink);padding:.4rem .6rem}
+.how .hhead h2{margin:0;font-size:1.35rem;flex:1}
+.how .hhead button{min-height:3rem;min-width:3rem;border:0;background:transparent;color:inherit;font-size:1.05rem;font-weight:700;border-radius:.6rem}
+.how .hhead :focus-visible{outline-color:#fff}
+.how .chat{flex:1;overflow-y:auto;padding:.8rem .7rem 1rem;background:#efeae2;color:#1d1415;display:flex;flex-direction:column;gap:.5rem}
+.how .bub{max-width:88%;padding:.55rem .8rem;border-radius:.2rem .9rem .9rem .9rem;background:#fff;box-shadow:0 1px 1px rgba(0,0,0,.15);font-size:1.03rem;line-height:1.4}
+.how .bub.me{align-self:flex-end;background:#d9fdd3;border-radius:.9rem .2rem .9rem .9rem}
+.how .bub b{font-weight:700}
+.how .bub small{display:block;margin-top:.25rem;font-size:.86rem;color:#4d4243}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .how .chat{background:#0d1418;color:#f7eeee}
+  :root:not([data-theme="light"]) .how .bub{background:#1f2c34;color:#f7eeee}
+  :root:not([data-theme="light"]) .how .bub.me{background:#005c4b}
+  :root:not([data-theme="light"]) .how .bub small{color:#cdbdbe}}
+:root[data-theme="dark"] .how .chat{background:#0d1418;color:#f7eeee}
+:root[data-theme="dark"] .how .bub{background:#1f2c34;color:#f7eeee}
+:root[data-theme="dark"] .how .bub.me{background:#005c4b}
+:root[data-theme="dark"] .how .bub small{color:#cdbdbe}
 body.plainhead .where,body.plainhead .search,body.plainhead .meter,body.plainhead .fresh,body.plainhead nav.tabs{display:none}
 </style>
 </head>
@@ -183,21 +203,36 @@ body.plainhead .where,body.plainhead .search,body.plainhead .meter,body.plainhea
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
     </button>
     <div class="menupop" id="menupop" role="menu" aria-label="PricePulse menu" hidden>
-      <button class="mi" type="button" role="menuitem" data-menu="find" data-needs="user"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>Find prices</button>
-      <button class="mi" type="button" role="menuitem" data-menu="towns" data-needs="user"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Town by town</button>
-      <button class="mi" type="button" role="menuitem" data-menu="list" data-needs="user"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>My list</button>
-      <button class="mi" type="button" role="menuitem" data-menu="account" data-needs="user"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>My account and plan</button>
+      <div class="mrow" role="none" data-needs="user">
+        <button class="mi" type="button" role="menuitem" data-menu="find">Find prices</button>
+        <button class="mi" type="button" role="menuitem" data-menu="towns">Town by town</button>
+      </div>
+      <div class="mrow" role="none" data-needs="user">
+        <button class="mi" type="button" role="menuitem" data-menu="list">My list</button>
+        <button class="mi" type="button" role="menuitem" data-menu="account">My account</button>
+      </div>
       <hr data-needs="user">
-      <button class="mi" type="button" role="menuitem" data-menu="colours">Colours</button>
-      <a class="mi" role="menuitem" id="menuhelp" href="mailto:admin@trolleyup.com">Help</a>
-      <a class="mi" role="menuitem" href="privacy.html">Privacy Policy</a>
-      <a class="mi" role="menuitem" href="terms.html">Terms of Use</a>
+      <div class="mrow" role="none">
+        <button class="mi" type="button" role="menuitem" data-menu="how">How it works</button>
+      </div>
+      <div class="mrow" role="none">
+        <button class="mi" type="button" role="menuitem" data-menu="colours">Colours</button>
+        <a class="mi" role="menuitem" id="menuhelp" href="mailto:admin@trolleyup.com">Help</a>
+      </div>
+      <div class="mrow" role="none">
+        <a class="mi" role="menuitem" href="privacy.html">Privacy Policy</a>
+        <a class="mi" role="menuitem" href="terms.html">Terms of Use</a>
+      </div>
       <hr>
-      <a class="mi" role="menuitem" id="menuwa" href="https://wa.me/" target="_blank" rel="noopener noreferrer">Share PricePulse on WhatsApp<span class="vh"> (opens WhatsApp)</span></a>
-      <button class="mi" type="button" role="menuitem" data-menu="sharelink">Share PricePulse link</button>
+      <div class="mrow" role="none">
+        <a class="mi" role="menuitem" id="menuwa" href="https://wa.me/" target="_blank" rel="noopener noreferrer">Share on WhatsApp<span class="vh"> (opens WhatsApp)</span></a>
+        <button class="mi" type="button" role="menuitem" data-menu="sharelink">Share link</button>
+      </div>
       <hr>
-      <button class="mi" type="button" role="menuitem" data-menu="signout" data-needs="user">Sign out</button>
-      <button class="mi" type="button" role="menuitem" data-menu="update" id="menuupdate">App update</button>
+      <div class="mrow" role="none">
+        <button class="mi" type="button" role="menuitem" data-menu="signout" data-needs="user">Sign out</button>
+        <button class="mi" type="button" role="menuitem" data-menu="update" id="menuupdate">App update</button>
+      </div>
     </div>
   </div>
   <div class="row">
@@ -218,6 +253,7 @@ body.plainhead .where,body.plainhead .search,body.plainhead .meter,body.plainhea
 </div>
 <nav class="tabs" aria-label="Main"><div class="in" id="nav"></div></nav>
 <dialog id="dlg" aria-labelledby="dlgt"></dialog>
+<dialog id="howdlg" class="how" aria-labelledby="howt"></dialog>
 
 <script>
 "use strict";
@@ -227,7 +263,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 3;
+var APP_VERSION = 4;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -788,6 +824,27 @@ function coloursDialog(){
   ask("Colours",'<div class="seg" role="group" aria-label="Colour theme" style="flex-direction:column">'+
     [["system","Like my phone"],["light","Light"],["dark","Dark"]].map(function(t){return '<button type="button" class="btn'+(state.theme===t[0]?'':' alt')+'" data-dlg="theme-'+t[0]+'" aria-pressed="'+(state.theme===t[0])+'">'+t[1]+'</button>'}).join("")+'</div>',[["Close","","btn plain"]]);
 }
+function howItWorks(){
+  var d=document.getElementById("howdlg");
+  function bub(t,me,note){return '<div class="bub'+(me?' me':'')+'">'+t+(note?'<small>'+note+'</small>':'')+'</div>'}
+  d.innerHTML='<div class="hhead"><button type="button" data-how="close" aria-label="Close how it works">\u2190</button><h2 id="howt">How PricePulse works</h2></div>'+
+    '<div class="chat" tabindex="0">'+
+    bub('Hi! PricePulse compares grocery, fresh, liquor and pharmacy prices at <b>Checkers, Pick n Pay, Woolworths and Dis-Chem</b>.')+
+    bub('How do I use it?',true)+
+    bub('<b>1. Pick your town.</b> Use the Town box at the top, or the target button to find the nearest town.')+
+    bub('<b>2. Search for a product</b>, for example <b>milk</b>, then tap <b>Look up price</b>.')+
+    bub('<b>3. See every store\u2019s price</b>, cheapest first. Tap <b>+ List</b> to keep an item on your list.')+
+    bub('Show me my shopping.',true)+
+    bub('<b>4. Open List.</b> It shows what your whole list costs at the cheapest single store, or split across stores. <b>Towns</b> shows the total in each town.')+
+    bub('<b>5. Tap Send to TrolleyUp</b> to take your list into TrolleyUp.')+
+    bub('What does it cost?',true)+
+    bub('Free: <b>3 lookup sessions a day</b>, 45 items each. Unlimited sessions are <b>R99 a month</b> (see My account).')+
+    bub('Liquor is only shown to people aged 18 and over.',false,'Prices come from the stores\u2019 websites and can differ in store. Always check at the till.')+
+    '</div>';
+  if(!d.open)d.showModal();
+  d.querySelector(".chat").scrollTop=0;
+}
+document.getElementById("howdlg").addEventListener("click",function(e){if(e.target.closest("[data-how=close]"))this.close()});
 function appUpdate(){
   ask("App update",'<p>You have version <b>'+APP_VERSION+'</b>.</p><p>Check for a newer version and update?</p>',[["Check now","doupdate","btn"],["Not now","","btn alt"]]);
 }
@@ -818,6 +875,7 @@ function menuAction(act){
   document.getElementById("menubtn").focus({preventScroll:true});
   if(act==="find"||act==="towns"||act==="list"||act==="account")return go(act);
   if(act==="colours")return coloursDialog();
+  if(act==="how")return howItWorks();
   if(act==="sharelink")return shareLink();
   if(act==="signout")return void Auth.out();
   if(act==="update")return appUpdate();
