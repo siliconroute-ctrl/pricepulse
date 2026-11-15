@@ -80,12 +80,27 @@ for (const [key, label] of [["find", "Find prices"], ["towns", "Town by town"], 
   check(await page.isVisible(`[data-menu="${key}"]`), "menu has " + label + " when signed in");
 const heights = await page.$$eval("#menupop .mi", (els) => els.filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect().height));
 check(heights.every((h) => h >= 48), "every menu row is at least 48px tall (smallest " + Math.min(...heights) + ")");
-// The whole menu fits on a small phone (360 x 640) without scrolling.
-await page.setViewportSize({ width: 360, height: 640 });
-const fit = await page.$eval("#menupop", (m) => ({ scroll: m.scrollHeight, shown: m.clientHeight, bottom: m.getBoundingClientRect().bottom, win: window.innerHeight }));
-check(fit.scroll <= fit.shown && fit.bottom <= fit.win, "menu fits a 360x640 phone with no scrolling (" + fit.scroll + "px of " + fit.win + "px)");
-await shot(page, "menu-small-phone");
+// A stacked drop-down on the right edge of the screen, tight rows, no scrolling on an ordinary phone.
+await page.setViewportSize({ width: 360, height: 780 });
+await page.waitForTimeout(150);                                   // turning the phone closes the menu, so open it again
+if (!(await page.isVisible("#menupop"))) await page.click("#menubtn");
+const fit = await page.$eval("#menupop", (m) => { const r = m.getBoundingClientRect(); const rows = [...m.querySelectorAll(".mi")].filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect()); return { scroll: m.scrollHeight, shown: m.clientHeight, bottom: r.bottom, right: r.right, win: window.innerHeight, winW: window.innerWidth, stacked: rows.every((q, i) => i === 0 || q.top >= rows[i - 1].bottom - 1), gap: Math.max(...rows.slice(1).map((q, i) => q.top - rows[i].bottom)) }; });
+check(fit.stacked, "menu rows are stacked one under the other");
+check(fit.winW - fit.right <= 12, "menu drops down on the right edge of the screen (" + (fit.winW - fit.right) + "px from the edge)");
+const lastOk = await page.evaluate(() => { const rows = [...document.querySelectorAll("#menupop .mi")].filter((e) => e.offsetParent); const r = rows[rows.length - 1].getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!hit && hit.closest(".mi") === rows[rows.length - 1]; });
+check(lastOk, "the last menu row (App update) is not hidden behind the bottom tabs");
+check(fit.scroll <= fit.shown && fit.bottom <= fit.win, "menu fits a 360x780 phone with no scrolling (" + fit.scroll + "px of " + fit.win + "px)");
+check(fit.gap <= 8, "no extra space between menu rows (largest gap " + fit.gap + "px)");
+await shot(page, "menu-stacked");
+await page.setViewportSize({ width: 360, height: 600 });
+await page.waitForTimeout(150);
+check(!(await page.isVisible("#menupop")), "turning the phone (resize) closes the menu");
+await page.click("#menubtn");
+const small = await page.$eval("#menupop", (m) => ({ bottom: m.getBoundingClientRect().bottom, win: window.innerHeight, inner: m.scrollHeight > m.clientHeight }));
+check(small.bottom <= small.win && small.inner, "on a short screen the menu stays on screen and scrolls inside itself");
 await page.setViewportSize({ width: 412, height: 915 });
+await page.waitForTimeout(150);
+if (!(await page.isVisible("#menupop"))) await page.click("#menubtn");
 // How it works: a chat-style guide.
 await page.click('[data-menu="how"]');
 await page.waitForSelector("#howdlg[open]");
