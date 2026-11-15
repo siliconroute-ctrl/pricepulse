@@ -27,6 +27,8 @@ stores:
     regional_pricing: unknown
   Dis-Chem:
     regional_pricing: national
+  Clicks:
+    regional_pricing: national
 
 regions:
   paarl:

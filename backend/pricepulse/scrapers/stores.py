@@ -366,7 +366,45 @@ class DisChem(BaseScraper):
     }
 
 
-ALL_SCRAPERS: list[type[BaseScraper]] = [Checkers, PickNPay, Woolworths, UltraLiquors, Liquorland, DisChem]
+class Clicks(BaseScraper):
+    """Clicks (clicks.co.za): pharmacy, health and beauty.
+
+    FIRST RUN PENDING (15 Nov 2026): nothing here has been checked on the real site. The search
+    address and page selectors are guesses, and clicks.co.za is behind Cloudflare (it refused a
+    plain request from the build machine with HTTP 403). It is NOT in ACTIVE_SCRAPERS, so normal
+    runs, the scheduler and the health page ignore it until the owner has run it once from his
+    PC, sent the one file it writes, and the prices and links have been checked on the site:
+
+        run_scrapers.py --store Clicks --category "Health & Beauty" --limit 3 --debug --no-db --save-fixtures
+
+    A Cloudflare check page is reported as BLOCKED; never try to get past it.
+    """
+
+    name = "Clicks"
+    slug = "clicks"
+    categories = ("Health & Beauty",)
+    base_url = "https://clicks.co.za"
+    search_url = "https://clicks.co.za/search?q={q}"
+    selectors = {
+        "card": ["[data-testid='product-card']", ".product-card", ".product-item", "li.product"],
+        "name": [".product-card__name", ".product-name", "a.product-link", "h3", "h2"],
+        "price": [".product-card__price", ".price", "[data-testid='price']"],
+        "promo": [".price--special", ".special-price", ".sale-price"],
+        "was": [".price--was", ".old-price", ".was-price"],
+        "size": [],
+        "link": ["a.product-link", "a[href*='/p/']", "a"],
+    }
+
+
+ALL_SCRAPERS: list[type[BaseScraper]] = [
+    Checkers,
+    PickNPay,
+    Woolworths,
+    UltraLiquors,
+    Liquorland,
+    DisChem,
+    Clicks,
+]
 
 # Searched by default (owner, 13 Nov 2026). Ultra Liquors and Liquorland are on hold: they stay
 # in ALL_SCRAPERS so `--store "Ultra Liquors"` still works, but no normal run touches them.
