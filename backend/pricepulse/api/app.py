@@ -30,6 +30,7 @@ from ..regions import haversine_km, load_regions, valid_region
 from ..scrapers.stores import ACTIVE_SCRAPERS, ALL_SCRAPERS
 from . import schemas as S
 from .account_routes import register_account_routes
+from .ingest_routes import register_ingest_routes
 
 log = logging.getLogger("pricepulse.api")
 
@@ -87,6 +88,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
     if settings.production and len(settings.id_secret) < 16:
         raise RuntimeError("Refusing to start: set PP_ID_SECRET to a long random value (see .env.example).")
+    if settings.ingest_token and len(settings.ingest_token) < 32:
+        raise RuntimeError(
+            "Refusing to start: PP_INGEST_TOKEN must be at least 32 characters. "
+            'Make one with: python -c "import secrets; print(secrets.token_hex(32))"'
+        )
     _setup_logging()
     Session = session_factory(settings.database_url)
     regions = load_regions(str(settings.regions_file))
@@ -477,6 +483,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             basket_for=basket_for,
         ),
     )
+
+    register_ingest_routes(app, SimpleNamespace(settings=settings, db=db, regions=regions))
 
     # Serve the web app from the same address when the folder is present, so one
     # service gives one test URL. It can also be hosted separately (see docs/DEPLOY.md).
