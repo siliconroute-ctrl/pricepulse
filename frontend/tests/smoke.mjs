@@ -76,10 +76,26 @@ check(/3 free sessions left today/.test(await meter(page)), "meter before first 
 // Three-dot menu once signed in: every section, sharing and the version check.
 await page.click("#menubtn");
 await shot(page, "menu-open");
-for (const [key, label] of [["find", "Find prices"], ["towns", "Town by town"], ["list", "My list"], ["account", "My account and plan"], ["signout", "Sign out"]])
+for (const [key, label] of [["find", "Find prices"], ["towns", "Town by town"], ["list", "My list"], ["account", "My account"], ["signout", "Sign out"]])
   check(await page.isVisible(`[data-menu="${key}"]`), "menu has " + label + " when signed in");
 const heights = await page.$$eval("#menupop .mi", (els) => els.filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect().height));
 check(heights.every((h) => h >= 48), "every menu row is at least 48px tall (smallest " + Math.min(...heights) + ")");
+// The whole menu fits on a small phone (360 x 640) without scrolling.
+await page.setViewportSize({ width: 360, height: 640 });
+const fit = await page.$eval("#menupop", (m) => ({ scroll: m.scrollHeight, shown: m.clientHeight, bottom: m.getBoundingClientRect().bottom, win: window.innerHeight }));
+check(fit.scroll <= fit.shown && fit.bottom <= fit.win, "menu fits a 360x640 phone with no scrolling (" + fit.scroll + "px of " + fit.win + "px)");
+await shot(page, "menu-small-phone");
+await page.setViewportSize({ width: 412, height: 915 });
+// How it works: a chat-style guide.
+await page.click('[data-menu="how"]');
+await page.waitForSelector("#howdlg[open]");
+const how = await page.textContent("#howdlg");
+check(/Look up price/.test(how) && /Send to TrolleyUp/.test(how) && /R99 a month/.test(how), "How it works explains looking up, sending to TrolleyUp and the plan");
+check(await page.locator("#howdlg .bub.me").count() >= 2, "How it works is laid out as a chat with your questions on the right");
+await shot(page, "how-it-works");
+await page.click('#howdlg [data-how="close"]');
+check(!(await page.isVisible("#howdlg")), "How it works closes with its back button");
+await page.click("#menubtn");
 await page.click('[data-menu="list"]');
 await page.waitForFunction(() => document.querySelector("nav.tabs [aria-current=page]").textContent.includes("List"));
 check(!(await page.isVisible("#menupop")), "choosing a menu item goes there and closes the menu");
