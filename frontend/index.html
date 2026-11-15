@@ -155,20 +155,18 @@ nav.tabs button[aria-current="page"]{color:var(--ink);background:var(--chip);box
 dialog{border:0;border-radius:1rem;padding:1.1rem;max-width:min(34rem,calc(100vw - 2rem));width:100%;background:var(--card);color:var(--ink);box-shadow:0 10px 40px rgba(0,0,0,.4)}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 dialog h2{margin:0 0 .5rem;font-family:var(--font-display);font-size:1.55rem}
-/* Three-dot menu (top right of every screen): compact, text-only rows, two to a line, like WhatsApp's menu */
+/* Three-dot menu (top right of every screen): a stacked drop-down list on the right of the screen */
 .menubtn{flex:none;width:3rem;height:3rem;min-width:3rem;border:0;border-radius:.6rem;background:transparent;color:var(--brand-ink);display:inline-flex;align-items:center;justify-content:center}
 .menubtn svg{width:1.7rem;height:1.7rem;fill:currentColor}
 .menubtn[aria-expanded="true"]{background:rgba(255,255,255,.22)}
-header .row.top{position:relative;flex-wrap:nowrap}
-.menupop{position:absolute;right:0;top:100%;z-index:30;width:min(22rem,calc(100vw - 1.5rem));max-height:calc(100vh - 6rem);max-height:calc(100dvh - 6rem);overflow-y:auto;
-  background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:.8rem;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:.2rem 0}
+header .row.top{flex-wrap:nowrap}
+.menupop{position:fixed;right:max(.5rem,env(safe-area-inset-right,0px));top:4rem;z-index:40;width:min(19rem,calc(100vw - 1rem));overflow-y:auto;overscroll-behavior:contain;
+  background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:.7rem;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:.15rem 0}
 .menupop[hidden]{display:none}
 .menupop :focus-visible{outline-color:var(--focus);outline-offset:-3px}
-.menupop .mrow{display:flex}
-.menupop .mi{flex:1 1 0;min-width:0;display:flex;align-items:center;min-height:3rem;padding:.3rem .9rem;border:0;background:transparent;color:var(--ink);font-size:1.03rem;font-weight:600;text-align:left;text-decoration:none;cursor:pointer;line-height:1.2}
-.menupop .mi+.mi{border-left:1px solid var(--line)}
+.menupop .mi{display:flex;align-items:center;width:100%;min-height:48px;padding:0 1rem;border:0;background:transparent;color:var(--ink);font-size:1.03rem;font-weight:600;text-align:left;text-decoration:none;cursor:pointer;line-height:1.2}
 .menupop .mi:hover,.menupop .mi:focus-visible{background:var(--chip)}
-.menupop hr{border:0;border-top:1px solid var(--line);margin:.15rem 0}
+.menupop hr{border:0;border-top:1px solid var(--line);margin:0}
 .menupop[data-phase]:not([data-phase="app"]) [data-needs="user"]{display:none}
 /* How PricePulse works: a chat, like WhatsApp */
 dialog.how{padding:0;max-width:min(34rem,100vw);width:100%;height:min(46rem,100dvh);max-height:100dvh;display:flex;flex-direction:column;overflow:hidden;border-radius:.8rem}
@@ -202,38 +200,6 @@ body.plainhead .where,body.plainhead .search,body.plainhead .meter,body.plainhea
     <button class="menubtn" id="menubtn" type="button" aria-label="Menu" aria-haspopup="true" aria-expanded="false" aria-controls="menupop">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
     </button>
-    <div class="menupop" id="menupop" role="menu" aria-label="PricePulse menu" hidden>
-      <div class="mrow" role="none" data-needs="user">
-        <button class="mi" type="button" role="menuitem" data-menu="find">Find prices</button>
-        <button class="mi" type="button" role="menuitem" data-menu="towns">Town by town</button>
-      </div>
-      <div class="mrow" role="none" data-needs="user">
-        <button class="mi" type="button" role="menuitem" data-menu="list">My list</button>
-        <button class="mi" type="button" role="menuitem" data-menu="account">My account</button>
-      </div>
-      <hr data-needs="user">
-      <div class="mrow" role="none">
-        <button class="mi" type="button" role="menuitem" data-menu="how">How it works</button>
-      </div>
-      <div class="mrow" role="none">
-        <button class="mi" type="button" role="menuitem" data-menu="colours">Colours</button>
-        <a class="mi" role="menuitem" id="menuhelp" href="mailto:admin@trolleyup.com">Help</a>
-      </div>
-      <div class="mrow" role="none">
-        <a class="mi" role="menuitem" href="privacy.html">Privacy Policy</a>
-        <a class="mi" role="menuitem" href="terms.html">Terms of Use</a>
-      </div>
-      <hr>
-      <div class="mrow" role="none">
-        <a class="mi" role="menuitem" id="menuwa" href="https://wa.me/" target="_blank" rel="noopener noreferrer">Share on WhatsApp<span class="vh"> (opens WhatsApp)</span></a>
-        <button class="mi" type="button" role="menuitem" data-menu="sharelink">Share link</button>
-      </div>
-      <hr>
-      <div class="mrow" role="none">
-        <button class="mi" type="button" role="menuitem" data-menu="signout" data-needs="user">Sign out</button>
-        <button class="mi" type="button" role="menuitem" data-menu="update" id="menuupdate">App update</button>
-      </div>
-    </div>
   </div>
   <div class="row">
     <div class="where">
@@ -252,6 +218,24 @@ body.plainhead .where,body.plainhead .search,body.plainhead .meter,body.plainhea
 <main id="main" tabindex="-1"><p class="empty">Opening PricePulse&hellip;</p></main>
 </div>
 <nav class="tabs" aria-label="Main"><div class="in" id="nav"></div></nav>
+<div class="menupop" id="menupop" role="menu" aria-label="PricePulse menu" hidden>
+  <button class="mi" type="button" role="menuitem" data-menu="find" data-needs="user">Find prices</button>
+  <button class="mi" type="button" role="menuitem" data-menu="towns" data-needs="user">Town by town</button>
+  <button class="mi" type="button" role="menuitem" data-menu="list" data-needs="user">My list</button>
+  <button class="mi" type="button" role="menuitem" data-menu="account" data-needs="user">My account and plan</button>
+  <hr data-needs="user">
+  <button class="mi" type="button" role="menuitem" data-menu="how">How it works</button>
+  <button class="mi" type="button" role="menuitem" data-menu="colours">Colours</button>
+  <a class="mi" role="menuitem" id="menuhelp" href="mailto:admin@trolleyup.com">Help</a>
+  <a class="mi" role="menuitem" href="privacy.html">Privacy Policy</a>
+  <a class="mi" role="menuitem" href="terms.html">Terms of Use</a>
+  <hr>
+  <a class="mi" role="menuitem" id="menuwa" href="https://wa.me/" target="_blank" rel="noopener noreferrer">Share PricePulse on WhatsApp<span class="vh"> (opens WhatsApp)</span></a>
+  <button class="mi" type="button" role="menuitem" data-menu="sharelink">Share PricePulse link</button>
+  <hr>
+  <button class="mi" type="button" role="menuitem" data-menu="signout" data-needs="user">Sign out</button>
+  <button class="mi" type="button" role="menuitem" data-menu="update" id="menuupdate">App update</button>
+</div>
 <dialog id="dlg" aria-labelledby="dlgt"></dialog>
 <dialog id="howdlg" class="how" aria-labelledby="howt"></dialog>
 
@@ -263,7 +247,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 4;
+var APP_VERSION = 5;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -806,6 +790,7 @@ function menuShow(on){
   var pop=menuEl(),btn=document.getElementById("menubtn");
   pop.dataset.phase=state.phase;
   pop.hidden=!on;btn.setAttribute("aria-expanded",on?"true":"false");
+  if(on){var top=Math.round(btn.getBoundingClientRect().bottom)+4;pop.style.top=top+"px";pop.style.maxHeight=Math.max(160,window.innerHeight-top-8)+"px"}
   if(on){var first=pop.querySelector(".mi:not([hidden])");var vis=[].slice.call(pop.querySelectorAll(".mi")).filter(function(x){return x.offsetParent!==null});if(vis[0])vis[0].focus()}
 }
 function shareUrl(){return SHARE_TEXT+APP_URL}
@@ -888,6 +873,7 @@ document.getElementById("menupop").addEventListener("click",function(e){
   if(e.target.closest("a.mi"))menuShow(false);   /* links just open */
 });
 document.addEventListener("click",function(){if(menuOpen())menuShow(false)});
+window.addEventListener("resize",function(){if(menuOpen())menuShow(false)});
 document.addEventListener("keydown",function(e){
   if(!menuOpen())return;
   if(e.key==="Escape"){menuShow(false);document.getElementById("menubtn").focus();return}
