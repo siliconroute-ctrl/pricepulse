@@ -227,11 +227,11 @@ def test_health_summary_plain_language():
 
 
 def test_registry():
-    assert len(ALL_SCRAPERS) == 6
+    assert len(ALL_SCRAPERS) == 7
     assert find_scraper("pick n pay") is PickNPay
     assert find_scraper("Dis-Chem") is DisChem and find_scraper("dischem") is DisChem
     assert find_scraper("nope") is None
-    assert len({c.slug for c in ALL_SCRAPERS}) == 6
+    assert len({c.slug for c in ALL_SCRAPERS}) == 7
 
 
 @pytest.mark.parametrize("cls", ALL_SCRAPERS)
@@ -525,6 +525,8 @@ def test_default_run_leaves_out_liquor_stores_on_hold():
     names = [c.name for c in ACTIVE_SCRAPERS]
     assert names == ["Checkers", "Pick n Pay", "Woolworths", "Dis-Chem"]
     assert find_scraper("Ultra Liquors") is not None and find_scraper("liquorland") is not None
+    clicks = find_scraper("clicks")  # added 15 Nov 2026, first real run pending: runnable by name only
+    assert clicks is not None and clicks not in ACTIVE_SCRAPERS and clicks.verified is False
 
 
 def test_each_store_is_searched_only_for_what_it_sells():

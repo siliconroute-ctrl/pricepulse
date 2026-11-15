@@ -22,7 +22,7 @@ function makeId(yymmdd) {
 }
 const yy = (n) => String((new Date().getFullYear() - n) % 100).padStart(2, "0");
 const ADULT = makeId("800101"), MINOR = makeId(yy(12) + "0315");
-const meter = (page) => page.textContent("#meter");
+const meter = (page) => page.evaluate(() => meterText());   // the session count is no longer drawn in the header
 async function signIn(page, name, id) {
   await page.goto(base + "/");
   await page.waitForSelector("#devform");
@@ -50,6 +50,7 @@ await page.waitForSelector("#devform");
 check((await page.textContent("#main")).includes("3 lookup sessions a day"), "sign-in screen explains the free plan and R99");
 check(!(await page.isVisible("nav.tabs")), "no tabs or prices before sign-in");
 await shot(page, "1-signin");
+check(!(await page.$("#meter")) && !(await page.$("#fresh")), "the session counter block is gone from the header");
 // Three-dot menu on the sign-in screen: only what makes sense before sign-in.
 await page.click("#menubtn");
 check(await page.isVisible("#menupop"), "three-dot menu opens on the sign-in screen");
@@ -72,6 +73,9 @@ await page.fill("#idform [name=idnum]", ADULT);
 await page.click("#idform button.btn");
 await page.waitForSelector(".pills");
 check(/3 free sessions left today/.test(await meter(page)), "meter before first lookup: " + await meter(page));
+const headH = await page.$eval("header", (h) => h.getBoundingClientRect().height);
+check(headH <= 125, "the top bar is compact (" + Math.round(headH) + "px tall)");
+check((await page.$eval("#q", (q) => q.getBoundingClientRect().width)) >= 110, "the search box is still wide enough to type in");
 
 // Three-dot menu once signed in: every section, sharing and the version check.
 await page.click("#menubtn");
@@ -139,6 +143,7 @@ await shot(page, "3-find");
 await page.locator("button.lookup").first().click();
 const cardEl = page.locator("article.card:has(.best)").first();
 await cardEl.waitFor();
+check((await cardEl.locator("h3").evaluate((h) => getComputedStyle(h).color)) === "rgb(63, 55, 56)", "item names are 15% lighter than before (rgb 63,55,56)");
 check(await cardEl.locator(".badge").count() >= 3, "looked-up milk shows at least 3 stores");
 check((await cardEl.textContent()).includes("Best price"), "best price is labelled in text, not only colour");
 check(/Session 1 of 3 today · 1 of 45 items/.test(await meter(page)), "meter after lookup: " + await meter(page));
