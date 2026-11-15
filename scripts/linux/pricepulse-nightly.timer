@@ -1,0 +1,11 @@
+[Unit]
+Description=Start the PricePulse night run every night
+
+[Timer]
+# 02:30 South African time every night. If the machine was off or asleep then, run it as soon as it is on.
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

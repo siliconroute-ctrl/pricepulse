@@ -1,0 +1,10 @@
+[Unit]
+Description=PricePulse night run (scrape every store, upload prices)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/pricepulse/scripts/linux/nightly.sh
+TimeoutStartSec=4h
+Nice=10

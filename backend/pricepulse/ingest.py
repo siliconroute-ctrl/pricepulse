@@ -323,11 +323,11 @@ def ingest_file(
     when = parse_scraped_at(stamp)
     report = ingest_items(session, items, reg, when, settings, is_sample=is_sample)
     if not is_sample:
-        _record_runs(session, items, reg, when)
+        record_runs(session, items, reg, when)
     return report
 
 
-def _record_runs(session: Session, items: list[dict], region: str, when: datetime) -> None:
+def record_runs(session: Session, items: list[dict], region: str, when: datetime) -> None:
     """One "ok" scrape record per store in a loaded file, so /api/v1/health reports real prices.
 
     Files loaded by ``admin.py ingest`` (the upload from the owner's PC) carry no run report of
