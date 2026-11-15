@@ -16,6 +16,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from bs4 import BeautifulSoup
+
 from .base import BaseScraper, Item, make_item, walk_json_products
 
 
@@ -369,31 +371,60 @@ class DisChem(BaseScraper):
 class Clicks(BaseScraper):
     """Clicks (clicks.co.za): pharmacy, health and beauty.
 
-    FIRST RUN PENDING (15 Nov 2026): nothing here has been checked on the real site. The search
-    address and page selectors are guesses, and clicks.co.za is behind Cloudflare (it refused a
-    plain request from the build machine with HTTP 403). It is NOT in ACTIVE_SCRAPERS, so normal
-    runs, the scheduler and the health page ignore it until the owner has run it once from his
-    PC, sent the one file it writes, and the prices and links have been checked on the site:
+    First run 15 Nov 2026: the site opened without a block. The real search address is
+    ``/searchProducts?query=<words>`` (the owner found it in his browser; the guessed
+    ``/search?q=`` showed an unrelated results page). Products are drawn into the page itself
+    (no price feed seen), so this reads the page layout: each ``.productBlock`` has the brand
+    (``h5``), the name (``.product-name p``), the price (``.price-wrap .price``, "R 40.99") and a
+    link ``/<name>/p/<code>``. The tiles show one price; "On promotion" labels and bulk-offer
+    stickers carry no usable number, so no promo price is invented. Scheduled medicines show a
+    price but ask for sign-in to order: the shelf price is still read.
 
-        run_scrapers.py --store Clicks --category "Health & Beauty" --limit 3 --debug --no-db --save-fixtures
-
-    A Cloudflare check page is reported as BLOCKED; never try to get past it.
+    NOT in ACTIVE_SCRAPERS until the owner has re-run it and checked two prices and links on the
+    site. A Cloudflare check page is reported as BLOCKED; never try to get past it.
     """
 
     name = "Clicks"
     slug = "clicks"
     categories = ("Health & Beauty",)
     base_url = "https://clicks.co.za"
-    search_url = "https://clicks.co.za/search?q={q}"
+    search_url = "https://clicks.co.za/searchProducts?query={q}"
     selectors = {
-        "card": ["[data-testid='product-card']", ".product-card", ".product-item", "li.product"],
-        "name": [".product-card__name", ".product-name", "a.product-link", "h3", "h2"],
-        "price": [".product-card__price", ".price", "[data-testid='price']"],
-        "promo": [".price--special", ".special-price", ".sale-price"],
-        "was": [".price--was", ".old-price", ".was-price"],
+        "card": [".productBlock"],
+        "name": [".product-name p"],
+        "price": [".price-wrap .price"],
+        "promo": [],
+        "was": [],
         "size": [],
-        "link": ["a.product-link", "a[href*='/p/']", "a"],
+        "link": ["a[href*='/p/']"],
     }
+
+    def parse_html(self, html: str, category: str = "") -> list[Item]:
+        soup = BeautifulSoup(html, "html.parser")
+        items: list[Item] = []
+        for card in soup.select(".productBlock"):
+            name_el = card.select_one(".product-name p")
+            price_el = card.select_one(".price-wrap .price")
+            link_el = card.select_one("a[href*='/p/']")
+            if name_el is None or price_el is None:
+                continue
+            name = " ".join(name_el.get_text(" ").split())
+            brand_el = card.select_one("h5")
+            brand = " ".join(brand_el.get_text(" ").split()) if brand_el is not None else ""
+            full = name if not brand or name.lower().startswith(brand.lower()) else f"{brand} {name}"
+            price_text = " ".join(price_el.get_text(" ").replace("\xa0", " ").split())
+            item = make_item(
+                self.name,
+                full,
+                price_text,
+                category,
+                url=link_el.get("href", "") if link_el is not None else "",
+                base_url=self.base_url,
+                brand=brand,
+            )
+            if item:
+                items.append(item)
+        return items
 
 
 ALL_SCRAPERS: list[type[BaseScraper]] = [

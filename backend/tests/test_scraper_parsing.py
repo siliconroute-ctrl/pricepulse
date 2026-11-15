@@ -560,3 +560,26 @@ def test_count_sizes_with_a_hyphen_or_tagless():
     assert split_size("Joko Pure Rooibos Original Teabags 80 Tagless Teabags")[1] == "80 Tagless Teabags"
     assert parse_size("24-Tablets").key == parse_size("24 Tablets").key
     assert split_size("Five Roses 2-in-1 Tea")[1] == ""  # not a count
+
+
+def test_clicks_real_search_tiles():
+    """tests/fixtures/clicks/search_panado.html holds real product tiles (15 Nov 2026)."""
+    from pricepulse.scrapers.stores import Clicks
+
+    page = (FIXTURES / "clicks" / "search_panado.html").read_text(encoding="utf-8")
+    items = Clicks().parse_html(page, "Health & Beauty")
+    assert len(items) == 3
+    himalaya = items[0]
+    assert himalaya.name == "Himalaya Menosan Tablets 60 Tablets" and himalaya.price == 225.00
+    assert himalaya.url == "https://clicks.co.za/himalaya_menosan-tablets-60-tablets/p/234714"
+    panado = items[1]
+    assert panado.name == "Panado Paracetamol 500mg 24 Tablets" and panado.price == 40.99
+    assert panado.size == "24 Tablets" and panado.brand == "Panado" and panado.promo_price is None
+    assert panado.url.endswith("/panado_paracetamol-500mg-24-tablets/p/283655")
+    assert items[2].url.endswith("/p/342469")  # a second Panado product with the same name and price
+
+
+def test_clicks_search_address_is_the_one_found_in_the_browser():
+    from pricepulse.scrapers.stores import Clicks
+
+    assert Clicks.search_url == "https://clicks.co.za/searchProducts?query={q}"
