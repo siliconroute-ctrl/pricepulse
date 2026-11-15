@@ -14,7 +14,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from .config import Settings
-from .db import Listing, Price, Product, SessionItem, get_or_create_store, slot_for, utcnow
+from .db import Listing, Price, Product, ScrapeRun, SessionItem, get_or_create_store, slot_for, utcnow
 from .matching import Candidate, Normalised, match, normalise
 from .money import clean_price, to_cents
 from .sizes import Size, split_size
@@ -320,4 +320,28 @@ def ingest_file(
     reg = region or file_region
     if not reg:
         raise ValueError(f"{path}: no region in file; pass --region.")
-    return ingest_items(session, items, reg, parse_scraped_at(stamp), settings, is_sample=is_sample)
+    when = parse_scraped_at(stamp)
+    report = ingest_items(session, items, reg, when, settings, is_sample=is_sample)
+    if not is_sample:
+        _record_runs(session, items, reg, when)
+    return report
+
+
+def _record_runs(session: Session, items: list[dict], region: str, when: datetime) -> None:
+    """One "ok" scrape record per store in a loaded file, so /api/v1/health reports real prices.
+
+    Files loaded by ``admin.py ingest`` (the upload from the owner's PC) carry no run report of
+    their own, and the health page reads these records. The time is when the prices were scraped,
+    not when they were loaded, so "stale" still means old prices.
+    """
+    counts: dict[str, int] = {}
+    for row in items:
+        store = str(row.get("store") or "").strip()
+        if store and clean_price(row.get("price")) is not None:
+            counts[store] = counts.get(store, 0) + 1
+    for store, n in sorted(counts.items()):
+        session.add(
+            ScrapeRun(
+                store=store, region=region, started_at=when, finished_at=when, status="ok", item_count=n
+            )
+        )

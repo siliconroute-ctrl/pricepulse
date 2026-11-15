@@ -82,3 +82,57 @@ def test_file_contract_both_shapes():
 def test_display_name():
     assert display_name("Clover Milk 2L", "2L") == "Clover Milk"
     assert display_name("Panado Tablets 500mg", "24 tablets") == "Panado Tablets 500mg"
+
+
+def test_loading_a_file_records_a_scrape_run_per_store_so_health_is_not_empty(session, settings, tmp_path):
+    import json
+
+    from pricepulse.db import ScrapeRun
+    from pricepulse.ingest import ingest_file
+
+    f = tmp_path / "latest_paarl.json"
+    f.write_text(
+        json.dumps(
+            {
+                "region": "paarl",
+                "scraped_at": "2026-11-14 23:28",
+                "items": [
+                    row("Checkers", "Milk 2L", 40.0),
+                    row("Checkers", "Bread 700g", 20.0),
+                    row("Woolworths", "Milk 2L", 41.0),
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    ingest_file(session, f, settings)
+    runs = {r.store: r for r in session.scalars(select(ScrapeRun)).all()}
+    assert {k: (v.status, v.item_count) for k, v in runs.items()} == {
+        "Checkers": ("ok", 2),
+        "Woolworths": ("ok", 1),
+    }
+    assert runs["Checkers"].finished_at == parse_scraped_at(
+        "2026-11-14 23:28"
+    )  # the scrape time, not the load time
+
+
+def test_example_files_do_not_record_real_runs(session, settings, tmp_path):
+    import json
+
+    from pricepulse.db import ScrapeRun
+    from pricepulse.ingest import ingest_file
+
+    f = tmp_path / "latest_paarl.json"
+    f.write_text(
+        json.dumps(
+            {
+                "region": "paarl",
+                "scraped_at": "2026-11-14 23:28",
+                "sample": True,
+                "items": [row("Checkers", "Milk 2L", 40.0)],
+            }
+        ),
+        encoding="utf-8",
+    )
+    ingest_file(session, f, settings)
+    assert session.scalar(select(func.count()).select_from(ScrapeRun)) == 0
