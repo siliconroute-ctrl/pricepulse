@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from .config import Settings
-from .db import Listing, Price, Product, get_or_create_store, slot_for, utcnow
+from .db import Listing, Price, Product, SessionItem, get_or_create_store, slot_for, utcnow
 from .matching import Candidate, Normalised, match, normalise
 from .money import clean_price, to_cents
 from .sizes import Size, split_size
@@ -66,6 +67,7 @@ class IngestReport:
     new_products: int = 0
     matched: int = 0
     needs_review: int = 0
+    by_barcode: int = 0
     rejected: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
@@ -73,6 +75,7 @@ class IngestReport:
             f"{self.rows} rows read, {self.prices_written} prices saved, "
             f"{self.matched} matched to existing products, {self.new_products} new products, "
             f"{self.needs_review} need review, {len(self.rejected)} rejected."
+            + (f" {self.by_barcode} joined by barcode." if self.by_barcode else "")
         )
 
 
@@ -88,6 +91,84 @@ def _candidates(session: Session, size_key: str) -> list[Candidate]:
         stores = {lst.store.name for lst in p.listings}
         out.append(Candidate(id=p.id, norm=_norm_from_product(p), stores=stores))
     return out
+
+
+def clean_barcode(value: Any) -> str:
+    """Digits of a barcode, or "" when it is not a plausible one (wrong length, 0000000000000...)."""
+    digits = re.sub(r"\D", "", str(value or ""))
+    return digits if len(digits) in (8, 12, 13, 14) and len(set(digits)) > 1 else ""
+
+
+def _barcode_product(
+    session: Session, listing: Listing | None, barcode: str, store_id: int
+) -> Product | None:
+    """The product another store lists under this same barcode, if joining it is safe.
+
+    Safe means: that store's listing is at a different store, the product has no listing from
+    this store yet, and the two sizes (when both are known) agree. A barcode names one exact
+    product, so this never joins two different things.
+    """
+    peers = session.scalars(
+        select(Listing)
+        .where(Listing.barcode == barcode, Listing.store_id != store_id, Listing.product_id.is_not(None))
+        .order_by(Listing.id)
+    ).all()
+    for peer in peers:
+        product = session.get(Product, peer.product_id)
+        if product is None:
+            continue
+        if any(other.store_id == store_id and other is not listing for other in product.listings):
+            continue
+        if listing is not None and listing.product_id is not None:
+            mine = session.get(Product, listing.product_id)
+            if mine and mine.size_key and product.size_key and mine.size_key != product.size_key:
+                continue
+        return product
+    return None
+
+
+def _retire_product(session: Session, old_id: int, new_id: int) -> None:
+    """Remove a product that has no listings left, moving anything that pointed at it."""
+    if session.scalar(select(Listing.id).where(Listing.product_id == old_id).limit(1)) is not None:
+        return
+    session.execute(update(Listing).where(Listing.suggestion_id == old_id).values(suggestion_id=None))
+    for item in session.scalars(select(SessionItem).where(SessionItem.product_id == old_id)).all():
+        clash = session.scalar(
+            select(SessionItem.id).where(
+                SessionItem.session_id == item.session_id, SessionItem.product_id == new_id
+            )
+        )
+        if clash is None:
+            item.product_id = new_id
+        else:
+            session.execute(delete(SessionItem).where(SessionItem.id == item.id))
+    session.flush()
+    session.execute(delete(Product).where(Product.id == old_id))
+
+
+def _join_by_barcode(
+    session: Session, listing: Listing, barcode: str, store_id: int, report: IngestReport
+) -> None:
+    """An older listing just learned its barcode: join the other store's product when safe.
+
+    Only a listing that sits alone in its own product is moved (a product already shared by
+    name matching is left as it is). The emptied product is removed.
+    """
+    old_id = listing.product_id
+    others = session.scalars(
+        select(Listing).where(Listing.product_id == old_id, Listing.id != listing.id)
+    ).all()
+    if old_id is None or others:
+        return
+    target = _barcode_product(session, listing, barcode, store_id)
+    if target is None or target.id == old_id:
+        return
+    listing.product_id = target.id
+    listing.match_status, listing.match_score = "exact", 100.0
+    listing.match_reason, listing.suggestion_id = "same barcode", None
+    session.flush()
+    _retire_product(session, old_id, target.id)
+    report.by_barcode += 1
 
 
 def display_name(name: str, size_text: str) -> str:
@@ -155,8 +236,10 @@ def ingest_items(
 
         store = get_or_create_store(session, store_name)
         listing = session.scalar(select(Listing).where(Listing.store_id == store.id, Listing.ident == ident))
+        barcode = clean_barcode(row.get("barcode"))
         if listing is None:
             norm = normalise(name, size_text, row.get("brand"))
+            by_code = _barcode_product(session, None, barcode, store.id) if barcode else None
             result = match(
                 norm,
                 _candidates(session, norm.size_key),
@@ -175,8 +258,15 @@ def ingest_items(
                 match_score=result.score,
                 match_reason=result.reason,
                 suggestion_id=result.suggestion_id,
+                barcode=barcode,
             )
-            if result.product_id is not None:
+            if by_code is not None:
+                listing.product_id = by_code.id
+                listing.match_status, listing.match_score = "exact", 100.0
+                listing.match_reason, listing.suggestion_id = "same barcode", None
+                report.matched += 1
+                report.by_barcode += 1
+            elif result.product_id is not None:
                 listing.product_id = result.product_id
                 report.matched += 1
                 product = session.get(Product, result.product_id)
@@ -198,6 +288,9 @@ def ingest_items(
             listing.url = url or listing.url
             listing.category = category or listing.category
             listing.last_seen = utcnow()
+            if barcode and not listing.barcode:
+                listing.barcode = barcode
+                _join_by_barcode(session, listing, barcode, store.id, report)
 
         existing = session.scalar(
             select(Price).where(Price.listing_id == listing.id, Price.region == region, Price.slot == slot)
