@@ -193,6 +193,8 @@ body.plainhead .find-row,body.plainhead nav.tabs{display:none}
 .menupop:not([data-admin="1"]) [data-needs="admin"]{display:none}
 .admbar{display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end;margin:.6rem 0}
 .admbar label{display:block;font-weight:650;font-size:.95rem}
+.admbar .admfull{flex:1 1 100%}
+.admbar .admfull input[type=search]{width:100%;box-sizing:border-box}
 .admbar select,.admbar input[type=search]{min-height:3rem;padding:.4rem .6rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.05rem;max-width:100%}
 .admwrap{overflow-x:auto;border:1px solid var(--muted);border-radius:.6rem}
 .admtable{border-collapse:collapse;width:100%;min-width:640px;font-size:1.06rem}
@@ -275,7 +277,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 9;
+var APP_VERSION = 10;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -990,7 +992,7 @@ function viewAdmin(){
     var title='PricePulse items'+(ADM.f.store?' · '+ADM.f.store:' · all stores')+(ADM.f.category?' · '+ADM.f.category:' · all types')+(ADM.f.q?' · "'+ADM.f.q+'"':'')+' · '+rows.length+' items · '+fmtDate(new Date());
     h+='<div class="admbar noprint"><div><label for="admstore">Store</label><select id="admstore" data-admf="store">'+opt(d.stores,ADM.f.store,"All stores")+'</select></div>'+
       '<div><label for="admcat">Type</label><select id="admcat" data-admf="category">'+opt(d.categories,ADM.f.category,"All types")+'</select></div>'+
-      '<div><label for="admq">Search name or barcode</label><input id="admq" type="search" data-admf="q" value="'+esc(ADM.f.q)+'" autocomplete="off"></div>'+
+      '<div class="admfull"><label for="admq">Search name or barcode</label><input id="admq" type="search" data-admf="q" value="'+esc(ADM.f.q)+'" autocomplete="off"></div>'+
       '<button class="admbtn go" type="button" data-adm="print">Print this list</button></div>'+
       '<p class="sub noprint" role="status">'+rows.length+' items'+(d.truncated?' (the list was cut short: choose a store or type)':'')+'. Prices are for '+esc(regionName(state.region))+'.</p>'+
       '<h2 class="printonly" style="font-size:12pt">'+esc(title)+'</h2>'+
