@@ -105,3 +105,25 @@ def test_purge_sample_keeps_real_prices_and_accounts(session, settings, capsys):
     assert session.get(AppUser, "u1").id_fingerprint == "f" * 64
     assert [r.status for r in session.scalars(select(ScrapeRun))] == ["ok"]
     assert admin.purge_sample(session) == {"prices": 0, "listings": 0, "products": 0, "runs": 0}
+
+
+def test_plan_command_sets_tester_paid_and_free_and_users_list_shows_it(
+    session, settings, capsys, monkeypatch
+):
+    from admin import main
+    from pricepulse.db import AppUser
+
+    session.add(AppUser(uid="owner-uid-123"))
+    session.commit()
+    assert main(["plan", "owner-uid-123", "tester"]) == 0
+    assert "TESTER plan" in capsys.readouterr().out
+    session.expire_all()
+    assert session.get(AppUser, "owner-uid-123").plan_override == "tester"
+    assert main(["users", "--list"]) == 0
+    out = capsys.readouterr().out
+    assert "owner-uid-123" in out and "tester" in out
+    assert main(["plan", "owner-uid-123", "paid"]) == 0
+    assert main(["plan", "owner-uid-123", "free"]) == 0
+    session.expire_all()
+    assert session.get(AppUser, "owner-uid-123").plan_override == ""
+    assert main(["plan", "no-such-uid", "tester"]) == 1

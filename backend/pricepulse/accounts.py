@@ -53,9 +53,18 @@ def is_adult(user: AppUser, today: date) -> bool:
     return bool(user.adult_on and user.adult_on <= today)
 
 
+TESTER = "tester"  # set by hand with admin.py: unlimited sessions AND unlimited items
+TESTER_ITEMS = 9999
+
+
+def items_cap(user: AppUser, settings: Settings) -> int:
+    """Items allowed in one session: the normal cap, or no practical limit for a tester account."""
+    return TESTER_ITEMS if user.plan_override == TESTER else settings.session_items_max
+
+
 def is_paid(s: Session, user: AppUser, now: datetime | None = None) -> bool:
     """Paid while the paid-up period lasts, even after cancelling."""
-    if user.plan_override == "paid":
+    if user.plan_override in ("paid", TESTER):
         return True
     now = now or utcnow()
     sub = s.scalar(select(Subscription).where(Subscription.uid == user.uid))
@@ -133,11 +142,11 @@ def add_item(
         if existing is not None:
             existing.on_list = True
             return sess
-        if len(sess.items) >= settings.session_items_max:
+        cap = items_cap(user, settings)
+        if len(sess.items) >= cap:
             raise RuleError(
                 "session_full",
-                f"This session is full ({settings.session_items_max} items). "
-                "Clear the session to start a new one.",
+                f"This session is full ({cap} items). " "Clear the session to start a new one.",
                 409,
             )
     else:
