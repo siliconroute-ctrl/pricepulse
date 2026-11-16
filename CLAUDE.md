@@ -40,6 +40,8 @@ _Last updated 2026-11-14. Claude: rewrite this section at the end of every work 
 
 **My account text (16 Nov 2026, app version 7, branch `claude/account-text`):** the owner's tester account worked (no 45-item stop on his phone) but My account still said "Unlimited lookup sessions, 45 items each" because the words were fixed in the page. They now follow the account's real item limit: a tester account reads "Unlimited lookup sessions and unlimited items (tester account)". Owner's account ID is on the tester plan on the live server (set 16 Nov).
 
+**Clicks BLOCKED (16 Nov 2026):** from the Linux desktop (same home connection as the laptop) the first three Clicks searches got Cloudflare's firewall page "Sorry, you have been blocked. You are unable to access clicks.co.za" (a hard block, not a CAPTCHA; Ray ID a5b5b7832ff94bcb), so the scraper stopped by itself. That run used the OLD main code (wrong search address), but the block is on the site's side. **Decision: do not retry, do not try to get round it. Clicks stays out of `ACTIVE_SCRAPERS`.** Next step is a polite email to Clicks asking for permission or a price feed (draft in the chat, sent from admin@trolleyup.com by the owner). The corrected Clicks reader (branch `claude/clicks-real`, tested on real tiles) stays unmerged until Clicks agrees.
+
 **Waiting on the owner**
 - Port 80 check; a Contabo snapshot of the working app; try Google sign-in and Delete my data.
 - PayFast sandbox account and test, then a live merchant account with subscriptions enabled (docs/PAYMENTS.md).
