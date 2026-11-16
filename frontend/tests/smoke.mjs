@@ -54,6 +54,18 @@ check(!(await page.$("#meter")) && !(await page.$("#fresh")), "the session count
 // Three-dot menu on the sign-in screen: only what makes sense before sign-in.
 await page.click("#menubtn");
 check(await page.isVisible("#menupop"), "three-dot menu opens on the sign-in screen");
+// The My account text must follow the real limits (a tester account has no item cap).
+const acctText = await page.evaluate(() => {
+  const base = { id_checked: true, adult: true, plan: "paid", sessions_per_day: null, sessions_used_today: 0, price_per_month: 99, subscription_status: "none", billing_ready: false };
+  state.me = { ...base, session: { active: false, items_used: 0, items_max: 9999 } };
+  const tester = viewAccount();
+  state.me = { ...base, session: { active: false, items_used: 0, items_max: 45 } };
+  const normal = viewAccount();
+  state.me = null;
+  return { tester, normal };
+});
+check(/unlimited items \(tester account\)/.test(acctText.tester) && !/45 items each/.test(acctText.tester), "My account says unlimited items for a tester account");
+check(/Unlimited lookup sessions, 45 items each/.test(acctText.normal), "My account still says 45 items each for a normal paid account");
 check(!(await page.isVisible('[data-menu="list"]')), "menu hides My list before sign-in");
 check(await page.isVisible("#menupop >> text=Privacy Policy") && await page.isVisible("#menupop >> text=Terms of Use"), "menu has Privacy Policy and Terms of Use");
 const waHref = await page.getAttribute("#menuwa", "href");

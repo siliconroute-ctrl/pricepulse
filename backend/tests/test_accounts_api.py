@@ -333,3 +333,31 @@ def test_admin_plan_and_users(client, app_settings, capsys):
     assert admin.main(["plan", "nobody", "paid"]) == 1
     admin.main(["users"])
     assert "1 accounts. 1 have done the age check" in capsys.readouterr().out
+
+
+def test_tester_plan_has_no_session_or_item_limit(app_settings):
+    """An account the owner marks as a tester: unlimited sessions AND more than 45 items in one."""
+    seed(app_settings, n_extra=60)
+    client = TestClient(create_app(app_settings))
+    verify(client)
+    with session_factory(app_settings.database_url).begin() as s:
+        s.scalars(select(AppUser)).one().plan_override = "tester"
+    extra = list(ids(client, q="thing", limit=100).values())
+    assert len(extra) >= 55
+    for pid in extra[:55]:
+        assert add(client, pid).status_code == 200  # the normal cap of 45 does not apply
+    me = client.get("/api/v1/me", headers=auth()).json()
+    assert me["plan"] == "paid" and me["sessions_per_day"] is None
+    assert me["session"]["items_used"] == 55 and me["session"]["items_max"] >= 1000
+
+
+def test_paid_by_hand_still_has_the_45_item_cap(app_settings):
+    seed(app_settings, n_extra=50)
+    client = TestClient(create_app(app_settings))
+    verify(client)
+    with session_factory(app_settings.database_url).begin() as s:
+        s.scalars(select(AppUser)).one().plan_override = "paid"
+    extra = list(ids(client, q="thing", limit=100).values())
+    for pid in extra[:45]:
+        assert add(client, pid).status_code == 200
+    assert add(client, extra[45]).json()["detail"]["code"] == "session_full"

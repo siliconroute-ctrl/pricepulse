@@ -137,14 +137,21 @@ def main(argv: list[str] | None = None) -> int:
     p_m = sub.add_parser("merge")
     p_m.add_argument("keep", type=int)
     p_m.add_argument("drop", type=int)
-    sub.add_parser("users")
+    p_users = sub.add_parser("users")
+    p_users.add_argument(
+        "--list", action="store_true", help="also list the newest accounts (ID, age check, plan)"
+    )
     p_purge = sub.add_parser("purge-sample")
     p_purge.add_argument(
         "--yes", action="store_true", help="really remove them (without it: only show counts)"
     )
     p_plan = sub.add_parser("plan")
     p_plan.add_argument("uid")
-    p_plan.add_argument("plan", choices=["paid", "free"])
+    p_plan.add_argument(
+        "plan",
+        choices=["paid", "free", "tester"],
+        help="paid = unlimited sessions; tester = unlimited sessions AND unlimited items; free = normal",
+    )
     args = ap.parse_args(argv)
 
     settings = get_settings()
@@ -192,6 +199,11 @@ def main(argv: list[str] | None = None) -> int:
             by_hand = sum(1 for u in users if u.plan_override == "paid")
             print(f"{len(users)} accounts. {checked} have done the age check, {minors} are under 18.")
             print(f"{paying} paying subscribers, {by_hand} given the Unlimited plan by hand.")
+            if args.list:
+                print("Newest accounts first: ID | created | age check | plan")
+                for u in sorted(users, key=lambda x: x.created_at, reverse=True)[:15]:
+                    check = "done" if u.id_fingerprint else "not yet"
+                    print(f"  {u.uid} | {u.created_at:%d %b %H:%M} | {check} | {u.plan_override or 'normal'}")
         elif args.cmd == "plan":
             from pricepulse.db import AppUser
 
@@ -199,10 +211,12 @@ def main(argv: list[str] | None = None) -> int:
             if user is None:
                 print(f"No account with ID {args.uid}. The person must sign in to PricePulse once first.")
                 return 1
-            user.plan_override = "paid" if args.plan == "paid" else ""
-            print(
-                f"Account {args.uid} is now on the {'Unlimited' if args.plan == 'paid' else 'normal'} plan."
-            )
+            user.plan_override = {"paid": "paid", "tester": "tester"}.get(args.plan, "")
+            what = {
+                "paid": "the Unlimited plan",
+                "tester": "the TESTER plan (unlimited sessions and items)",
+            }.get(args.plan, "the normal plan")
+            print(f"Account {args.uid} is now on {what}.")
         elif args.cmd == "merge":
             n = merge(s, args.keep, args.drop)
             print(f"Moved {n} listings from product {args.drop} into {args.keep}.")
