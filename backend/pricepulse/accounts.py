@@ -1,10 +1,10 @@
 """Accounts, the age check, and lookup-session limits.
 
 Rules (settings can change the numbers):
-- A session holds up to 45 looked-up items. Taking an item off the list does not
+- A free session holds up to 45 looked-up items. Taking an item off the list does not
   give the slot back; clearing the session ends it.
 - Free plan: 3 sessions started per South African calendar day. Paid plan
-  (R99 a month): no daily limit; still 45 items per session.
+  (R99 a month): no daily limit and no item cap.
 - The ID check is needed before the first lookup. Under-18s do not see liquor.
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .config import Settings
-from .db import AppUser, LookupSession, Payment, Product, SessionItem, Subscription, utcnow
+from .db import AppUser, ItemRequest, LookupSession, Payment, Product, SessionItem, Subscription, utcnow
 from .ingest import SAST
 from .said import ADULT_AGE, check_id, fingerprint
 
@@ -57,9 +57,9 @@ TESTER = "tester"  # set by hand with admin.py: unlimited sessions AND unlimited
 TESTER_ITEMS = 9999
 
 
-def items_cap(user: AppUser, settings: Settings) -> int:
-    """Items allowed in one session: the normal cap, or no practical limit for a tester account."""
-    return TESTER_ITEMS if user.plan_override == TESTER else settings.session_items_max
+def items_cap(s: Session, user: AppUser, settings: Settings, now: datetime | None = None) -> int:
+    """Items allowed in one session: the free cap, or no practical limit when paid or a tester."""
+    return TESTER_ITEMS if is_paid(s, user, now) else settings.session_items_max
 
 
 def is_paid(s: Session, user: AppUser, now: datetime | None = None) -> bool:
@@ -142,7 +142,7 @@ def add_item(
         if existing is not None:
             existing.on_list = True
             return sess
-        cap = items_cap(user, settings)
+        cap = items_cap(s, user, settings, now)
         if len(sess.items) >= cap:
             raise RuleError(
                 "session_full",
@@ -194,8 +194,51 @@ def delete_user(s: Session, user: AppUser) -> None:
     sub = s.scalar(select(Subscription).where(Subscription.uid == user.uid))
     if sub is not None:
         s.delete(sub)
+    for req in s.scalars(select(ItemRequest).where(ItemRequest.uid == user.uid)).all():
+        s.delete(req)
     for pay in s.scalars(select(Payment).where(Payment.uid == user.uid)).all():
         pay.uid = "deleted"
     s.flush()
     s.delete(user)
     s.flush()
+
+
+MAX_OPEN_REQUESTS = 10
+
+
+def clean_request(text: str) -> str:
+    """One product wish: letters, digits and a few marks, 2 to 60 characters, no web addresses."""
+    import re
+
+    term = re.sub(r"\s+", " ", (text or "").strip())
+    if len(term) < 2 or len(term) > 60:
+        raise RuleError("bad_request", "Please type the item in 2 to 60 characters.", 422)
+    if re.search(r"https?:|www\.|@|\.(com|co\.za|net|org)\b", term, re.I) or not re.fullmatch(
+        r"[\w .,'&/%+()-]+", term
+    ):
+        raise RuleError(
+            "bad_request", "Please type only the item name, for example: white mushrooms 250g.", 422
+        )
+    return term
+
+
+def add_request(s: Session, user: AppUser, text: str) -> ItemRequest:
+    """Save a request. Asking for the same thing twice is fine and counts once."""
+    term = clean_request(text)
+    key = term.lower()
+    mine = s.scalars(
+        select(ItemRequest).where(ItemRequest.uid == user.uid, ItemRequest.status == "open")
+    ).all()
+    for r in mine:
+        if r.key == key:
+            return r
+    if len(mine) >= MAX_OPEN_REQUESTS:
+        raise RuleError(
+            "too_many_requests",
+            f"You already have {MAX_OPEN_REQUESTS} requests waiting. We will add them soon.",
+            429,
+        )
+    req = ItemRequest(uid=user.uid, term=term, key=key)
+    s.add(req)
+    s.flush()
+    return req

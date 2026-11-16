@@ -40,6 +40,8 @@ _Last updated 2026-11-14. Claude: rewrite this section at the end of every work 
 
 **My account text (16 Nov 2026, app version 7, branch `claude/account-text`):** the owner's tester account worked (no 45-item stop on his phone) but My account still said "Unlimited lookup sessions, 45 items each" because the words were fixed in the page. They now follow the account's real item limit: a tester account reads "Unlimited lookup sessions and unlimited items (tester account)". Owner's account ID is on the tester plan on the live server (set 16 Nov).
 
+**Owner's answers, 16 Nov 2026 (branch `claude/owner-answers`, app version 8, tests pass, not merged or deployed):** (1) item cap: 45 for free accounts only; paid and tester accounts have no cap (`accounts.items_cap`); texts follow it. (2) The store name on each price is now a link to that store's product page ("Chosen store name ↗", opens a new tab, 48px tall; plain label when the scraper has no link). (3) **Request an item:** a "Can't find an item?" card at the bottom of the Find screen (and under "No products match") opens a one-box form; `POST/GET /api/v1/requests` (migration 4 adds table `item_request`; 10 open requests per person, no web addresses, same text twice counts once; deleted with Delete my data). The owner reads them with `admin.py requests`, adds accepted ones with `admin.py requests --add "term" --category X` on the scraper desktop (appends to products.txt) and marks them with `--done` / `--decline` on the server (docs/DEPLOY.md). (4) **Clean catalogue reload = `admin.py rematch`** (preview) and `--yes` (do it): reads every product's size again and joins single-listing products to another store's product by barcode or confident match; keeps prices, history, accounts, lookup lists and the owner's manual review answers; session items move to the joined product. Deploy needs the backup first (migration 4 adds a table only). Not tried on the real database yet: run the preview first.
+
 **Waiting on the owner**
 - Port 80 check; a Contabo snapshot of the working app; try Google sign-in and Delete my data.
 - PayFast sandbox account and test, then a live merchant account with subscriptions enabled (docs/PAYMENTS.md).
@@ -61,7 +63,7 @@ _Last updated 2026-11-14. Claude: rewrite this section at the end of every work 
 - **ID number:** checked on the server, never stored or logged. Stored: adult yes/no, the 18th-birthday date for minors, and an HMAC fingerprint keyed with `PP_ID_SECRET` (one ID, one account).
 - **Under 18:** allowed, liquor hidden (catalogue, lookups, list, export).
 - **Payments:** PayFast, R99 a month. Play Store billing is a later question (docs/PLAY_STORE_PLAN.md).
-- **Limits:** 45 looked-up items per session; removing an item does not free its slot; 3 sessions a day free; paid = unlimited sessions.
+- **Limits:** 45 looked-up items per session on the FREE plan; removing an item does not free its slot; 3 sessions a day free; **paid = unlimited sessions AND unlimited items (owner decided 16 Nov 2026)**.
 - **TrolleyUp export:** a CSV file for TrolleyUp's existing import. A direct send would need TrolleyUp rule changes; not built.
 
 ## Decisions (made by the owner, 2026-11-13)

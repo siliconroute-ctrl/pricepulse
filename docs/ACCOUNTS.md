@@ -4,9 +4,9 @@
 
 | Rule | Value | Change it in `.env` |
 |---|---|---|
-| Items looked up per session | 45 | `PP_SESSION_ITEMS` |
+| Items looked up per session | 45 on the free plan; no cap when paid | `PP_SESSION_ITEMS` |
 | Free sessions per day | 3 (resets at midnight, South African time) | `PP_FREE_SESSIONS` |
-| Paid plan | R99 a month, unlimited sessions, still 45 items each | `PP_PRICE_CENTS` |
+| Paid plan | R99 a month, unlimited sessions and unlimited items | `PP_PRICE_CENTS` |
 
 - A session starts with the first lookup and ends when the person taps **Clear session**.
 - Taking an item off the list does **not** give the slot back. Otherwise one session

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from .. import accounts, payfast, trolleyup
 from ..auth import AuthError, Identity, make_verifier
-from ..db import AppUser, Listing, Price, Product, Subscription, utcnow
+from ..db import AppUser, ItemRequest, Listing, Price, Product, Subscription, utcnow
 from ..money import from_cents
 from ..queries import ProductPrices, latest_prices
 from . import schemas as S
@@ -58,7 +58,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             session=S.SessionMeter(
                 active=sess is not None,
                 items_used=len(sess.items) if sess else 0,
-                items_max=accounts.items_cap(user, settings),
+                items_max=accounts.items_cap(s, user, settings, now),
             ),
             price_per_month=from_cents(settings.price_cents),
             billing_ready=payfast.configured(settings),
@@ -233,6 +233,27 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             raise fail(exc) from None
         s.commit()
         return session_out(s, user, body.region)
+
+    @app.get(v1 + "/requests", response_model=S.RequestsOut, tags=["lookup"])
+    def my_requests(user: AppUser = Depends(user_dep), s: Session = Depends(ctx.db)):  # noqa: B008
+        rows = s.scalars(
+            select(ItemRequest).where(ItemRequest.uid == user.uid).order_by(ItemRequest.id.desc()).limit(30)
+        ).all()
+        return S.RequestsOut(requests=[S.RequestOut(id=r.id, term=r.term, status=r.status) for r in rows])
+
+    @app.post(v1 + "/requests", response_model=S.RequestsOut, tags=["lookup"])
+    def make_request(
+        body: S.RequestIn, user: AppUser = Depends(user_dep), s: Session = Depends(ctx.db)  # noqa: B008
+    ):
+        """Ask for an item that is not listed. The owner reads these and adds it to the search list."""
+        user = s.merge(user)
+        try:
+            accounts.add_request(s, user, body.term)
+        except accounts.RuleError as exc:
+            s.rollback()
+            raise fail(exc) from None
+        s.commit()
+        return my_requests(user, s)
 
     @app.post(v1 + "/session/clear", response_model=S.SessionOut, tags=["lookup"])
     def clear(

@@ -242,7 +242,7 @@ def test_paid_plan_has_no_daily_limit(client, app_settings):
         assert add(client, pid).status_code == 200
         client.post("/api/v1/session/clear", json={"region": "paarl"}, headers=auth())
     me = client.get("/api/v1/me", headers=auth()).json()
-    assert me["plan"] == "paid" and me["sessions_per_day"] is None and me["session"]["items_max"] == 45
+    assert me["plan"] == "paid" and me["sessions_per_day"] is None and me["session"]["items_max"] >= 1000
 
 
 def test_detail_and_towns_only_for_session_items(client):
@@ -351,13 +351,46 @@ def test_tester_plan_has_no_session_or_item_limit(app_settings):
     assert me["session"]["items_used"] == 55 and me["session"]["items_max"] >= 1000
 
 
-def test_paid_by_hand_still_has_the_45_item_cap(app_settings):
+def test_paid_by_hand_has_no_item_cap_but_free_keeps_45(app_settings):
     seed(app_settings, n_extra=50)
     client = TestClient(create_app(app_settings))
     verify(client)
-    with session_factory(app_settings.database_url).begin() as s:
-        s.scalars(select(AppUser)).one().plan_override = "paid"
     extra = list(ids(client, q="thing", limit=100).values())
     for pid in extra[:45]:
         assert add(client, pid).status_code == 200
-    assert add(client, extra[45]).json()["detail"]["code"] == "session_full"
+    assert add(client, extra[45]).json()["detail"]["code"] == "session_full"  # free: 45
+    with session_factory(app_settings.database_url).begin() as s:
+        s.scalars(select(AppUser)).one().plan_override = "paid"
+    assert add(client, extra[45]).status_code == 200  # paid: no cap
+    assert client.get("/api/v1/me", headers=auth()).json()["session"]["items_max"] >= 1000
+
+
+def test_item_requests_save_dedupe_validate_and_are_listed_for_the_owner(app_settings, tmp_path, capsys):
+    from admin import main as admin_main
+
+    client = TestClient(create_app(app_settings))
+    verify(client)
+    r = client.post("/api/v1/requests", json={"term": "  White   Mushrooms 250g "}, headers=auth())
+    assert r.status_code == 200 and r.json()["requests"][0]["term"] == "White Mushrooms 250g"
+    client.post("/api/v1/requests", json={"term": "white mushrooms 250g"}, headers=auth())  # same again
+    assert len(client.get("/api/v1/requests", headers=auth()).json()["requests"]) == 1
+    for bad in ("x", "see www.spam.com", "buy at http://x.y", "a" * 70, "<script>"):
+        assert client.post("/api/v1/requests", json={"term": bad}, headers=auth()).status_code == 422
+    for i in range(12):
+        client.post("/api/v1/requests", json={"term": f"thing number {i}"}, headers=auth())
+    assert len(client.get("/api/v1/requests", headers=auth()).json()["requests"]) == 10
+    assert client.post("/api/v1/requests", json={"term": "one more"}, headers=auth()).status_code == 429
+    assert client.get("/api/v1/requests").status_code == 401
+    capsys.readouterr()
+    assert admin_main(["requests"]) == 0
+    assert "White Mushrooms 250g" in capsys.readouterr().out
+    f = tmp_path / "products.txt"
+    f.write_text("# category: Groceries\nmilk\n")
+    assert admin_main(["requests", "--add", "white mushrooms 250g", "--file", str(f)]) == 0
+    assert "white mushrooms 250g" in f.read_text()
+    mine = client.get("/api/v1/requests", headers=auth()).json()["requests"]
+    assert [x["status"] for x in mine if x["term"].startswith("White")] == ["added"]
+    assert admin_main(["requests", "--decline", "thing number 1"]) == 0
+    assert admin_main(["requests", "--done", "thing number 2"]) == 0
+    mine = {x["term"]: x["status"] for x in client.get("/api/v1/requests", headers=auth()).json()["requests"]}
+    assert mine["thing number 1"] == "declined" and mine["thing number 2"] == "added"

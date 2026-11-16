@@ -193,6 +193,29 @@ Copy it to your PC, then delete it from the server: from PowerShell,
 Contabo's Auto Backup (about EUR 3.35 a month) is worth switching on once real accounts
 exist.
 
+## Re-matching what is already loaded (clean catalogue reload)
+After the matching rules improve (size reading, barcodes), run this to apply them to the listings
+already in the database. It keeps prices, price history, accounts and lookup lists; it only joins
+products that are the same item sold by different stores. Decisions you made in `admin.py review`
+are never changed.
+1. Take the backup (Backups above) and copy it off the server.
+2. Preview, which changes nothing:
+   `sudo docker compose exec api python admin.py rematch`
+3. If the numbers look right, do it:
+   `sudo docker compose exec api python admin.py rematch --yes`
+4. Then `python admin.py report` shows the new match rate.
+To undo, put the backup copy back.
+
+## Items shoppers ask for
+Shoppers send requests from the Find screen (**Request an item**).
+1. On the server, read them (most-asked first):
+   `sudo docker compose exec api python admin.py requests`
+2. On the scraper desktop, add the ones you accept to the search list, then commit and push:
+   `cd ~/pricepulse/backend && python admin.py requests --add "white mushrooms 250g" --category Groceries`
+3. On the server, mark it done so the shopper's request shows "added":
+   `sudo docker compose exec api python admin.py requests --done "white mushrooms 250g"`
+Refuse one with `--decline "term"` (on the server). The item shows up after the next nightly run.
+
 ## Getting real prices onto the server
 Run the scrapers on your PC (`python run_scrapers.py` writes `data/latest_{town}.json`), then one
 command sends the files and loads them. Key login only, no password in any script.

@@ -227,3 +227,17 @@ class RegionIn(BaseModel):
 class CheckoutOut(_Model):
     action_url: str
     fields: dict[str, str]
+
+
+class RequestIn(_Model):
+    term: str = Field(max_length=200, description="The item the person could not find")
+
+
+class RequestOut(_Model):
+    id: int
+    term: str
+    status: str
+
+
+class RequestsOut(_Model):
+    requests: list[RequestOut]

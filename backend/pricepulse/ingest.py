@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from .config import Settings
@@ -325,6 +325,108 @@ def ingest_file(
     if not is_sample:
         record_runs(session, items, reg, when)
     return report
+
+
+@dataclass
+class RematchReport:
+    refreshed: int = 0  # products whose size was read again and changed
+    joined: int = 0  # single-listing products folded into another store's product
+    joined_by_barcode: int = 0
+    review_before: int = 0
+    review_after: int = 0
+
+    def summary(self) -> str:
+        return (
+            f"{self.refreshed} product sizes re-read, {self.joined} products joined "
+            f"({self.joined_by_barcode} by barcode), "
+            f"review queue {self.review_before} -> {self.review_after}."
+        )
+
+
+def rematch(session: Session, settings: Settings) -> RematchReport:
+    """Run today's matching rules over the listings already loaded, without losing anything.
+
+    Prices, history, accounts and lookup sessions stay. Only product groupings change:
+    - every product's size is read again with the current size rules;
+    - a product that holds one listing is joined to another store's product when the barcode
+      is the same or the match is now confident; a lookup-session item moves to the joined product;
+    - decisions the owner made in the review queue (status ``manual``) are never changed, and a
+      listing kept separate (``new``) is only joined on a barcode or a confident match.
+    Run it inside a transaction and roll back to preview.
+    """
+    rep = RematchReport()
+    rep.review_before = (
+        session.scalar(
+            select(func.count()).select_from(Listing).where(Listing.match_status == "needs_review")
+        )
+        or 0
+    )
+    # 1. Read every product's size again.
+    for p in session.scalars(select(Product).order_by(Product.id)).all():
+        first = p.listings[0] if p.listings else None
+        if first is None:
+            continue
+        size_text = first.size_text or split_size(first.name)[1]
+        norm = normalise(first.name, size_text, p.brand or None)
+        new = (
+            norm.size_key,
+            norm.size.unit if norm.size else "",
+            norm.size.qty if norm.size else 0,
+            norm.size.pack if norm.size else 1,
+            norm.size.by_weight if norm.size else False,
+        )
+        if new != (p.size_key, p.unit, p.qty, p.pack, p.by_weight):
+            p.size_key, p.unit, p.qty, p.pack, p.by_weight = new
+            p.size_text = size_text or p.size_text
+            rep.refreshed += 1
+    session.flush()
+    # 2. Join lonely products to other stores' products.
+    for p in session.scalars(select(Product).order_by(Product.id)).all():
+        if session.get(Product, p.id) is None or len(p.listings) != 1:
+            continue
+        lst = p.listings[0]
+        if lst.match_status == "manual":
+            continue
+        store = lst.store
+        target: Product | None = None
+        by_code = False
+        if lst.barcode:
+            target = _barcode_product(session, lst, lst.barcode, store.id)
+            by_code = target is not None
+        result = None
+        if target is None:
+            size_text = lst.size_text or split_size(lst.name)[1]
+            norm = normalise(lst.name, size_text, p.brand or None)
+            cands = [c for c in _candidates(session, norm.size_key) if c.id != p.id]
+            result = match(
+                norm,
+                cands,
+                store=store.name,
+                auto_threshold=settings.match_auto,
+                review_threshold=settings.match_review,
+            )
+            if result.product_id is not None:
+                target = session.get(Product, result.product_id)
+        if target is not None and target.id != p.id:
+            lst.product_id = target.id
+            lst.match_status, lst.suggestion_id = ("exact", None) if by_code else (result.status, None)
+            lst.match_score = 100.0 if by_code else result.score
+            lst.match_reason = "same barcode" if by_code else result.reason
+            session.flush()
+            _retire_product(session, p.id, target.id)
+            rep.joined += 1
+            rep.joined_by_barcode += int(by_code)
+        elif result is not None and lst.match_status == "needs_review":
+            lst.match_status, lst.match_score = result.status, result.score
+            lst.match_reason, lst.suggestion_id = result.reason, result.suggestion_id
+    session.flush()
+    rep.review_after = (
+        session.scalar(
+            select(func.count()).select_from(Listing).where(Listing.match_status == "needs_review")
+        )
+        or 0
+    )
+    return rep
 
 
 def record_runs(session: Session, items: list[dict], region: str, when: datetime) -> None:

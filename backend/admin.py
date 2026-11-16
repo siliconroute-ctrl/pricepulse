@@ -152,6 +152,18 @@ def main(argv: list[str] | None = None) -> int:
         choices=["paid", "free", "tester"],
         help="paid = unlimited sessions; tester = unlimited sessions AND unlimited items; free = normal",
     )
+    p_re = sub.add_parser("rematch", help="re-run today's matching rules over everything already loaded")
+    p_re.add_argument(
+        "--yes", action="store_true", help="really do it (without it: only show what would happen)"
+    )
+    p_req = sub.add_parser("requests", help="items shoppers asked for that we do not list yet")
+    p_req.add_argument("--add", metavar="TERM", help="add this search term to products.txt and mark it added")
+    p_req.add_argument("--category", default="Groceries", help="category for --add (default Groceries)")
+    p_req.add_argument(
+        "--done", metavar="TERM", help="mark requests for this term as added (run on the server)"
+    )
+    p_req.add_argument("--decline", metavar="TERM", help="mark this request declined (not added)")
+    p_req.add_argument("--file", default=None, help="products file (default products.txt next to admin.py)")
     args = ap.parse_args(argv)
 
     settings = get_settings()
@@ -187,6 +199,63 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 s.rollback()
                 print(f"Would remove {text}. Nothing was changed. Add --yes to do it.")
+        elif args.cmd == "rematch":
+            from pricepulse.ingest import rematch
+
+            before = match_report(s)
+            rep = rematch(s, settings)
+            after = match_report(s)
+            print(rep.summary())
+            print(
+                f"Products {before['products']} -> {after['products']}; sold by two or more stores "
+                f"{before['products_at_2plus_stores']} ({before['match_rate']}%) -> "
+                f"{after['products_at_2plus_stores']} ({after['match_rate']}%)."
+            )
+            if args.yes:
+                print("Done. Prices, accounts and lists were not touched.")
+            else:
+                s.rollback()
+                print("Preview only. Nothing was changed. Add --yes to do it (take a backup first).")
+        elif args.cmd == "requests":
+            from pricepulse.db import ItemRequest
+
+            def mark(term: str, status: str) -> int:
+                rows = s.scalars(
+                    select(ItemRequest).where(
+                        ItemRequest.key == term.strip().lower(), ItemRequest.status == "open"
+                    )
+                ).all()
+                for r in rows:
+                    r.status = status
+                return len(rows)
+
+            if args.add:
+                path = Path(args.file) if args.file else Path(__file__).with_name("products.txt")
+                with path.open("a", encoding="utf-8") as fh:
+                    fh.write(f"\n# category: {args.category}\n{args.add.strip()}\n")
+                n = mark(args.add, "added")
+                print(f"Added '{args.add.strip()}' to {path.name} ({n} request(s) marked added).")
+                print("Commit and push products.txt; it appears after the next nightly scrape and upload.")
+                print(f'On the server, mark it added:  admin.py requests --done "{args.add.strip()}"')
+            elif args.done:
+                print(f"Marked added: '{args.done.strip()}' ({mark(args.done, 'added')} request(s)).")
+            elif args.decline:
+                n = mark(args.decline, "declined")
+                print(f"Declined '{args.decline.strip()}' ({n} request(s)).")
+            else:
+                rows = s.execute(
+                    select(ItemRequest.key, func.count(), func.min(ItemRequest.term))
+                    .where(ItemRequest.status == "open")
+                    .group_by(ItemRequest.key)
+                    .order_by(func.count().desc(), ItemRequest.key)
+                ).all()
+                if not rows:
+                    print("No open requests.")
+                for _key, n, term in rows:
+                    print(f"{n:>3} x  {term}")
+                if rows:
+                    print('To add one:  python admin.py requests --add "white mushrooms 250g"')
+                    print('To refuse:   python admin.py requests --decline "white mushrooms 250g"')
         elif args.cmd == "users":
             from pricepulse.db import AppUser, Subscription, utcnow
 
