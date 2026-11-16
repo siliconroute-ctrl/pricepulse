@@ -92,3 +92,16 @@ LiquorShop" and "Pick n Pay Liquor". Nothing in TrolleyUp had to change.
 
 Checked by running the file through TrolleyUp's own import code (`csv.js`) and its
 item rules. Not yet tried by hand in the live TrolleyUp app.
+
+## Admin area (app version 9)
+A three-dot menu item **Admin area**, shown only to accounts marked as admins. Sections: Overview
+(counts, last good scrape per store), Items (every listing, one line each, by store and by type,
+searchable, with a **Print this list** button), Accounts (newest 300 by sign-in ID, change a plan),
+Requests (what shoppers asked for: Mark added / Decline / Reopen) and Settings (read only).
+Nothing in it shows ID numbers, names, emails or secrets: PricePulse keeps none of those.
+
+Make an account an admin (on the Linux desktop; find the ID with `pp admin users --list`):
+```
+pp admin admin-role <account-id> on
+```
+`off` takes it away. The server answers "not found" to everyone else, so the area does not appear to exist.

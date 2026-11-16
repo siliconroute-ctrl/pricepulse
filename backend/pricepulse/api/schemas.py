@@ -160,6 +160,7 @@ class SessionMeter(_Model):
 class MeOut(_Model):
     id_checked: bool = Field(description="False until the person has confirmed their age with an ID number")
     adult: bool
+    is_admin: bool = False
     plan: str = Field(description="free or paid")
     paid_until: datetime | None = None
     subscription_status: str = Field(description="none, pending, active or cancelled")

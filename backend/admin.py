@@ -152,6 +152,11 @@ def main(argv: list[str] | None = None) -> int:
         choices=["paid", "free", "tester"],
         help="paid = unlimited sessions; tester = unlimited sessions AND unlimited items; free = normal",
     )
+    p_role = sub.add_parser(
+        "admin-role", help="make an account an admin of the PricePulse admin area (or not)"
+    )
+    p_role.add_argument("uid")
+    p_role.add_argument("state", choices=["on", "off"])
     p_re = sub.add_parser("rematch", help="re-run today's matching rules over everything already loaded")
     p_re.add_argument(
         "--yes", action="store_true", help="really do it (without it: only show what would happen)"
@@ -199,6 +204,15 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 s.rollback()
                 print(f"Would remove {text}. Nothing was changed. Add --yes to do it.")
+        elif args.cmd == "admin-role":
+            from pricepulse.db import AppUser
+
+            user = s.get(AppUser, args.uid)
+            if user is None:
+                print(f"No account with ID {args.uid}. Find it with: admin.py users --list")
+                return 1
+            user.is_admin = args.state == "on"
+            print(f"Account {args.uid}: admin area {'ON' if user.is_admin else 'OFF'}.")
         elif args.cmd == "rematch":
             from pricepulse.ingest import rematch
 
@@ -272,7 +286,10 @@ def main(argv: list[str] | None = None) -> int:
                 print("Newest accounts first: ID | created | age check | plan")
                 for u in sorted(users, key=lambda x: x.created_at, reverse=True)[:15]:
                     check = "done" if u.id_fingerprint else "not yet"
-                    print(f"  {u.uid} | {u.created_at:%d %b %H:%M} | {check} | {u.plan_override or 'normal'}")
+                    print(
+                        f"  {u.uid} | {u.created_at:%d %b %H:%M} | {check} | {u.plan_override or 'normal'}"
+                        + (" | ADMIN" if u.is_admin else "")
+                    )
         elif args.cmd == "plan":
             from pricepulse.db import AppUser
 

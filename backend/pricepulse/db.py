@@ -147,6 +147,7 @@ class AppUser(Base):
     adult_on: Mapped[date | None] = mapped_column(Date, nullable=True)  # under-18s: day they turn 18
     terms_version: Mapped[int] = mapped_column(Integer, default=0)
     plan_override: Mapped[str] = mapped_column(String(10), default="")  # "paid" = granted by hand
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)  # set by hand with admin.py admin-role
 
 
 class Subscription(Base):
@@ -250,11 +251,19 @@ def _m4_requests(conn: Connection) -> None:
     Base.metadata.create_all(conn, tables=[ItemRequest.__table__])
 
 
+def _m5_admin_flag(conn: Connection) -> None:
+    """Add app_user.is_admin (adds a column only; fresh databases already have it)."""
+    cols = {c["name"] for c in inspect(conn).get_columns("app_user")}
+    if "is_admin" not in cols:
+        conn.execute(text("ALTER TABLE app_user ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0"))
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
     (3, "listing barcode", _m3_barcode),
     (4, "item requests", _m4_requests),
+    (5, "admin flag", _m5_admin_flag),
 ]
 
 

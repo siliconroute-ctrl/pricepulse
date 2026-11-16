@@ -50,6 +50,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         return S.MeOut(
             id_checked=bool(user.id_fingerprint),
             adult=accounts.is_adult(user, today),
+            is_admin=bool(user.is_admin),
             plan="paid" if paid else "free",
             paid_until=sub.paid_until if sub and paid else None,
             subscription_status=sub.status if sub else "none",
@@ -402,3 +403,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         log.info("payment notice", extra={"extra_fields": {"outcome": outcome}})
         ok = outcome in ("paid", "cancelled", "duplicate", "ignored")
         return PlainTextResponse("OK" if ok else "REJECTED", status_code=200 if ok else 400)
+
+    from .admin_routes import register_admin_routes
+
+    register_admin_routes(app, ctx, user_dep)
