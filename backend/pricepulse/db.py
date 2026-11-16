@@ -203,6 +203,18 @@ class SessionItem(Base):
     session: Mapped[LookupSession] = relationship(back_populates="items")
 
 
+class ItemRequest(Base):
+    """A shopper asks for a product we do not list yet. The owner reads these and adds search terms."""
+
+    __tablename__ = "item_request"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uid: Mapped[str] = mapped_column(String(128), index=True)
+    term: Mapped[str] = mapped_column(String(80))
+    key: Mapped[str] = mapped_column(String(80), index=True)  # lower-case, single spaces
+    status: Mapped[str] = mapped_column(String(10), default="open")  # open / added / declined
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
 class SchemaVersion(Base):
     __tablename__ = "schema_version"
     version: Mapped[int] = mapped_column(primary_key=True)
@@ -233,10 +245,16 @@ def _m3_barcode(conn: Connection) -> None:
     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_listing_barcode ON listing (barcode)"))
 
 
+def _m4_requests(conn: Connection) -> None:
+    """Item requests (adds one table only)."""
+    Base.metadata.create_all(conn, tables=[ItemRequest.__table__])
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
     (3, "listing barcode", _m3_barcode),
+    (4, "item requests", _m4_requests),
 ]
 
 

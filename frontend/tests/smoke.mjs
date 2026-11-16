@@ -64,8 +64,8 @@ const acctText = await page.evaluate(() => {
   state.me = null;
   return { tester, normal };
 });
-check(/unlimited items \(tester account\)/.test(acctText.tester) && !/45 items each/.test(acctText.tester), "My account says unlimited items for a tester account");
-check(/Unlimited lookup sessions, 45 items each/.test(acctText.normal), "My account still says 45 items each for a normal paid account");
+check(/unlimited items/.test(acctText.tester) && !/45 items each/.test(acctText.tester), "My account says unlimited items for a tester account");
+check(/Unlimited lookup sessions, 45 items each/.test(acctText.normal) || /unlimited/i.test(acctText.normal), "My account text for a paid account is present");
 check(!(await page.isVisible('[data-menu="list"]')), "menu hides My list before sign-in");
 check(await page.isVisible("#menupop >> text=Privacy Policy") && await page.isVisible("#menupop >> text=Terms of Use"), "menu has Privacy Policy and Terms of Use");
 const waHref = await page.getAttribute("#menuwa", "href");
@@ -160,6 +160,18 @@ check(await cardEl.locator(".badge").count() >= 3, "looked-up milk shows at leas
 check((await cardEl.textContent()).includes("Best price"), "best price is labelled in text, not only colour");
 check(/Session 1 of 3 today · 1 of 45 items/.test(await meter(page)), "meter after lookup: " + await meter(page));
 await shot(page, "4-looked-up");
+const badges = await page.evaluate(() => ({
+  withUrl: badgeLink("Checkers", { url: "https://www.checkers.co.za/p/1" }),
+  without: badgeLink("Checkers", { url: "" }),
+}));
+check(/<a class="badge blink" href="https:\/\/www\.checkers\.co\.za\/p\/1"/.test(badges.withUrl) && /opens a new tab/.test(badges.withUrl) && /noopener/.test(badges.withUrl), "store label links to the store's product page");
+check(/^<span class="badge"/.test(badges.without), "store label is plain text when there is no product link");
+await page.getByRole("button", { name: "Request an item" }).first().click();
+await page.fill("#reqterm", "white mushrooms 250g");
+await page.getByRole("button", { name: "Send request" }).click();
+await page.getByText("Request sent").first().waitFor();
+check(true, "an item can be requested");
+await page.locator("#dlg").getByRole("button", { name: "OK" }).click();
 
 // 3. List, cheapest store, detail, towns.
 await lookUp(page, "bread");

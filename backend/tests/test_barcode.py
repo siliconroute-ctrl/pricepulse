@@ -145,3 +145,47 @@ def test_migration_adds_the_column_to_an_old_database(tmp_path):
     with engine.begin() as c:
         assert c.execute(text("SELECT name, barcode FROM listing")).one() == ("Milk", "")
     assert migrate(engine) == []  # running again changes nothing
+
+
+def test_rematch_joins_lonely_products_keeps_manual_and_moves_session_items(session, settings):
+    from pricepulse.ingest import rematch
+
+    ingest_items(
+        session,
+        [row("Checkers", "Acme Rice 1kg", 30.0), row("Pick n Pay", "Acme Rice 1kg", 31.0)],
+        "paarl",
+        T,
+        settings,
+    )
+    # Pretend an older size rule had read the second store's size wrongly, so they were split.
+    first, second = session.scalars(select(Listing).order_by(Listing.id)).all()
+    a = session.get(Product, first.product_id)
+    b = Product(
+        name=a.name,
+        brand=a.brand,
+        brand_key=a.brand_key,
+        size_text="1 kg",
+        size_key="wrong",
+        category=a.category,
+        norm_name=a.norm_name,
+    )
+    session.add(b)
+    session.flush()
+    second.product_id = b.id
+    second.match_status = "new"
+    session.flush()
+    assert products(session) == 2
+    sess = LookupSession(uid=_user(session), day="2026-11-15")
+    session.add(sess)
+    session.flush()
+    session.add(SessionItem(session_id=sess.id, product_id=b.id))
+    session.flush()
+    rep = rematch(session, settings)
+    assert rep.refreshed >= 1 and rep.joined == 1
+    assert products(session) == 1
+    item = session.scalar(select(SessionItem))
+    assert item.product_id == session.scalar(select(Product.id))
+    # decisions the owner made are not touched
+    lst = session.scalars(select(Listing)).first()
+    lst.match_status = "manual"
+    assert rematch(session, settings).joined == 0
