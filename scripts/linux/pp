@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# PricePulse helper for the Linux desktop. One short command instead of copying long ones.
+#   pp status             is the live site up, are prices fresh (no password needed)
+#   pp backup             back up the live database and keep the copy on this desktop
+#   pp deploy             backup, then update and rebuild the server
+#   pp rematch            preview what the matching rules would join, then ask before doing it
+#   pp report             match report from the live database
+#   pp requests [...]     items shoppers asked for (also: --decline "term", --done "term")
+#   pp review             walk through the review queue (y / n / s / q)
+#   pp admin <args...>    any admin.py command, e.g. pp admin users --list
+# It logs in with your key. The sudo password is asked at the prompt, never stored.
+set -euo pipefail
+
+HOST="${PP_HOST:-deploy@pricepulse.trolleyup.com}"
+KEY="${PP_KEY:-$HOME/.ssh/id_ed25519_admin}"
+SITE="${PP_SITE:-https://pricepulse.trolleyup.com}"
+KEEP="${PP_BACKUPS:-$HOME/pricepulse-backups}"
+
+remote() { ssh -t -i "$KEY" "$HOST" "$1"; }
+quote() { printf '%q ' "$@"; }
+admin() { remote "cd ~/pricepulse && sudo docker compose exec api python admin.py $(quote "$@")"; }
+
+backup() {
+  mkdir -p "$KEEP"
+  echo "1/3 Making the backup on the server (sudo password at the prompt)..."
+  remote 'cd ~/pricepulse && bash scripts/server/backup.sh'
+  echo "2/3 Copying it to $KEEP ..."
+  scp -i "$KEY" "$HOST:pricepulse/pricepulse-backup-*.db" "$KEEP/"
+  newest="$(ls -t "$KEEP"/pricepulse-backup-*.db | head -1)"
+  echo "3/3 Checking the copy ..."
+  python3 - "$newest" <<'PY'
+import sqlite3, sys
+c = sqlite3.connect(sys.argv[1])
+ok = c.execute("PRAGMA integrity_check").fetchone()[0]
+print("  integrity:", ok, "| products:", c.execute("select count(*) from product").fetchone()[0],
+      "| accounts:", c.execute("select count(*) from app_user").fetchone()[0])
+sys.exit(0 if ok == "ok" else 1)
+PY
+  echo "  Removing the copy from the server (the desktop copy is checked) ..."
+  remote 'cd ~/pricepulse && sudo rm -f pricepulse-backup-*.db'
+  echo "Backup safe: $newest"
+}
+
+case "${1:-}" in
+  status)
+    curl -fsS -m 20 "$SITE/api/v1/health" | python3 -c "
+import json, sys
+h = json.load(sys.stdin)
+print('Site:', h['status'], '-', h['message'])
+for s in h['stores']:
+    print(' ', s['store'], s['status'], 'last good', s['last_success'], s['item_count'], 'prices')"
+    ;;
+  backup) backup ;;
+  deploy)
+    backup
+    echo "Updating the server ..."
+    remote 'cd ~/pricepulse && bash scripts/server/deploy.sh'
+    "$0" status
+    ;;
+  rematch)
+    admin rematch
+    read -r -p "Do it for real? Type yes to continue: " answer
+    if [ "$answer" = "yes" ]; then admin rematch --yes; else echo "Nothing changed."; fi
+    ;;
+  report) admin report ;;
+  requests|review|users|plan) cmd="$1"; shift; admin "$cmd" "$@" ;;
+  admin) shift; admin "$@" ;;
+  *) sed -n '2,13p' "$0"; exit 1 ;;
+esac

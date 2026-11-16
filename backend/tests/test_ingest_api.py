@@ -72,7 +72,13 @@ def test_a_good_upload_loads_prices_and_records_a_run_per_store(api):
     r = client.post(URL, content=payload(), headers=auth())
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["region"] == "paarl" and body["rows"] == 2 and body["saved"] == 2 and body["rejected"] == 0
+    assert (
+        body["region"] == "paarl"
+        and body["rows"] == 2
+        and body["saved"] == 2
+        and body["rejected"] == 0
+        and body["rematched"] == 0
+    )
     with session_factory(s.database_url)() as db:
         assert db.scalar(select(func.count()).select_from(Price)) == 2
         runs = {x.store: x.status for x in db.scalars(select(ScrapeRun)).all()}

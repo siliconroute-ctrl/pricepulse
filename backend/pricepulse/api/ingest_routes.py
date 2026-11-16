@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from ..db import utcnow
-from ..ingest import ingest_items, parse_scraped_at, read_scraper_json, record_runs
+from ..ingest import ingest_items, parse_scraped_at, read_scraper_json, record_runs, rematch
 from ..regions import valid_region
 
 log = logging.getLogger("pricepulse.ingest_api")
@@ -93,10 +93,13 @@ def register_ingest_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001
         def load():  # runs off the main loop so other visitors are not held up
             rep = ingest_items(s, items, region, when, settings)
             record_runs(s, items, region, when)
+            joined = 0
+            if settings.auto_rematch:  # apply the newest matching rules to everything loaded so far
+                joined = rematch(s, settings).joined
             s.commit()
-            return rep
+            return rep, joined
 
-        report = await run_in_threadpool(load)
+        report, rejoined = await run_in_threadpool(load)
         log.info("Price upload loaded: %s %s", region, report.summary())
         return {
             "region": region,
@@ -107,4 +110,5 @@ def register_ingest_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001
             "needs_review": report.needs_review,
             "by_barcode": report.by_barcode,
             "rejected": len(report.rejected),
+            "rematched": rejoined,
         }
