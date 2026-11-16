@@ -38,6 +38,8 @@ _Last updated 2026-11-14. Claude: rewrite this section at the end of every work 
 
 **Tester account (16 Nov 2026, branch `claude/owner-unlimited`):** the owner's account needs unlimited access for testing. New plan value set by hand: `admin.py plan <uid> tester` = unlimited sessions AND no 45-item cap (cap shown as 9999); `paid` = unlimited sessions only (cap stays 45); `free` = normal. `admin.py users --list` shows the newest accounts with their IDs so the owner's can be found. Run on the server with `sudo docker compose exec api python admin.py ...` (from the desktop with `ssh -t`). No database change. The general question of removing or raising the 45-item cap for everyone is still undecided (owner will answer).
 
+**My account text (16 Nov 2026, app version 7, branch `claude/account-text`):** the owner's tester account worked (no 45-item stop on his phone) but My account still said "Unlimited lookup sessions, 45 items each" because the words were fixed in the page. They now follow the account's real item limit: a tester account reads "Unlimited lookup sessions and unlimited items (tester account)". Owner's account ID is on the tester plan on the live server (set 16 Nov).
+
 **Waiting on the owner**
 - Port 80 check; a Contabo snapshot of the working app; try Google sign-in and Delete my data.
 - PayFast sandbox account and test, then a live merchant account with subscriptions enabled (docs/PAYMENTS.md).

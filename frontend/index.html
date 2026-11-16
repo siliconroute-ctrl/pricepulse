@@ -241,7 +241,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 6;
+var APP_VERSION = 7;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -720,7 +720,7 @@ function viewAccount(){
   h+='<div class="card"><p style="margin:0"><b>Signed in as</b> '+esc(Auth.email()||"your account")+'</p><p class="size" style="margin:.3rem 0 0">Age check done: '+(m.adult?'18 or older.':'under 18. Liquor is hidden.')+'</p></div>';
   h+='<h2 class="h2" style="font-size:1.35rem">My plan</h2>';
   if(m.plan==="paid"){
-    h+='<div class="card plan"><span class="tag">Unlimited plan</span><p style="margin:.3rem 0 0">Unlimited lookup sessions, 45 items each.</p>'+
+    h+='<div class="card plan"><span class="tag">Unlimited plan</span><p style="margin:.3rem 0 0">'+(m.session&&m.session.items_max>=1000?'Unlimited lookup sessions and unlimited items (tester account).':'Unlimited lookup sessions, '+((m.session&&m.session.items_max)||45)+' items each.')+'</p>'+
       (m.paid_until?'<p class="size" style="margin:.3rem 0 0">'+(m.subscription_status==="cancelled"?'Cancelled. You keep unlimited sessions until ':'Paid up until ')+esc(fmtDay(m.paid_until))+'.</p>':'')+
       (m.subscription_status==="active"?'<div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-act="cancelplan">Cancel my plan</button></div>':'')+'</div>';
   }else{
