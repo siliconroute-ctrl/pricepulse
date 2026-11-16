@@ -317,6 +317,8 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await adm.waitForFunction((n) => document.querySelectorAll(".admtable tbody tr").length < n, total);
   const onlyChk = await adm.locator(".admtable tbody tr td:first-child").allTextContents();
   check(onlyChk.length > 0 && onlyChk.every((t) => t === "Checkers"), "Admin items can be limited to one store");
+  const rects = await adm.evaluate(() => ["admstore", "admcat", "admq"].map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { top: Math.round(r.top), w: r.width }; }));
+  check(rects[2].top > rects[0].top + 20 && rects[2].top > rects[1].top + 20 && rects[2].w > 300, "Admin search box is on a line by itself, full width (" + Math.round(rects[2].w) + "px)");
   const cats = await adm.locator("#admcat option").allTextContents();
   check(cats.length > 2, "Admin items can be limited by type: " + cats.join(", "));
   await adm.selectOption("#admcat", cats[1]);
