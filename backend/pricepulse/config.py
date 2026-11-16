@@ -83,6 +83,7 @@ class Settings:
     # Price upload from the scraper machine (see docs/AUTOMATION.md). SECRET. Empty = the upload
     # address does not exist. A long random token (at least 32 characters) switches it on.
     ingest_token: str = field(default_factory=lambda: os.environ.get("PP_INGEST_TOKEN", "").strip())
+    auto_rematch: bool = field(default_factory=lambda: os.environ.get("PP_AUTO_REMATCH", "1").strip() != "0")
     ingest_max_bytes: int = field(default_factory=lambda: int(_float("PP_INGEST_MAX_BYTES", 20_000_000)))
     ingest_max_items: int = field(default_factory=lambda: int(_float("PP_INGEST_MAX_ITEMS", 30000)))
 

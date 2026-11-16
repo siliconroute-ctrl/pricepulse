@@ -134,6 +134,11 @@ KNOWN_BRANDS = [
     "Purity",
     "Castle",
     "Castle Lite",
+    "Nulaid",
+    "PnP",
+    "Checkers Housebrand",
+    "Simple Truth",
+    "Humpty Dumpty",
     "Black Label",
     "Carling Black Label",
     "Hansa",
@@ -248,7 +253,6 @@ MARKETING_WORDS = {
     "deal",
     "save",
     "bonus",
-    "free",
     "offer",
     "limited",
     "edition",
@@ -286,6 +290,12 @@ MARKETING_WORDS = {
     "pre",
     "packed",
     "bottles",
+    # Packaging and range words seen on real Checkers / Pick n Pay / Woolworths names.
+    "local",
+    "international",
+    "tray",
+    "round",
+    "chilled",
 }
 # Generic commodities can match across brands (store brand eggs vs loose eggs).
 GENERIC_WORDS = {
@@ -323,7 +333,7 @@ GENERIC_WORDS = {
     "lamb",
     "boerewors",
 }
-GENERIC_STOP = {"large", "medium", "small", "extra", "fresh"}
+GENERIC_STOP = {"large", "medium", "small", "extra", "fresh", "golden", "delicious"}
 # Extra words that describe the product type without changing it. "Castle Lite" and
 # "Castle Lite Beer" are the same; "Coca-Cola" and "Coca-Cola No Sugar" are not.
 DESCRIPTOR_WORDS = {
@@ -352,6 +362,16 @@ DESCRIPTOR_WORDS = {
     "spirit",
     "aperitif",
     "tablet",
+    "full",
+    "cream",
+    "seed",
+    "long",
+    "grain",
+    "taste",
+    "sauce",
+    "infant",
+    "formula",
+    "stage",
 }
 WINE_COLOURS = {"white", "red", "rose"}
 
@@ -391,6 +411,7 @@ _COMPOUNDS = [
     (r"\bwhole wheat\b", "wholewheat"),
     (r"\bwhole grain\b", "wholegrain"),
     (r"\bmulti grain\b", "multigrain"),
+    (r"\bno 1\b", " "),  # "Iwisa No.1 Super Maize Meal" is "Iwisa Super Maize Meal"
 ]
 
 
@@ -502,7 +523,7 @@ def score(a: Normalised, b: Normalised) -> float:
     small, big = (ta, tb) if len(ta) <= len(tb) else (tb, ta)
     if small <= big:
         extra = big - small
-        allowed = DESCRIPTOR_WORDS | (WINE_COLOURS if "wine" in extra else set())
+        allowed = DESCRIPTOR_WORDS | (WINE_COLOURS if "wine" in extra or "rice" in small else set())
         if extra <= allowed:
             return 98.0
     return float(fuzz.token_sort_ratio(a.name, b.name))

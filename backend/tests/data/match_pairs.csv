@@ -65,3 +65,26 @@ nomatch,Albany Superior White Bread 700g,,Albany Superior Best of Both White Bre
 nomatch,Albany Superior White Bread 700g,,Albany Superior Low Gi White Bread 700g,,real: Low Gi is a different loaf
 nomatch,Albany Everyday White Bread 700g,,Albany Superior White Bread 700g,,real: Everyday vs Superior
 nomatch,White Star Super Maize Meal 1kg,,White Star Super Maize Meal 2.5kg,,real: sizes differ
+match,Hansa Pilsener Local Beer 6 x 500ml,,Hansa Pilsener Beer Cans 6 x 500ml,,real: Local / Cans are packaging words
+match,Castle Lager Local Beer 6 x 330ml,,Castle Lager Bottles 6 x 330ml,,real
+match,Iwisa Super Maize Meal 5kg,,Iwisa No 1 Super Maize Meal 5 kg,,real: No 1 is the grade of Super
+match,Sunfoil Sunflower Oil 2L,,Sunfoil Pure Sunflower Seed Oil 2L,,real: Pure / Seed
+match,Spekko Rice Parboiled 2kg,,Spekko Long Grain Parboiled White Rice 2kg,,real: Long Grain / White on rice
+match,Clover Cheddar Cheese 800g,,Clover Full Cream Cheddar Cheese 800g,,real
+match,Richelieu Brandy 750ml,,Richelieu International Premium Brandy Bottle 750ml,,real
+match,Smirnoff 1818 Round Vodka 750ml,,Smirnoff 1818 Vodka Bottle 750ml,,real
+match,Coca-Cola Soft Drink 1.5L,,Coca-Cola Original Taste Soft Drink 1.5 L,,real
+match,Lucky Star Pilchards in Sweet Chilli 400g,,Lucky Star Pilchards in Sweet Chilli Sauce 400g,,real
+match,Nestle Lactogen 1 900g,,Nestle Lactogen Infant Formula Stage 1 900g,,real
+match,PnP Golden Delicious Apples 1.5kg,,Golden Delicious Apples 1.5kg,,real: house brand fruit
+match,PnP Onions 2kg,,Onions 2kg,,real: house brand vegetables
+match,PnP Bananas Box 1.2kg,,Bananas Tray 1.2 kg,,real: Box / Tray
+nomatch,Nestle Lactogen 1 900g,,Nestle Lactogen Infant Formula Stage 3 900g,,stage numbers differ
+nomatch,Johnson's Baby Aqueous Cream Fragrance Free 500ml,,Johnson's Baby Aqueous Cream Lightly Fragranced 500ml,,fragrance free vs fragranced
+nomatch,Coca-Cola Original Soft Drink 2L,,Coca-Cola Zero Sugar Soft Drink 2L,,zero sugar is different
+nomatch,Nulaid Large Eggs 18 Pack,,Free Range Large Chilled Eggs 18 pk,,free range eggs are a different product
+nomatch,Castle Lite Premium Lager Beer 6 x 330ml,,Castle Lager Bottles 6 x 330ml,,Lite vs Lager
+nomatch,Hansa Pilsener Local Beer 6 x 330ml,,Castle Lager Local Beer 6 x 330ml,,different brands
+nomatch,PnP Full Cream Milk 2L,,Clover Full Cream Milk 2L,,house brand milk is not Clover
+nomatch,Sugar Free Jelly 80g,,Jelly 80g,,sugar free is a different product
+nomatch,Tastic Rice 2kg,,Tastic Basmati Rice 2kg,,basmati is a different rice

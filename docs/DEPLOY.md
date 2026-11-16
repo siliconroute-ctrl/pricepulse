@@ -172,6 +172,31 @@ sudo docker compose exec api python admin.py purge-sample --yes    # does it
 **Until the legal review is done, let only yourself and people you know sign in.** The age
 check collects ID numbers, so POPIA applies even during testing.
 
+## The `pp` helper (Linux desktop): short commands instead of long ones
+One-time setup on the Linux desktop (after the server has been updated once by hand):
+```
+mkdir -p ~/.local/bin && ln -sf ~/pricepulse/scripts/linux/pp ~/.local/bin/pp
+```
+Open a new terminal, then:
+
+| Type this | What it does |
+|---|---|
+| `pp status` | Is the site up and are prices fresh (no password needed) |
+| `pp backup` | Backs up the live database, copies it to `~/pricepulse-backups`, checks it, removes it from the server |
+| `pp deploy` | Backup, then update and rebuild the server, then `pp status` |
+| `pp rematch` | Shows what the matching rules would join, then asks you to type `yes` |
+| `pp report` | The match report from the live database |
+| `pp requests` | Items shoppers asked for (`pp requests --decline "term"`, `--done "term"`) |
+| `pp review` | Walk through the review queue |
+| `pp admin users --list` | Any other `admin.py` command |
+
+It uses your key. The sudo password is asked at the prompt (once or twice per command) and is never
+stored. Before `pp deploy`, merge the change on GitHub and run `git pull` on the desktop is NOT needed:
+the server pulls the code itself.
+
+The server also applies the newest matching rules by itself after every nightly upload
+(`PP_AUTO_REMATCH=0` in `backend/.env` switches that off), so `pp rematch` is only for a manual check.
+
 ## Updating later
 ```
 cd ~/pricepulse

@@ -78,7 +78,7 @@ def test_barcode_beats_a_review_queue_guess(session, settings):
 def test_older_listings_join_when_they_learn_their_barcode(session, settings):
     plain = [
         row("Checkers", "Tastic Long Grain Parboiled White Rice 2kg", 59.99, url="https://c.example/t"),
-        row("Woolworths", "Tastic Parboiled Rice 2 kg", 61.99, url="https://w.example/t"),
+        row("Woolworths", "Tastic Premium Choice Rice 2 kg", 61.99, url="https://w.example/t"),
     ]
     ingest_items(session, plain, "paarl", T, settings)
     assert products(session) == 2  # names alone did not match (as on the live server)
