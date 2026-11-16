@@ -290,6 +290,62 @@ for (const p of ["terms.html", "privacy.html"]) {
   check(r.ok() && /R99|ID number/.test(await dp.textContent("main")), p + " loads");
 }
 
+// 10. Admin area: hidden for everyone, then switched on for one account by hand.
+check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [data-menu="admin"]'); return b && b.offsetParent !== null; })), "Admin area is not in the menu for an ordinary account");
+{
+  const { execFileSync } = require("child_process");
+  const admCtx = await browser.newContext({ viewport: { width: 412, height: 915 } });
+  const adm = await admCtx.newPage();
+  const admErrors = [];
+  adm.on("pageerror", (e) => admErrors.push(e.message));
+  await signIn(adm, "admin", makeId("650505"));
+  await adm.click("#menubtn");
+  check(!(await adm.isVisible('#menupop [data-menu="admin"]')), "Admin area is hidden until the account is made an admin");
+  execFileSync(process.env.PP_PYTHON || "python3", ["admin.py", "admin-role", "dev-admin", "on"], { cwd: process.env.PP_SMOKE_BACKEND, env: process.env });
+  await adm.reload();
+  await adm.waitForSelector(".pills");
+  await adm.click("#menubtn");
+  check(await adm.isVisible('#menupop [data-menu="admin"]'), "Admin area appears in the three-dot menu for an admin");
+  await adm.click('#menupop [data-menu="admin"]');
+  await adm.waitForSelector(".admgrid");
+  check(/accounts/.test(await adm.textContent(".admgrid")), "Admin overview shows the counts");
+  await adm.click('[data-adm="tab"][data-tab="items"]');
+  await adm.waitForSelector(".admtable tbody tr");
+  const total = await adm.locator(".admtable tbody tr").count();
+  check(total > 10, "Admin items list shows every item, one line each (" + total + " lines)");
+  await adm.selectOption("#admstore", "Checkers");
+  await adm.waitForFunction((n) => document.querySelectorAll(".admtable tbody tr").length < n, total);
+  const onlyChk = await adm.locator(".admtable tbody tr td:first-child").allTextContents();
+  check(onlyChk.length > 0 && onlyChk.every((t) => t === "Checkers"), "Admin items can be limited to one store");
+  const cats = await adm.locator("#admcat option").allTextContents();
+  check(cats.length > 2, "Admin items can be limited by type: " + cats.join(", "));
+  await adm.selectOption("#admcat", cats[1]);
+  await adm.waitForTimeout(800);
+  check(await adm.locator(".admtable tbody tr").count() > 0, "Store and type filters work together");
+  await shot(adm, "11-admin-items");
+  await adm.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed++; }; });
+  await adm.click('[data-adm="print"]');
+  await adm.waitForFunction(() => window.__printed === 1);
+  check(await adm.evaluate(() => document.body.classList.contains("adm-print")), "Print button prepares the list for printing");
+  await adm.waitForFunction(() => !document.body.classList.contains("adm-print"), null, { timeout: 5000 });
+  const sm = await adm.evaluate(() => Math.min(...[...document.querySelectorAll("button, select, input")].filter((b) => b.offsetParent).map((b) => b.getBoundingClientRect().height)));
+  check(sm >= 47.5, "Admin controls are at least 48px tall (" + sm.toFixed(1) + ")");
+  await adm.click('[data-adm="tab"][data-tab="users"]');
+  await adm.waitForSelector('select[data-admf="plan"]');
+  check(/dev-admin/.test(await adm.textContent(".admtable")), "Admin accounts tab lists accounts by ID");
+  await adm.selectOption('select[data-admf="plan"] >> nth=0', "free");
+  await adm.waitForSelector("#dlg[open]");
+  check(/Change plan/.test(await adm.textContent("#dlg")), "Changing a plan asks first");
+  await adm.click('#dlg button:has-text("Cancel")');
+  await adm.click('[data-adm="tab"][data-tab="requests"]');
+  await adm.waitForSelector(".admtable");
+  check(/Item asked for/.test(await adm.textContent("#main")), "Admin requests tab opens");
+  await adm.click('[data-adm="tab"][data-tab="settings"]');
+  await adm.waitForSelector(".admtable code");
+  check(/PP_FREE_SESSIONS/.test(await adm.textContent("#main")), "Admin settings tab lists the settings");
+  check(admErrors.length === 0, "no JavaScript errors in the admin area" + (admErrors.length ? ": " + admErrors.join("; ") : ""));
+}
+
 check(errors.length === 0, "no JavaScript errors" + (errors.length ? ": " + errors.join("; ") : ""));
 await browser.close();
 console.log(failures ? `\n${failures} check(s) failed.` : "\nAll smoke checks passed.");

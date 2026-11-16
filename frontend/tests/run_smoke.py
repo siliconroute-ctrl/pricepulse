@@ -61,7 +61,7 @@ def main() -> int:
             except OSError:
                 time.sleep(0.2)
         args = ["node", str(Path(__file__).parent / "smoke.mjs"), base] + sys.argv[1:2]
-        return subprocess.run(args).returncode
+        return subprocess.run(args, env={**env, "PP_SMOKE_BACKEND": str(BACKEND)}).returncode
     finally:
         server.terminate()
         server.wait(timeout=10)

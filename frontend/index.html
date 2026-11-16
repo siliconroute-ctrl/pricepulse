@@ -188,6 +188,38 @@ dialog.how:not([open]){display:none}
 :root[data-theme="dark"] .how .bub.me{background:#005c4b}
 :root[data-theme="dark"] .how .bub small{color:#cdbdbe}
 body.plainhead .find-row,body.plainhead nav.tabs{display:none}
+
+/* ---- Admin area ---- */
+.menupop:not([data-admin="1"]) [data-needs="admin"]{display:none}
+.admbar{display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end;margin:.6rem 0}
+.admbar label{display:block;font-weight:650;font-size:.95rem}
+.admbar select,.admbar input[type=search]{min-height:3rem;padding:.4rem .6rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.05rem;max-width:100%}
+.admwrap{overflow-x:auto;border:1px solid var(--muted);border-radius:.6rem}
+.admtable{border-collapse:collapse;width:100%;min-width:640px;font-size:1.06rem}
+.admtable th,.admtable td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--muted);vertical-align:top}
+.admtable th{position:sticky;top:0;background:var(--card);font-weight:700}
+.admtable td.num,.admtable th.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.admtable .sub2{font-size:.9rem;color:var(--muted)}
+.admtable code{font-size:.9rem;word-break:break-all}
+.admtable select{min-height:3rem;font-size:1rem}
+.admgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.6rem;margin:.6rem 0}
+.admgrid .stat{border:1px solid var(--muted);border-radius:.6rem;padding:.6rem .7rem;background:var(--card)}
+.admgrid .stat b{display:block;font-size:1.6rem}
+.admbtn{min-height:3rem;padding:.4rem .9rem;border-radius:.6rem;border:2px solid var(--brand);background:var(--card);color:var(--ink);font-size:1rem;font-weight:650}
+.admbtn.go{background:var(--brand);color:var(--brand-ink)}
+.printonly{display:none}
+@media print{
+  body.adm-print>*:not(main){display:none!important}
+  body.adm-print main{padding:0;margin:0}
+  body.adm-print .noprint{display:none!important}
+  body.adm-print .printonly{display:block}
+  body.adm-print .admwrap{border:0;overflow:visible}
+  body.adm-print .admtable{min-width:0;font-size:9.5pt;color:#000}
+  body.adm-print .admtable th{position:static;background:#fff;border-bottom:2px solid #000}
+  body.adm-print .admtable td{border-bottom:1px solid #999;padding:2pt 4pt}
+  body.adm-print .admtable tr{break-inside:avoid}
+  body.adm-print thead{display:table-header-group}
+}
 </style>
 </head>
 <body class="plainhead">
@@ -218,6 +250,7 @@ body.plainhead .find-row,body.plainhead nav.tabs{display:none}
   <button class="mi" type="button" role="menuitem" data-menu="towns" data-needs="user">Town by town</button>
   <button class="mi" type="button" role="menuitem" data-menu="list" data-needs="user">My list</button>
   <button class="mi" type="button" role="menuitem" data-menu="account" data-needs="user">My account and plan</button>
+  <button class="mi" type="button" role="menuitem" data-menu="admin" data-needs="admin">Admin area</button>
   <hr data-needs="user">
   <button class="mi" type="button" role="menuitem" data-menu="how">How it works</button>
   <button class="mi" type="button" role="menuitem" data-menu="colours">Colours</button>
@@ -242,7 +275,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 8;
+var APP_VERSION = 9;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -796,6 +829,10 @@ document.getElementById("dlg").addEventListener("click",function(e){
   if(a==="opentu"){window.open(TROLLEYUP_URL,"_blank","noopener");return}
   if(a==="doupdate"){b.disabled=true;return doUpdate()}
   if(a==="sendreq"){b.disabled=true;return sendRequest(b)}
+  if(a.indexOf("admplan:")===0){
+    var pp=a.split(":");b.disabled=true;
+    return api("POST","/admin/users/"+encodeURIComponent(pp[1])+"/plan",{plan:pp[2]}).then(function(){d.close();say("Plan changed.");ADM.loading=null;admLoad()}).catch(function(e){d.close();ask("Could not change the plan",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+  }
   if(a.indexOf("theme-")===0){state.theme=a.slice(6);savePrefs();d.close();render();say("Colours: "+({system:"like my phone",light:"light",dark:"dark"}[state.theme]));return}
   d.close();
   if(a==="golist")go("list");
@@ -811,6 +848,7 @@ function menuOpen(){return !menuEl().hidden}
 function menuShow(on){
   var pop=menuEl(),btn=document.getElementById("menubtn");
   pop.dataset.phase=state.phase;
+  pop.dataset.admin=state.me&&state.me.is_admin?"1":"0";
   pop.hidden=!on;btn.setAttribute("aria-expanded",on?"true":"false");
   if(on){var top=Math.round(btn.getBoundingClientRect().bottom)+4;pop.style.top=top+"px";pop.style.maxHeight=Math.max(160,window.innerHeight-top-8)+"px"}
   if(on){var first=pop.querySelector(".mi:not([hidden])");var vis=[].slice.call(pop.querySelectorAll(".mi")).filter(function(x){return x.offsetParent!==null});if(vis[0])vis[0].focus()}
@@ -880,7 +918,7 @@ function afterUpdateNote(){
 function menuAction(act){
   menuShow(false);
   document.getElementById("menubtn").focus({preventScroll:true});
-  if(act==="find"||act==="towns"||act==="list"||act==="account")return go(act);
+  if(act==="find"||act==="towns"||act==="list"||act==="account"||act==="admin")return go(act);
   if(act==="colours")return coloursDialog();
   if(act==="how")return howItWorks();
   if(act==="sharelink")return shareLink();
@@ -907,6 +945,111 @@ document.addEventListener("keydown",function(e){
   }
 });
 
+/* ---------- Admin area (admins only: the server refuses everyone else) ---------- */
+var ADM={tab:"overview",f:{store:"",category:"",q:""},data:{},err:"",timer:null,loading:null};
+var ADM_TABS=[["overview","Overview"],["items","Items"],["users","Accounts"],["requests","Requests"],["settings","Settings"]];
+function admPath(tab){
+  if(tab==="items")return "/admin/items?"+qs({store:ADM.f.store,category:ADM.f.category,q:ADM.f.q.trim(),region:state.region});
+  if(tab==="requests")return "/admin/requests?status="+encodeURIComponent(ADM.reqStatus||"open");
+  return "/admin/"+tab;
+}
+function admRender(){
+  var ae=document.activeElement,id=ae&&ae.id,pos=ae&&ae.selectionStart;
+  renderMain();
+  if(id){var n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}}
+}
+function admLoad(){
+  var tab=ADM.tab,path=admPath(tab);
+  if(ADM.loading===path)return;
+  ADM.loading=path;ADM.err="";
+  api("GET",path).then(function(r){
+    if(ADM.loading!==path)return;
+    ADM.loading=null;ADM.data[tab]=r;if(state.view==="admin"&&ADM.tab===tab)admRender();
+  }).catch(function(e){
+    if(ADM.loading===path)ADM.loading=null;
+    if(handleAuthError(e))return;
+    ADM.err=e.status===404?"The admin area is not available for this account.":e.message;if(state.view==="admin")renderMain();
+  });
+}
+function admRows(rows,empty){return rows.length?rows.join(""):'<tr><td colspan="9">'+esc(empty)+'</td></tr>'}
+function viewAdmin(){
+  if(!state.me||!state.me.is_admin)return '<div class="empty">The admin area is only for PricePulse administrators.</div>';
+  var h='<h2 class="h2 noprint">Admin area</h2><div class="seg noprint" role="group" aria-label="Admin sections" style="flex-wrap:wrap">'+
+    ADM_TABS.map(function(t){return '<button type="button" data-adm="tab" data-tab="'+t[0]+'" aria-pressed="'+(ADM.tab===t[0])+'">'+t[1]+'</button>'}).join("")+'</div>';
+  if(ADM.err)h+='<div class="empty">'+esc(ADM.err)+'</div>';
+  var tab=ADM.tab,d=ADM.data[tab];
+  if(!d&&!ADM.err)return h+'<p class="sub">Loading…</p>';
+  if(!d)return h;
+  if(tab==="overview"){
+    var st=function(n,l){return '<div class="stat"><b>'+esc(n)+'</b>'+esc(l)+'</div>'};
+    h+='<div class="admgrid">'+st(d.accounts,"accounts")+st(d.age_checked,"age checked")+st(d.under_18,"under 18")+st(d.paying,"paying")+st(d.sessions_today,"lookup sessions today")+st(d.products,"products")+st(d.listings,"store listings")+st(d.sold_by_2plus_stores,"sold by 2+ stores")+st(d.needs_review,"waiting for review")+st(d.open_requests,"open item requests")+'</div>';
+    h+='<h3 class="h2" style="font-size:1.25rem">Stores</h3><div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th class="num">Listings</th><th>Last good scrape</th></tr></thead><tbody>'+
+      admRows(d.stores.map(function(r){return '<tr><td>'+esc(r.store)+'</td><td class="num">'+r.listings+'</td><td>'+esc(r.last_success?fmtDate(r.last_success):"never")+'</td></tr>'}),"No stores yet.")+'</tbody></table></div>';
+  }else if(tab==="items"){
+    var rows=d.items,opt=function(list,cur,all){return '<option value="">'+all+'</option>'+list.map(function(x){return '<option'+(x===cur?' selected':'')+'>'+esc(x)+'</option>'}).join("")};
+    var title='PricePulse items'+(ADM.f.store?' · '+ADM.f.store:' · all stores')+(ADM.f.category?' · '+ADM.f.category:' · all types')+(ADM.f.q?' · "'+ADM.f.q+'"':'')+' · '+rows.length+' items · '+fmtDate(new Date());
+    h+='<div class="admbar noprint"><div><label for="admstore">Store</label><select id="admstore" data-admf="store">'+opt(d.stores,ADM.f.store,"All stores")+'</select></div>'+
+      '<div><label for="admcat">Type</label><select id="admcat" data-admf="category">'+opt(d.categories,ADM.f.category,"All types")+'</select></div>'+
+      '<div><label for="admq">Search name or barcode</label><input id="admq" type="search" data-admf="q" value="'+esc(ADM.f.q)+'" autocomplete="off"></div>'+
+      '<button class="admbtn go" type="button" data-adm="print">Print this list</button></div>'+
+      '<p class="sub noprint" role="status">'+rows.length+' items'+(d.truncated?' (the list was cut short: choose a store or type)':'')+'. Prices are for '+esc(regionName(state.region))+'.</p>'+
+      '<h2 class="printonly" style="font-size:12pt">'+esc(title)+'</h2>'+
+      '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th></tr></thead><tbody>'+
+      admRows(rows.map(function(r){
+        var price=r.price==null?'no price':money(r.promo!=null?r.promo:r.price)+(r.promo!=null?' <span class="sub2">(was '+money(r.price)+')</span>':'');
+        return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td></tr>'}),"No items match.")+'</tbody></table></div>';
+  }else if(tab==="users"){
+    h+='<p class="sub">'+d.total+' accounts'+(d.users.length<d.total?' (newest '+d.users.length+' shown)':'')+'. Accounts are shown by sign-in ID only: PricePulse keeps no names, emails or ID numbers.</p>'+
+      '<div class="admwrap"><table class="admtable"><thead><tr><th>Account ID</th><th>Joined</th><th>Age check</th><th>Plan</th><th>Set plan</th></tr></thead><tbody>'+
+      admRows(d.users.map(function(u){
+        var age=u.age_checked?(u.adult?'adult':'under 18'):'not yet';
+        return '<tr><td><code>'+esc(u.uid)+'</code>'+(u.admin?' <b>(admin)</b>':'')+'</td><td>'+esc(fmtDate(u.created))+'</td><td>'+age+'</td><td>'+esc(u.plan)+(u.by_hand?' (by hand)':'')+(u.paid_until&&!u.by_hand?' until '+esc(fmtDate(u.paid_until)):'')+'</td>'+
+          '<td><select aria-label="Plan for '+esc(u.uid)+'" data-admf="plan" data-uid="'+esc(u.uid)+'"><option value="">Choose…</option><option value="free">Free</option><option value="paid">Paid (unlimited)</option><option value="tester">Tester (unlimited)</option></select></td></tr>'}),"No accounts yet.")+'</tbody></table></div>';
+  }else if(tab==="requests"){
+    h+='<p class="sub">What shoppers asked for that we do not list yet, most asked first. Add an accepted item to the search list on the scraper desktop with <b>pp requests --add "item"</b>, then tap <b>Mark added</b> here so the request closes.</p>'+
+      '<div class="seg noprint" role="group" aria-label="Show requests" style="margin:.4rem 0">'+["open","added","declined"].map(function(x){return '<button type="button" data-adm="reqshow" data-status="'+x+'" aria-pressed="'+(d.status===x)+'">'+x[0].toUpperCase()+x.slice(1)+'</button>'}).join("")+'</div>'+
+      '<div class="admwrap"><table class="admtable"><thead><tr><th>Item asked for</th><th class="num">People</th><th>Last asked</th><th>Action</th></tr></thead><tbody>'+
+      admRows(d.requests.map(function(r){
+        var b=function(label,status,cls){return '<button class="admbtn'+cls+'" type="button" data-adm="reqset" data-term="'+esc(r.term)+'" data-status="'+status+'">'+label+'</button> '};
+        return '<tr><td>'+esc(r.term)+'</td><td class="num">'+r.count+'</td><td>'+esc(fmtDate(r.last))+'</td><td>'+(d.status==="open"?b("Mark added","added"," go")+b("Decline","declined",""):b("Reopen","open",""))+'</td></tr>'}),"Nothing here.")+'</tbody></table></div>';
+  }else if(tab==="settings"){
+    h+='<p class="sub">What the server is set to. Read only here: a value is changed in <b>backend/.env</b> on the server (the name in the last column).</p>'+
+      '<div class="admwrap"><table class="admtable"><thead><tr><th>Setting</th><th>Value</th><th>Changed with</th></tr></thead><tbody>'+
+      admRows(d.settings.map(function(r){return '<tr><td>'+esc(r[0])+'</td><td><b>'+esc(r[1])+'</b></td><td><code>'+esc(r[2])+'</code></td></tr>'}),"")+'</tbody></table></div>';
+  }
+  return h;
+}
+function admClick(t){
+  var d=t.dataset;
+  if(d.adm==="tab"){ADM.tab=d.tab;ADM.err="";ADM.loading=null;renderMain();return admLoad()}
+  if(d.adm==="print"){
+    document.body.classList.add("adm-print");
+    var done=function(){document.body.classList.remove("adm-print");window.removeEventListener("afterprint",done)};
+    window.addEventListener("afterprint",done);
+    setTimeout(function(){window.print();setTimeout(done,1500)},50);return;
+  }
+  if(d.adm==="reqshow"){ADM.reqStatus=d.status;ADM.loading=null;delete ADM.data.requests;renderMain();return admLoad()}
+  if(d.adm==="reqset"){
+    t.disabled=true;
+    return api("POST","/admin/requests/status",{term:d.term,status:d.status}).then(function(){
+      say("Request "+d.status+".");ADM.loading=null;return admLoad();
+    }).catch(function(e){t.disabled=false;ask("Could not save",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+  }
+}
+function admField(el){
+  if(el.dataset.admf==="plan"){
+    var plan=el.value,uid=el.dataset.uid;if(!plan)return;
+    var words={free:"the normal Free plan",paid:"the Paid plan (unlimited sessions and items)",tester:"the Tester plan (unlimited sessions and items)"};
+    ask("Change plan?",'<p>Put account <b>'+esc(uid)+'</b> on '+words[plan]+'?</p>',[["Yes, change it","admplan:"+uid+":"+plan,"btn"],["Cancel","","btn alt"]]);
+    el.value="";return;
+  }
+  ADM.f[el.dataset.admf]=el.value;
+  clearTimeout(ADM.timer);
+  ADM.timer=setTimeout(function(){ADM.loading=null;admLoad()},el.dataset.admf==="q"?350:0);
+}
+document.getElementById("main").addEventListener("change",function(e){if(e.target.dataset&&e.target.dataset.admf)admField(e.target)});
+document.getElementById("main").addEventListener("input",function(e){if(e.target.dataset&&e.target.dataset.admf==="q")admField(e.target)});
+
 /* ---------- Rendering and navigation ---------- */
 var ICONS={
   find:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>',
@@ -926,7 +1069,7 @@ function renderMain(){
   if(state.phase==="boot")h='<p class="empty">Opening PricePulse…</p>';
   else if(state.phase==="signin")h=viewSignin();
   else if(state.phase==="idcheck")h=viewIdCheck();
-  else h=state.view==="find"?viewFind():state.view==="towns"?viewTowns():state.view==="list"?viewList():state.view==="product"?viewProduct():viewAccount();
+  else h=state.view==="find"?viewFind():state.view==="towns"?viewTowns():state.view==="list"?viewList():state.view==="product"?viewProduct():state.view==="admin"?viewAdmin():viewAccount();
   m.innerHTML=h;
 }
 function render(){
@@ -935,12 +1078,14 @@ function render(){
   renderNav();
   if(state.view==="towns")loadTowns();
   if(state.view==="product")loadDetail();
+  if(state.view==="admin")admLoad();
   if(state.view==="find"&&!state.found&&!state.finding&&!state.findErr)runFind(true);
 }
 function go(v,focus){
   if(state.phase!=="app")return;
   if(v.indexOf("product/")===0){state.view="product";state.productId=+v.slice(8)}
   else if(v.indexOf("account")===0){state.view="account";if(v==="account/paid")afterPayment();if(v==="account/cancelled")say("Payment was cancelled. Nothing was charged.");v="account"}
+  else if(v==="admin"&&state.me&&state.me.is_admin)state.view="admin";
   else state.view=LABELS[v]?v:"find";
   render();window.scrollTo(0,0);
   var target="#"+(state.view==="product"?"product/"+state.productId:state.view);
@@ -1022,6 +1167,7 @@ document.addEventListener("click",function(e){
     var nq=Math.min(99,i2.q+(d.inc?1:-1));
     return void setItem(i2.p.id,{quantity:nq}).then(function(){var b=document.querySelector('[data-'+(d.inc?'inc':'dec')+'="'+i2.p.id+'"]');if(b)b.focus();say(i2.p.name+": "+nq)});
   }
+  if(d.adm)return admClick(t);
   switch(d.act){
     case "google":return void Auth.google().catch(function(er){formState(document.getElementById("emailform"),false,er.message)});
     case "mode-in":state.signMode="in";state.authErr="";return renderMain();
