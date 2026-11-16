@@ -58,7 +58,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             session=S.SessionMeter(
                 active=sess is not None,
                 items_used=len(sess.items) if sess else 0,
-                items_max=settings.session_items_max,
+                items_max=accounts.items_cap(user, settings),
             ),
             price_per_month=from_cents(settings.price_cents),
             billing_ready=payfast.configured(settings),
@@ -334,7 +334,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             raise HTTPException(
                 403, {"code": "id_required", "message": "Please confirm your age with your ID number first."}
             )
-        if accounts.is_paid(s, user) and user.plan_override != "paid":
+        if accounts.is_paid(s, user) and user.plan_override not in ("paid", accounts.TESTER):
             sub = s.scalar(select(Subscription).where(Subscription.uid == user.uid))
             if sub and sub.status == "active":
                 raise HTTPException(
