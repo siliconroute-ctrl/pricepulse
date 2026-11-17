@@ -17,10 +17,12 @@ from collections import defaultdict, deque
 from datetime import timedelta
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
+from .. import essentials
 from ..db import utcnow
 from ..ingest import ingest_items, parse_scraped_at, read_scraper_json, record_runs, rematch
 from ..regions import valid_region
@@ -35,6 +37,10 @@ BAD_WINDOW = 600  # ... in this many seconds
 
 def _digest(text: str) -> bytes:
     return hashlib.sha256(text.encode("utf-8")).digest()
+
+
+class TermsIn(BaseModel):
+    rows: list[dict] = Field(max_length=essentials.MAX_ROWS)
 
 
 def register_ingest_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001
@@ -70,6 +76,26 @@ def register_ingest_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001
 
         rows = s.scalars(select(EssentialItem).order_by(EssentialItem.category, EssentialItem.term)).all()
         return {"terms": [{"term": r.term, "category": r.category} for r in rows]}
+
+    @app.post("/api/v1/ingest/terms", include_in_schema=False, dependencies=[Depends(check_token)])
+    def ingest_terms_add(body: TermsIn, s: Session = Depends(ctx.db)):  # noqa: B008
+        """Essential items from a CSV in the Drive folder; the same rules as the admin import."""
+        if not body.rows:
+            raise HTTPException(422, "The file has no items.")
+        result = essentials.add_terms(s, body.rows, "drive")
+        s.commit()
+        log.info(
+            "Essential items from Drive: %s added, %s existing, %s invalid",
+            result.added,
+            result.existing,
+            len(result.invalid),
+        )
+        return {
+            "added": result.added,
+            "existing": result.existing,
+            "invalid_count": len(result.invalid),
+            "invalid": result.invalid[:20],
+        }
 
     @app.post("/api/v1/ingest/prices", include_in_schema=False, dependencies=[Depends(check_token)])
     async def ingest_prices(request: Request, s: Session = Depends(ctx.db)):  # noqa: B008

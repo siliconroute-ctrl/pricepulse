@@ -7,6 +7,7 @@
 #   pp report             match report from the live database
 #   pp requests [...]     items shoppers asked for (also: --decline "term", --done "term")
 #   pp review             walk through the review queue (y / n / s / q)
+#   pp essentials         read the linked Google Drive folder and add its items now (instead of tonight)
 #   pp admin <args...>    any admin.py command, e.g. pp admin users --list
 # It logs in with your key. The sudo password is asked at the prompt, never stored.
 set -euo pipefail
@@ -41,7 +42,23 @@ PY
   echo "Backup safe: $newest"
 }
 
+REPO="$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)"
+
+essentials() {
+  [ -f "$HOME/.config/pricepulse/env" ] && . "$HOME/.config/pricepulse/env"
+  local inbox="${PP_IMPORT_DIR:-$HOME/pricepulse-imports/inbox}"
+  if [ -n "${PP_DRIVE_REMOTE:-}" ] && command -v rclone >/dev/null 2>&1; then
+    mkdir -p "$inbox"
+    echo "Reading the Google Drive folder ..."
+    rclone copy "$PP_DRIVE_REMOTE" "$inbox" --include "*.csv" --include "*.CSV" --include "*.txt"
+  else
+    echo "The Drive link is not set up here (see docs/AUTOMATION.md); using files already in $inbox"
+  fi
+  (cd "$REPO/backend" && "$REPO/backend/.venv/bin/python" import_essentials.py)
+}
+
 case "${1:-}" in
+  essentials) essentials ;;
   status)
     curl -fsS -m 20 "$SITE/api/v1/health" | python3 -c "
 import json, sys

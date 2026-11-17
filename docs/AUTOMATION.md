@@ -90,3 +90,33 @@ If the desktop dies, nothing runs, so nothing can send an alert. Watch the serve
 a free uptime monitor (for example UptimeRobot) checking
 `https://pricepulse.trolleyup.com/api/v1/health?strict=1` every 30 minutes. That address answers
 with an error whenever the newest prices are more than 24 hours old, and the monitor emails you.
+
+
+## Google Drive folder for essential items (hands-off)
+Drop a CSV into one Google Drive folder and it is imported by itself at the next 02:30 night run
+(or at once with `pp essentials`). The desktop reads the folder with **rclone** (a free, well-known
+sync tool). The CSV needs a column `item` (or the items in the first column) and may have a column
+`category` (Groceries, Fresh, Health & Beauty, Liquor). Items already on the list are skipped, and a
+file that has not changed is not read again.
+
+**What you are allowing.** Google cannot give a tool access to one folder only, so the sign-in
+lets rclone *read* (never change or delete) your Drive. rclone is then pointed at your one folder and
+only copies CSV files from it. The sign-in is stored on the desktop in `~/.config/rclone/rclone.conf`
+(keep it private: `chmod 600`). You can cancel it any time at https://myaccount.google.com/permissions.
+
+**One-time setup, on the Linux desktop (one block at a time):**
+1. In Google Drive, make a folder, for example `PricePulse essentials`. Open it and copy the long
+   code at the end of the address (after `/folders/`): that is the folder ID.
+2. Install rclone: `sudo apt install rclone`
+3. Connect it: `rclone config`, then answer: `n` (new remote), name `gdrive`, storage type `drive`,
+   client_id Enter, client_secret Enter, scope `2` (read-only), service account Enter, advanced
+   config `n`, web browser `y` (a browser opens: sign in and allow read-only), shared drive `n`,
+   keep this remote `y`, then `q`.
+4. Point it at your folder: `rclone config update gdrive root_folder_id "THE-FOLDER-ID"`
+5. Check it sees your files: `rclone lsf gdrive:`
+6. Switch it on for the night run:
+   `mkdir -p ~/.config/pricepulse && echo 'PP_DRIVE_REMOTE=gdrive:' >> ~/.config/pricepulse/env && chmod 600 ~/.config/pricepulse/env ~/.config/rclone/rclone.conf`
+7. Bring the code up to date and try it now: `cd ~/pricepulse && git pull --ff-only origin main && pp essentials`
+
+It prints one line per file, such as `essentials.csv: 120 added, 3 already there, 2 skipped`.
+Skipped rows are named with the reason. New items get prices after the next night run.
