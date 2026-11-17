@@ -86,7 +86,12 @@ await page.click("#idform button.btn");
 await page.waitForSelector(".pills");
 check(/3 free sessions left today/.test(await meter(page)), "meter before first lookup: " + await meter(page));
 const headH = await page.$eval("header", (h) => h.getBoundingClientRect().height);
-check(headH <= 125, "the top bar is compact (" + Math.round(headH) + "px tall)");
+check(headH <= 190, "the top bar is compact (" + Math.round(headH) + "px tall)");
+const rowsTop = await page.evaluate(() => ["base", "q"].map((id) => Math.round(document.getElementById(id).getBoundingClientRect().top)));
+check(rowsTop[1] > rowsTop[0] + 20, "the search box is on a line by itself under Town");
+const homeLink = await page.evaluate(() => { const a = document.querySelector("h1 a"); return a && a.getAttribute("href"); });
+check(homeLink === "#find", "the PricePulse ZA title is a link to the home page");
+check(await page.locator(".cat .circ svg").count() >= 4, "categories are soft circles with icons");
 check((await page.$eval("#q", (q) => q.getBoundingClientRect().width)) >= 110, "the search box is still wide enough to type in");
 
 // Three-dot menu once signed in: every section, sharing and the version check.
@@ -193,7 +198,10 @@ check(await page.locator(".town").count() >= 1, "towns tab shows town totals for
 
 // 4. Send to TrolleyUp.
 await page.getByRole("button", { name: /^List/ }).click();
-await page.getByRole("button", { name: "Send to TrolleyUp" }).click();
+check(await page.getByRole("button", { name: /^Send to TrolleyUp/ }).count() === 0, "nothing is sent until items are picked");
+await page.locator("button.tupick").first().click();
+check((await page.locator("button.tupick[aria-pressed=true]").count()) === 1, "the TrolleyUp icon picks an item");
+await page.getByRole("button", { name: /^Send to TrolleyUp/ }).click();
 const dl = page.waitForEvent("download");
 await page.getByRole("button", { name: "Make the file" }).click();
 const file = await dl;
@@ -326,10 +334,26 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   check(await adm.locator(".admtable tbody tr").count() > 0, "Store and type filters work together");
   await shot(adm, "11-admin-items");
   await adm.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed++; }; });
-  await adm.click('[data-adm="print"]');
+  await adm.click('[data-adm="preview"]');
+  await adm.waitForSelector('[data-adm="doprint"]');
+  check(/Print preview/.test(await adm.textContent("#main")), "Print this list opens a print preview first");
+  await adm.click('[data-adm="doprint"]');
   await adm.waitForFunction(() => window.__printed === 1);
-  check(await adm.evaluate(() => document.body.classList.contains("adm-print")), "Print button prepares the list for printing");
-  await adm.waitForFunction(() => !document.body.classList.contains("adm-print"), null, { timeout: 5000 });
+  check(true, "the Print button in the preview prints");
+  // What the printer gets: only the list. (The old rule hid the whole page, so nothing printed.)
+  await adm.emulateMedia({ media: "print" });
+  const pr = await adm.evaluate(() => {
+    const vis = (el) => !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().height > 0;
+    return { header: vis(document.querySelector("header")), nav: vis(document.querySelector("nav.tabs")), buttons: vis(document.querySelector('[data-adm="doprint"]')),
+      table: vis(document.querySelector(".admtable")), rows: document.querySelectorAll(".admtable tbody tr").length, title: vis(document.querySelector(".printtitle")) };
+  });
+  check(!pr.header && !pr.nav && !pr.buttons && pr.table && pr.title && pr.rows > 0, "printed page shows the title and the table only (" + JSON.stringify(pr) + ")");
+  const pdf = await adm.pdf({ format: "A4" });
+  check(pdf.length > 3000, "a PDF of the list can be made (" + pdf.length + " bytes)");
+  await adm.emulateMedia({ media: "screen" });
+  await adm.click('[data-adm="back"]');
+  await adm.waitForSelector('[data-adm="preview"]');
+  check(!(await adm.evaluate(() => document.body.classList.contains("adm-print"))), "Back to the list leaves print mode");
   const sm = await adm.evaluate(() => Math.min(...[...document.querySelectorAll("button, select, input")].filter((b) => b.offsetParent).map((b) => b.getBoundingClientRect().height)));
   check(sm >= 47.5, "Admin controls are at least 48px tall (" + sm.toFixed(1) + ")");
   await adm.click('[data-adm="tab"][data-tab="users"]');
