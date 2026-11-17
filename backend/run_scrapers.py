@@ -154,10 +154,16 @@ def scrape_store(
             found = check_items(found, health)
             if found:
                 health.terms_found += 1
-                have = {i.url for i in items if i.url}
-                items.extend(
-                    i for i in found if not (i.url and i.url in have)
-                )  # same product from two searches
+                by_url = {i.url: i for i in items if i.url}
+                for i in found:
+                    old = by_url.get(i.url) if i.url else None
+                    if old is None:
+                        items.append(i)
+                    elif i.rank and (not old.rank or i.rank < old.rank):
+                        old.term, old.rank = (
+                            i.term,
+                            i.rank,
+                        )  # same product from two searches: keep its best rank
                 for it in found:
                     if args.debug and shown < 5:
                         shown += 1

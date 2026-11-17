@@ -237,6 +237,11 @@ def ingest_items(
         store = get_or_create_store(session, store_name)
         listing = session.scalar(select(Listing).where(Listing.store_id == store.id, Listing.ident == ident))
         barcode = clean_barcode(row.get("barcode"))
+        try:
+            hit_rank = int(row.get("rank")) if row.get("rank") else None
+        except (TypeError, ValueError):
+            hit_rank = None
+        hit_term = str(row.get("term") or "").strip()[:80]
         if listing is None:
             norm = normalise(name, size_text, row.get("brand"))
             by_code = _barcode_product(session, None, barcode, store.id) if barcode else None
@@ -259,6 +264,8 @@ def ingest_items(
                 match_reason=result.reason,
                 suggestion_id=result.suggestion_id,
                 barcode=barcode,
+                hit_rank=hit_rank,
+                term=hit_term,
             )
             if by_code is not None:
                 listing.product_id = by_code.id
@@ -288,6 +295,8 @@ def ingest_items(
             listing.url = url or listing.url
             listing.category = category or listing.category
             listing.last_seen = utcnow()
+            if hit_rank:
+                listing.hit_rank, listing.term = hit_rank, hit_term
             if barcode and not listing.barcode:
                 listing.barcode = barcode
                 _join_by_barcode(session, listing, barcode, store.id, report)

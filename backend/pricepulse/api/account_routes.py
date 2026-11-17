@@ -14,7 +14,7 @@ from .. import accounts, payfast, trolleyup
 from ..auth import AuthError, Identity, make_verifier
 from ..db import AppUser, ItemRequest, Listing, Price, Product, Subscription, utcnow
 from ..money import from_cents
-from ..queries import ProductPrices, latest_prices
+from ..queries import ProductPrices, latest_prices, visible_clause
 from . import schemas as S
 
 log = logging.getLogger("pricepulse.api")
@@ -152,6 +152,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             .subquery()
         )
         stmt = select(Product, stores.c.n).join(stores, stores.c.product_id == Product.id)
+        stmt = stmt.where(visible_clause())  # extra search hits stay in the database, hidden
         if not adult:
             stmt = stmt.where(Product.category != accounts.LIQUOR)
         if category:

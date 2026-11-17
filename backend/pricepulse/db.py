@@ -68,6 +68,9 @@ class Product(Base):
     category: Mapped[str] = mapped_column(String(40), default="Groceries", index=True)
     norm_name: Mapped[str] = mapped_column(String(200), default="")
     is_generic: Mapped[bool] = mapped_column(Boolean, default=False)
+    visibility: Mapped[str] = mapped_column(
+        String(6), default="auto", server_default="auto"
+    )  # auto / show / hide (admin override)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     listings: Mapped[list[Listing]] = relationship(
         back_populates="product", foreign_keys="Listing.product_id"
@@ -88,6 +91,12 @@ class Listing(Base):
     url: Mapped[str] = mapped_column(String(400), default="")
     category: Mapped[str] = mapped_column(String(40), default="")
     barcode: Mapped[str] = mapped_column(String(20), default="", index=True)  # digits only, "" = unknown
+    hit_rank: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # 1 = best match for `term`; None = not known
+    term: Mapped[str] = mapped_column(
+        String(80), default="", server_default=""
+    )  # the search word that last found it
     match_status: Mapped[str] = mapped_column(String(20), default="new", index=True)
     match_score: Mapped[float] = mapped_column(Float, default=0)
     match_reason: Mapped[str] = mapped_column(String(200), default="")
@@ -275,6 +284,18 @@ def _m6_essentials(conn: Connection) -> None:
     Base.metadata.create_all(conn, tables=[EssentialItem.__table__])
 
 
+def _m7_visibility(conn: Connection) -> None:
+    """Search-hit rank and the admin show/hide switch (adds columns only; fresh databases have them)."""
+    lcols = {c["name"] for c in inspect(conn).get_columns("listing")}
+    if "hit_rank" not in lcols:
+        conn.execute(text("ALTER TABLE listing ADD COLUMN hit_rank INTEGER"))
+    if "term" not in lcols:
+        conn.execute(text("ALTER TABLE listing ADD COLUMN term VARCHAR(80) NOT NULL DEFAULT ''"))
+    pcols = {c["name"] for c in inspect(conn).get_columns("product")}
+    if "visibility" not in pcols:
+        conn.execute(text("ALTER TABLE product ADD COLUMN visibility VARCHAR(6) NOT NULL DEFAULT 'auto'"))
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
@@ -282,6 +303,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (4, "item requests", _m4_requests),
     (5, "admin flag", _m5_admin_flag),
     (6, "essential items", _m6_essentials),
+    (7, "search-hit rank and product visibility", _m7_visibility),
 ]
 
 

@@ -312,7 +312,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 13;
+var APP_VERSION = 14;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -1030,10 +1030,10 @@ document.addEventListener("keydown",function(e){
 });
 
 /* ---------- Admin area (admins only: the server refuses everyone else) ---------- */
-var ADM={tab:"overview",f:{store:"",category:"",q:""},data:{},err:"",timer:null,loading:null};
+var ADM={tab:"overview",f:{store:"",category:"",shown:"",q:""},data:{},err:"",timer:null,loading:null};
 var ADM_TABS=[["overview","Overview"],["items","Items"],["essentials","Essentials"],["users","Accounts"],["requests","Requests"],["settings","Settings"]];
 function admPath(tab){
-  if(tab==="items")return "/admin/items?"+qs({store:ADM.f.store,category:ADM.f.category,q:ADM.f.q.trim(),region:state.region});
+  if(tab==="items")return "/admin/items?"+qs({store:ADM.f.store,category:ADM.f.category,shown:ADM.f.shown||"",q:ADM.f.q.trim(),region:state.region});
   if(tab==="requests")return "/admin/requests?status="+encodeURIComponent(ADM.reqStatus||"open");
   return "/admin/"+tab;
 }
@@ -1067,7 +1067,7 @@ function viewAdmin(){
   if(!d)return h;
   if(tab==="overview"){
     var st=function(n,l){return '<div class="stat"><b>'+esc(n)+'</b>'+esc(l)+'</div>'};
-    h+='<div class="admgrid">'+st(d.accounts,"accounts")+st(d.age_checked,"age checked")+st(d.under_18,"under 18")+st(d.paying,"paying")+st(d.sessions_today,"lookup sessions today")+st(d.products,"products")+st(d.listings,"store listings")+st(d.sold_by_2plus_stores,"sold by 2+ stores")+st(d.needs_review,"waiting for review")+st(d.open_requests,"open item requests")+'</div>';
+    h+='<div class="admgrid">'+st(d.accounts,"accounts")+st(d.age_checked,"age checked")+st(d.under_18,"under 18")+st(d.paying,"paying")+st(d.sessions_today,"lookup sessions today")+st(d.products,"products")+st(d.products_shown,"shown to shoppers")+st(d.listings,"store listings")+st(d.sold_by_2plus_stores,"sold by 2+ stores")+st(d.needs_review,"waiting for review")+st(d.open_requests,"open item requests")+'</div>';
     h+='<h3 class="h2" style="font-size:1.25rem">Stores</h3><div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th class="num">Listings</th><th>Last good scrape</th></tr></thead><tbody>'+
       admRows(d.stores.map(function(r){return '<tr><td>'+esc(r.store)+'</td><td class="num">'+r.listings+'</td><td>'+esc(r.last_success?fmtDate(r.last_success):"never")+'</td></tr>'}),"No stores yet.")+'</tbody></table></div>';
   }else if(tab==="items"){
@@ -1075,14 +1075,13 @@ function viewAdmin(){
     var title='PricePulse items'+(ADM.f.store?' · '+ADM.f.store:' · all stores')+(ADM.f.category?' · '+ADM.f.category:' · all types')+(ADM.f.q?' · "'+ADM.f.q+'"':'')+' · '+rows.length+' items · '+fmtDate(new Date());
     h+='<div class="admbar noprint"><div><label for="admstore">Store</label><select id="admstore" data-admf="store">'+opt(d.stores,ADM.f.store,"All stores")+'</select></div>'+
       '<div><label for="admcat">Type</label><select id="admcat" data-admf="category">'+opt(d.categories,ADM.f.category,"All types")+'</select></div>'+
+      '<div><label for="admshown">Shoppers see</label><select id="admshown" data-admf="shown"><option value=""'+(ADM.f.shown===""?" selected":"")+'>All items</option><option value="yes"'+(ADM.f.shown==="yes"?" selected":"")+'>Shown items</option><option value="no"'+(ADM.f.shown==="no"?" selected":"")+'>Hidden items</option></select></div>'+
       '<div class="admfull"><label for="admq">Search name or barcode</label><input id="admq" type="search" data-admf="q" value="'+esc(ADM.f.q)+'" autocomplete="off"></div>'+
       '<button class="admbtn go" type="button" data-adm="preview">Print this list</button></div>'+
       '<p class="sub noprint" role="status">'+rows.length+' items'+(d.truncated?' (the list was cut short: choose a store or type)':'')+'. Prices are for '+esc(regionName(state.region))+'.</p>'+
       '<h2 class="printonly" style="font-size:12pt">'+esc(title)+'</h2>'+
-      '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th></tr></thead><tbody>'+
-      admRows(rows.map(function(r){
-        var price=r.price==null?'no price':money(r.promo!=null?r.promo:r.price)+(r.promo!=null?' <span class="sub2">(was '+money(r.price)+')</span>':'');
-        return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td></tr>'}),"No items match.")+'</tbody></table></div>';
+      '<p class="sub noprint">Shoppers see only each store\u2019s best match for each essential item. Hidden items stay in the system: tap <b>Show</b> to show one, or <b>Hide</b> to hide one.</p>'+
+      '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th><th class="noprint">Shoppers</th></tr></thead><tbody>'+admItemRows(rows,true)+'</tbody></table></div>';
   }else if(tab==="essentials"){
     h+='<p class="sub">Essential items are the words the app looks up in every store each night, so these items are always in the system with fresh prices. Add many at once from a CSV file: a column <b>item</b> and, if you like, a column <b>category</b> ('+d.categories.join(", ")+'). Items you approve under Requests are added here too. New items appear after the next overnight update.</p>'+
       '<div class="admbar noprint"><button class="admbtn go" type="button" data-adm="espick">Import a CSV file</button>'+
@@ -1114,10 +1113,16 @@ function viewAdmin(){
   }
   return h;
 }
-function admItemRows(rows){
+function admItemRows(rows,buttons){
   return admRows(rows.map(function(r){
     var price=r.price==null?'no price':money(r.promo!=null?r.promo:r.price)+(r.promo!=null?' <span class="sub2">(was '+money(r.price)+')</span>':'');
-    return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td></tr>'}),"No items match.");
+    var who='';
+    if(buttons){
+      var hid=!r.shown;
+      who='<td class="noprint">'+(hid?'Hidden':'Shown')+(r.visibility!=="auto"?' <span class="sub2">(by hand)</span>':(r.hit_rank?' <span class="sub2">(match '+r.hit_rank+')</span>':''))+
+        ' <button class="admbtn" type="button" data-adm="vis" data-pid="'+r.product_id+'" data-state="'+(hid?'show':'hide')+'" aria-label="'+(hid?'Show ':'Hide ')+esc(r.name)+(hid?' to shoppers':' from shoppers')+'">'+(hid?'Show':'Hide')+'</button></td>';
+    }
+    return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td>'+who+'</tr>'}),"No items match.");
 }
 function admPreview(d){
   var rows=d.items,title='PricePulse items'+(ADM.f.store?' \u00b7 '+ADM.f.store:' \u00b7 all stores')+(ADM.f.category?' \u00b7 '+ADM.f.category:' \u00b7 all types')+(ADM.f.q?' \u00b7 "'+ADM.f.q+'"':'')+' \u00b7 '+rows.length+' items \u00b7 '+fmtDate(new Date());
@@ -1187,6 +1192,12 @@ function admClick(t){
   if(d.adm==="esdownload"){var it=(ADM.data.essentials||{}).items||[];return admSaveFile("pricepulse-essential-items.csv","item,category\r\n"+it.map(function(r){return csvCell(r.term)+","+csvCell(r.category)}).join("\r\n")+"\r\n")}
   if(d.adm==="esremove"){ask("Remove this item?",'<p>Stop searching for <b>'+esc(d.term)+'</b> each night? Prices already collected stay.</p>',[["Remove it","esremove:"+d.id,"btn"],["Keep it","","btn alt"]]);return}
   if(d.adm==="tab"){ADM.preview=false;document.body.classList.remove("adm-print");ADM.tab=d.tab;ADM.err="";ADM.loading=null;renderMain();return admLoad()}
+  if(d.adm==="vis"){
+    t.disabled=true;
+    return api("POST","/admin/products/"+encodeURIComponent(d.pid)+"/visibility",{state:d.state}).then(function(){
+      say(d.state==="show"?"Shown to shoppers.":"Hidden from shoppers.");ADM.loading=null;admLoad();
+    }).catch(function(e){t.disabled=false;ask("Could not save",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+  }
   if(d.adm==="preview"){ADM.preview=true;renderMain();window.scrollTo(0,0);return}
   if(d.adm==="doprint")return void window.print();
   if(d.adm==="back"){ADM.preview=false;document.body.classList.remove("adm-print");renderMain();return}

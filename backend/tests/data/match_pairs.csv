@@ -88,3 +88,8 @@ nomatch,Hansa Pilsener Local Beer 6 x 330ml,,Castle Lager Local Beer 6 x 330ml,,
 nomatch,PnP Full Cream Milk 2L,,Clover Full Cream Milk 2L,,house brand milk is not Clover
 nomatch,Sugar Free Jelly 80g,,Jelly 80g,,sugar free is a different product
 nomatch,Tastic Rice 2kg,,Tastic Basmati Rice 2kg,,basmati is a different rice
+match,PnP Brown Mushrooms 250g,,Brown Mushrooms 250g,,real: house-brand produce
+match,Brown Mushrooms Punnet 250g,,Mushrooms Brown 250g,,punnet is packaging
+nomatch,Button Mushrooms 250g,,Brown Mushrooms 250g,,different kinds
+nomatch,Brown Mushrooms 250g,,Brown Mushrooms 500g,,different sizes
+nomatch,PnP Baby Onions 1kg,,Onions 1kg,,baby onions are not onions

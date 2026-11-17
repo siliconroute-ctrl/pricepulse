@@ -28,12 +28,17 @@ from ..db import (
     Subscription,
 )
 from ..money import from_cents
+from ..queries import visible_clause
 
 MAX_ITEM_ROWS = 6000
 
 
 class PlanIn(BaseModel):
     plan: str = Field(pattern="^(free|paid|tester)$")
+
+
+class VisibilityIn(BaseModel):
+    state: str = Field(pattern="^(auto|show|hide)$")
 
 
 class EssentialRowsIn(BaseModel):
@@ -93,6 +98,7 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
                 select(func.count()).select_from(LookupSession).where(LookupSession.day == today.isoformat())
             ),
             "products": s.scalar(select(func.count()).select_from(Product)),
+            "products_shown": s.scalar(select(func.count()).select_from(Product).where(visible_clause())),
             "listings": s.scalar(select(func.count()).select_from(Listing)),
             "sold_by_2plus_stores": len(multi),
             "needs_review": s.scalar(
@@ -110,10 +116,14 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         category: str = Query(""),
         q: str = Query("", max_length=80),
         region: str = Query("paarl"),
+        shown: str = Query("", pattern="^(|yes|no)$"),
         admin: AppUser = Depends(admin_dep),  # noqa: B008
         s: Session = Depends(ctx.db),  # noqa: B008
     ):
-        """Every listing, one line each, with its latest price. For the on-screen list and printing."""
+        """Every listing, one line each, with its latest price. For the on-screen list and printing.
+
+        ``shown`` limits it to what shoppers can see ("yes") or what is hidden from them ("no").
+        """
         ctx.check_region(region)
         latest = (
             select(Price.listing_id, func.max(Price.scraped_at).label("at"))
@@ -122,7 +132,7 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             .subquery()
         )
         stmt = (
-            select(Listing, Store.name, Product, Price)
+            select(Listing, Store.name, Product, Price, visible_clause().label("vis"))
             .join(Store, Store.id == Listing.store_id)
             .join(Product, Product.id == Listing.product_id)
             .outerjoin(latest, latest.c.listing_id == Listing.id)
@@ -138,13 +148,17 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             stmt = stmt.where(Store.name == store)
         if category:
             stmt = stmt.where(Product.category == category)
+        if shown == "yes":
+            stmt = stmt.where(visible_clause())
+        elif shown == "no":
+            stmt = stmt.where(~visible_clause())
         if q.strip():
             like = f"%{q.strip().lower()}%"
             stmt = stmt.where(func.lower(Listing.name).like(like) | func.lower(Listing.barcode).like(like))
         rows = s.execute(stmt.limit(MAX_ITEM_ROWS + 1)).all()
         truncated = len(rows) > MAX_ITEM_ROWS
         out = []
-        for lst, store_name, product, price in rows[:MAX_ITEM_ROWS]:
+        for lst, store_name, product, price, vis in rows[:MAX_ITEM_ROWS]:
             out.append(
                 {
                     "id": lst.id,
@@ -161,6 +175,10 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
                     "seen": price.scraped_at.isoformat() + "Z" if price else None,
                     "match": lst.match_status,
                     "url": lst.url,
+                    "shown": bool(vis),
+                    "visibility": product.visibility,
+                    "hit_rank": lst.hit_rank,
+                    "term": lst.term,
                 }
             )
         return {
@@ -171,6 +189,21 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
                 c for (c,) in s.execute(select(Product.category).distinct().order_by(Product.category)).all()
             ],
         }
+
+    @app.post(base + "/products/{product_id}/visibility", tags=["admin"])
+    def set_visibility(
+        product_id: int,
+        body: VisibilityIn,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """show = always shown, hide = never shown, auto = the rule (best match for a search word)."""
+        product = s.get(Product, product_id)
+        if product is None:
+            raise HTTPException(404, {"code": "not_found", "message": "No such product."})
+        product.visibility = body.state
+        s.commit()
+        return {"product_id": product_id, "visibility": body.state}
 
     @app.get(base + "/users", tags=["admin"])
     def users(admin: AppUser = Depends(admin_dep), s: Session = Depends(ctx.db)):  # noqa: B008

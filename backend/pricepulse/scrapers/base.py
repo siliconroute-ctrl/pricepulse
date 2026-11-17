@@ -21,6 +21,7 @@ from urllib.parse import quote_plus, urljoin
 from bs4 import BeautifulSoup
 
 from ..money import clean_price, is_suspect
+from ..ranking import rank_hits
 from ..sizes import split_size
 
 log = logging.getLogger("pricepulse.scraper")
@@ -70,18 +71,22 @@ class Item:
     special: bool = False  # on a special; the shop did not say what the usual price is
     in_stock: bool = True
     deal: str = ""  # a loyalty-card or multi-buy offer, as the shop words it; never mixed into price
+    term: str = ""  # the search word that found it
+    rank: int = 0  # 1 = the closest match to that search word, 2 = next, ... (0 = not ranked)
 
     def to_dict(self) -> dict:
         d = asdict(self)
         if d["promo_price"] is None:
             d.pop("promo_price")
-        for key in ("brand", "barcode", "store_ref", "deal"):
+        for key in ("brand", "barcode", "store_ref", "deal", "term"):
             if not d[key]:
                 d.pop(key)
         if not d["special"]:
             d.pop("special")
         if d["in_stock"]:
             d.pop("in_stock")
+        if not d["rank"]:
+            d.pop("rank")
         return d
 
 
@@ -687,8 +692,10 @@ class BaseScraper:
                 if not items and self.search_url:
                     items = self._search_page(page, term, category)
                 self.blocks = 0 if items else self.blocks
-                hits = [i for i in items if relevant(term, i.name)]
-                return hits[: self.per_term]
+                hits = rank_hits(term, [i for i in items if relevant(term, i.name)])[: self.per_term]
+                for position, hit in enumerate(hits, 1):
+                    hit.term, hit.rank = term[:80], position
+                return hits
             except (BlockedError, WrongAddressError):
                 raise
             except Exception as exc:  # noqa: BLE001

@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from .config import Settings
 from .db import AppUser, ItemRequest, LookupSession, Payment, Product, SessionItem, Subscription, utcnow
 from .ingest import SAST
+from .queries import visible_clause
 from .said import ADULT_AGE, check_id, fingerprint
 
 LIQUOR = "Liquor"
@@ -137,6 +138,11 @@ def add_item(
     if product.category == LIQUOR and not is_adult(user, today):
         raise RuleError("adult_only", "Liquor prices are only for people aged 18 and over.")
     sess = current_session(s, user.uid)
+    already = sess is not None and any(i.product_id == product_id for i in sess.items)
+    if not already and s.scalar(select(Product.id).where(Product.id == product_id, visible_clause())) is None:
+        raise RuleError(
+            "not_found", "That product was not found.", 404
+        )  # hidden by the admin or an extra hit
     if sess is not None:
         existing = next((i for i in sess.items if i.product_id == product_id), None)
         if existing is not None:
