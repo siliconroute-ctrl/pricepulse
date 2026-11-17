@@ -307,11 +307,18 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
     def export_trolleyup(
         region: str = Query("paarl"),
         mode: str = Query("split", pattern="^(split|single)$"),
+        ids: str = Query("", max_length=2000),
         user: AppUser = Depends(user_dep),  # noqa: B008
         s: Session = Depends(ctx.db),  # noqa: B008
     ):
-        """The list as a CSV file that TrolleyUp's "Import items from a CSV file" reads."""
+        """The picked items as a CSV file that TrolleyUp's "Import items from a CSV file" reads.
+
+        ``ids`` is the comma-separated product IDs the shopper picked: sending a shopping list
+        means sending what was picked, not everything looked up. Without ``ids`` it sends every
+        item on the list (kept so older copies of the app still work).
+        """
         ctx.check_region(region)
+        picked = {int(x) for x in ids.split(",") if x.strip().isdigit()} if ids.strip() else None
         out = session_out(s, s.merge(user), region)
         single = (
             out.basket.cheapest_single_store.store if out.basket and out.basket.cheapest_single_store else ""
@@ -321,6 +328,8 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             if not it.on_list:
                 continue
             p = it.product
+            if picked is not None and p.id not in picked:
+                continue
             row = (
                 next((x for x in p.prices if x.store == single), None)
                 if mode == "single" and single
@@ -332,7 +341,11 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             items.append(trolleyup.ExportItem(p.name, p.size, p.category, it.quantity, store, price))
         if not items:
             raise HTTPException(
-                404, {"code": "empty", "message": "Your list is empty. Look up some items first."}
+                404,
+                {
+                    "code": "empty",
+                    "message": "Nothing is picked yet. Tap the TrolleyUp icon on the items you want to send.",
+                },
             )
         today = accounts.sa_today()
         text = trolleyup.to_csv(items, f"{today.day} {today:%b}")

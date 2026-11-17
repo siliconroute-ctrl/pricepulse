@@ -48,14 +48,16 @@ header :focus-visible{outline-color:#fff}
 header .row{max-width:40rem;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
 h1{font-family:var(--font-display);font-size:1.55rem;line-height:1;margin:0;font-weight:700}
 .find-row{align-items:stretch;justify-content:flex-start}
-.find-row select{flex:none;width:7.6rem;background:#fff;color:#1d1415;border:2px solid #fff;border-radius:.5rem;padding:.3rem .4rem;min-height:3rem;font-weight:600}
+.homelink{color:inherit;text-decoration:none;display:inline-flex;align-items:center;min-height:3rem}
+.search-row{margin-top:.35rem}
+.find-row select{flex:1 1 auto;width:auto;max-width:14rem;background:#fff;color:#1d1415;border:2px solid #fff;border-radius:.5rem;padding:.3rem .4rem;min-height:3rem;font-weight:600}
 .locbtn{flex:none;min-height:3rem;min-width:3rem;border-radius:.5rem;border:2px solid #fff;background:transparent;color:#fff;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center}
 .locbtn svg{width:1.3rem;height:1.3rem;stroke:currentColor;fill:none;stroke-width:2}
 .search{flex:1;min-width:0}
 .search input{width:100%;min-height:3rem;padding:.5rem .7rem;border-radius:.6rem;border:2px solid transparent;background:#fff;color:#1d1415;font-size:1.06rem}
-.banner{border-radius:.7rem;padding:.6rem .8rem;margin:.7rem 0;border:2px solid var(--line);background:var(--card)}
+.banner{border-radius:.6rem;padding:.3rem .6rem;margin:.4rem 0;border:2px solid var(--line);background:var(--card);line-height:1.3}
 .banner.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--ink)}
-.banner b{display:block}
+.banner b{display:inline;margin-right:.3rem}
 .pills{display:flex;gap:.5rem;overflow-x:auto;padding:.8rem 0 .3rem;scrollbar-width:none}
 .pills::-webkit-scrollbar{display:none}
 .pill{flex:none;min-height:3rem;padding:.4rem 1rem;border-radius:999px;border:2px solid var(--line);background:var(--chip);font-weight:600}
@@ -210,8 +212,11 @@ body.plainhead .find-row,body.plainhead nav.tabs{display:none}
 .admbtn{min-height:3rem;padding:.4rem .9rem;border-radius:.6rem;border:2px solid var(--brand);background:var(--card);color:var(--ink);font-size:1rem;font-weight:650}
 .admbtn.go{background:var(--brand);color:var(--brand-ink)}
 .printonly{display:none}
+.printtitle{margin:.4rem 0;font-size:1.15rem}
 @media print{
-  body.adm-print>*:not(main){display:none!important}
+  body.adm-print header,body.adm-print nav.tabs,body.adm-print .menupop,body.adm-print dialog,body.adm-print .skip,body.adm-print #status,body.adm-print .disclaimer{display:none!important}
+  body.adm-print .wrap{max-width:none;margin:0}
+  body.adm-print{background:#fff;color:#000}
   body.adm-print main{padding:0;margin:0}
   body.adm-print .noprint{display:none!important}
   body.adm-print .printonly{display:block}
@@ -222,6 +227,28 @@ body.plainhead .find-row,body.plainhead nav.tabs{display:none}
   body.adm-print .admtable tr{break-inside:avoid}
   body.adm-print thead{display:table-header-group}
 }
+
+/* ---- Category circles (like the Sixty60 app) and the TrolleyUp pick ---- */
+:root{--f-all:#4a4eb0;--f-groceries:#a85200;--f-fresh:#1a7236;--f-liquor:#85268a;--f-health:#bb2457}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--f-all:#b5b8ff;--f-groceries:#ffc27a;--f-fresh:#8be3a3;--f-liquor:#f0b0f4;--f-health:#ffaac8}}
+:root[data-theme="dark"]{--f-all:#b5b8ff;--f-groceries:#ffc27a;--f-fresh:#8be3a3;--f-liquor:#f0b0f4;--f-health:#ffaac8}
+.cats{display:flex;gap:.35rem;overflow-x:auto;padding:.6rem 0 .3rem;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cat{flex:1 0 auto;min-width:3.9rem;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.25rem .15rem;background:transparent;border:0;color:var(--ink);font-weight:600;font-size:1rem;line-height:1.1;border-radius:.6rem}
+.cat .lbl{text-align:center;max-width:4.6rem}
+.cat .circ{width:3.3rem;height:3.3rem;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--fc) 16%,var(--card));border:3px solid transparent}
+.cat .circ svg{width:1.7rem;height:1.7rem;fill:none;stroke:var(--fc);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cat[aria-pressed="true"] .circ{border-color:var(--ink);background:color-mix(in srgb,var(--fc) 28%,var(--card))}
+.cat[aria-pressed="true"] .lbl{font-weight:800;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:4px}
+.cat-all{--fc:var(--f-all)}.cat-groceries{--fc:var(--f-groceries)}.cat-fresh{--fc:var(--f-fresh)}.cat-liquor{--fc:var(--f-liquor)}.cat-health{--fc:var(--f-health)}
+.cardfoot{display:flex;justify-content:flex-end;margin-top:.5rem}
+.tupick{display:inline-flex;align-items:center;gap:.4rem;min-height:3rem;padding:.2rem .7rem .2rem .3rem;border-radius:.7rem;border:2px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;font-size:.95rem}
+.tupick svg{width:2.2rem;height:2.2rem;border-radius:.5rem;flex:none}
+.tupick[aria-pressed="true"]{border-color:var(--best);background:var(--best-bg);color:var(--best)}
+.tupick[aria-pressed="true"] span::before{content:"\2713 "}
+.pickbar{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;border:2px solid var(--best);background:var(--best-bg);color:var(--best);border-radius:.7rem;padding:.4rem .7rem;margin:.5rem 0}
+.pickbar .btn{margin:0}
+.li .tupick{margin-left:auto}
 </style>
 </head>
 <body class="plainhead">
@@ -229,7 +256,7 @@ body.plainhead .find-row,body.plainhead nav.tabs{display:none}
 <div class="wrap">
 <header>
   <div class="row top">
-    <h1>PricePulse ZA</h1>
+    <h1><a class="homelink" href="#find" aria-label="PricePulse ZA, go to the home page">PricePulse ZA</a></h1>
     <button class="menubtn" id="menubtn" type="button" aria-label="Menu" aria-haspopup="true" aria-expanded="false" aria-controls="menupop">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
     </button>
@@ -240,6 +267,8 @@ body.plainhead .find-row,body.plainhead nav.tabs{display:none}
     <button class="locbtn" id="locate" type="button" aria-label="Use my location to choose the nearest town">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
     </button>
+  </div>
+  <div class="row search-row">
     <div class="search"><input id="q" type="search" placeholder="Search products" aria-label="Search products, for example milk" autocomplete="off" enterkeyhint="search"></div>
   </div>
 </header>
@@ -277,7 +306,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 10;
+var APP_VERSION = 11;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -299,8 +328,9 @@ var state = {
   view:"find", productId:null, cat:"All", q:"", region:"paarl", regions:FALLBACK_REGIONS.slice(),
   me:null, items:[], basket:null, stamp:null, isSample:false, savedAt:null, offline:false, error:"",
   found:null, finding:false, findErr:"", unitMode:false, radius:50, towns:null, detail:null, theme:"system",
-  signMode:"in", authErr:"", busy:false
+  signMode:"in", authErr:"", busy:false, picked:{}
 };
+try{state.picked=JSON.parse(localStorage.getItem("pp_picks")||"{}")||{}}catch(e){state.picked={}}
 
 /* ---------- Small helpers ---------- */
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
@@ -416,6 +446,7 @@ function applySession(s,fromCache){
   if(!fromCache){state.offline=false;state.error="";state.savedAt=new Date().toISOString();
     store("pp_session_"+state.region,{s:s,savedAt:state.savedAt})}
   state.towns=null;
+  if(typeof pruneToList==="function")pruneToList();
 }
 function findItem(id){return state.items.find(function(i){return i.p.id===id})}
 function onList(){return state.items.filter(function(i){return i.on})}
@@ -459,7 +490,7 @@ function banners(){
   if(state.offline)h+='<div class="banner warn" role="note"><b>'+(state.savedAt&&state.items.length?'Showing saved prices from '+esc(fmtDate(state.savedAt))+'.':'No connection.')+'</b>'+esc(state.error||"You are offline.")+' You can read your list, but looking up new items needs a connection.</div>';
   if(state.isSample)h+='<div class="banner warn" role="note"><b>Example prices.</b>The price server is running with test data, not real shelf prices.</div>';
   var o=oldestPrice();
-  if(o&&hoursOld(o)>STALE_HOURS)h+='<div class="banner warn" role="note"><b>Some prices are more than 2 days old.</b>They are marked "Old price". Check at the till.</div>';
+  if(o&&hoursOld(o)>STALE_HOURS)h+='<div class="banner warn" role="note"><b>Some prices are over 2 days old.</b>Marked "Old price". Check at the till.</div>';
   return h;
 }
 function disclaimer(){return '<p class="disclaimer">'+DISCLAIMER+'</p>'}
@@ -514,14 +545,48 @@ function runFind(now){
     });
   },now?0:350);
 }
+var TU_ICON='<svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" fill="#0b7a4b"/><g fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"><path d="M110 150h56l44 170h170l36-120H184"/></g><circle cx="232" cy="378" r="24" fill="#fff"/><circle cx="372" cy="378" r="24" fill="#fff"/><path d="M290 110l36-40 36 40" fill="none" stroke="#ff7a1a" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var CAT_ICONS={
+  All:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>',
+  Groceries:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18l-2 9H5z"/><path d="M8 10l3-5M16 10l-3-5"/><path d="M9 14v2M12 14v2M15 14v2"/></svg>',
+  Fresh:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8c-3-2-8-1-8 5 0 4 3 8 5 8 1.3 0 2-.6 3-.6s1.700.6 3 .6c2 0 5-4 5-8 0-6-5-7-8-5z"/><path d="M12 8c0-2 1-4 3-5"/></svg>',
+  Liquor:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10l-.7 6.500a4.300 4.300 0 01-8.600 0z"/><path d="M12 13.800V21M8 21h8"/></svg>',
+  "Health & Beauty":'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.400-7-10a4 4 0 017-2.500A4 4 0 0119 10c0 5.600-7 10-7 10z"/><path d="M12 9.500v5M9.500 12h5"/></svg>'
+};
+var CAT_CLASS={All:"all",Groceries:"groceries",Fresh:"fresh",Liquor:"liquor","Health & Beauty":"health"};
+function catCircles(cats){
+  return '<div class="pills cats" role="group" aria-label="Category">'+cats.map(function(c){
+    return '<button class="cat cat-'+(CAT_CLASS[c]||"all")+'" type="button" data-cat="'+esc(c)+'" aria-pressed="'+(state.cat===c)+'"><span class="circ">'+(CAT_ICONS[c]||CAT_ICONS.All)+'</span><span class="lbl">'+esc(c)+'</span></button>'}).join("")+'</div>';
+}
+function pickedIds(){return Object.keys(state.picked).filter(function(k){var it=findItem(+k);return state.picked[k]&&it&&it.on}).map(Number)}
+function pickBtn(id,name){
+  var on=!!state.picked[id];
+  return '<button class="tupick" type="button" data-pick="'+id+'" aria-pressed="'+on+'" aria-label="'+(on?'Picked for TrolleyUp: '+esc(name)+'. Tap to remove.':'Pick '+esc(name)+' to send to TrolleyUp')+'">'+TU_ICON+'<span>'+(on?'Picked':'Pick')+'</span></button>';
+}
+function pickBar(){
+  var n=pickedIds().length;
+  if(!n)return "";
+  return '<div class="pickbar" role="status"><span><b>'+n+(n===1?' item':' items')+' picked</b> for TrolleyUp</span><button class="btn" type="button" data-act="export">Send to TrolleyUp ('+n+')</button></div>';
+}
+function togglePick(id){
+  state.picked[id]=!state.picked[id];if(!state.picked[id])delete state.picked[id];
+  store("pp_picks",state.picked);
+  var it=findItem(id);
+  renderMain();
+  var b=document.querySelector('[data-pick="'+id+'"]');if(b)b.focus({preventScroll:true});
+  say((it?it.p.name+(state.picked[id]?" picked for TrolleyUp.":" taken off your TrolleyUp picks."):"")+" "+pickedIds().length+" picked.");
+}
+function pruneToList(){
+  var keep={};pickedIds().forEach(function(id){keep[id]=true});
+  if(Object.keys(keep).length!==Object.keys(state.picked).length){state.picked=keep;store("pp_picks",keep)}
+}
 function priceUnit(p,row){return row.unit||null}
 function viewFind(){
   var cats=CATS.filter(function(c){return c!=="Liquor"||(state.me&&state.me.adult)});
   var h=banners();
   var upd=newestPrice();
   if(upd)h+='<p class="size" style="margin:.5rem 0 0">Prices updated '+fmtDate(upd)+'</p>';
-  h+='<div class="pills" role="group" aria-label="Category">'+cats.map(function(c){
-    return '<button class="pill" type="button" data-cat="'+esc(c)+'" aria-pressed="'+(state.cat===c)+'">'+esc(c)+'</button>'}).join("")+'</div>';
+  h+=catCircles(cats)+pickBar();
   h+='<div class="seg" role="group" aria-label="Show prices as"><button type="button" data-unit="0" aria-pressed="'+!state.unitMode+'">Pack price</button><button type="button" data-unit="1" aria-pressed="'+state.unitMode+'">Per 100g / 100ml</button></div>';
   if(state.findErr)return h+'<div class="empty">'+esc(state.findErr)+' <button class="linkbtn" type="button" data-act="refind">Try again</button></div>'+disclaimer();
   var f=state.found;
@@ -574,7 +639,8 @@ function card(it){
       var shown=state.unitMode&&uu?money(uu.value)+' '+esc(uu.unit):money(eff(r));
       var diff=state.unitMode&&uu?'':' <span class="diff">'+money(eff(r)-eff(bp))+' more</span>';
       return '<li><span>'+badgeLink(s,r)+'</span><span><span class="p">'+shown+'</span>'+diff+oldTag(r)+'</span></li>'}).join("")+'</ul>':
-      '<div class="size" style="margin-top:.5rem">Only one store has this item.</div>')+'</article>';
+      '<div class="size" style="margin-top:.5rem">Only one store has this item.</div>')+
+    '<div class="cardfoot">'+pickBtn(p.id,p.name)+'</div></article>';
 }
 function lookUp(id){
   if(state.busy)return;state.busy=true;
@@ -689,7 +755,7 @@ function viewList(){
   if(list.length)h+='<div class="card">'+list.map(function(i){
     var nm=esc(i.p.name);
     return '<div class="li"><div class="n"><div style="font-weight:650"><a href="#product/'+i.p.id+'">'+nm+'</a></div><div class="size">'+esc(i.p.size)+'</div></div>'+
-      '<div class="qty"><button type="button" data-dec="'+i.p.id+'" aria-label="'+(i.q>1?'One fewer ':'Take off my list: ')+nm+'">−</button><b aria-label="Quantity">'+i.q+'</b><button type="button" data-inc="'+i.p.id+'" aria-label="One more '+nm+'">+</button></div></div>'}).join("")+'</div>';
+      '<div class="qty"><button type="button" data-dec="'+i.p.id+'" aria-label="'+(i.q>1?'One fewer ':'Take off my list: ')+nm+'">−</button><b aria-label="Quantity">'+i.q+'</b><button type="button" data-inc="'+i.p.id+'" aria-label="One more '+nm+'">+</button></div>'+pickBtn(i.p.id,i.p.name)+'</div>'}).join("")+'</div>';
   else h+='<div class="empty">Your list is empty, but this session still has looked-up items below.</div>';
   var b=state.basket;
   if(b&&list.length){
@@ -712,7 +778,11 @@ function viewList(){
     }
     if(b.not_found_product_ids.length)h+='<p class="sub" style="margin-top:.5rem">'+plural(b.not_found_product_ids.length,"item")+' on your list '+(b.not_found_product_ids.length===1?'has':'have')+' no price in '+esc(regionName(state.region))+' right now.</p>';
   }
-  if(list.length)h+='<div class="btns"><button class="btn" type="button" data-act="export">Send to TrolleyUp</button><button class="btn alt" type="button" data-act="share">Share list</button></div>';
+  if(list.length){
+    var np=pickedIds().length;
+    h+=np?pickBar():'<div class="card" style="margin-top:.7rem"><p style="margin:0"><b>Sending to TrolleyUp.</b> Tap the <b>TrolleyUp icon</b> on the items you want to buy. Only the items you pick are sent, so you can finish your shopping list without sending everything.</p></div>';
+    h+='<div class="btns"><button class="btn alt" type="button" data-act="share">Share list</button></div>';
+  }
   if(off.length)h+='<h2 class="h2" style="font-size:1.35rem">Looked up, not on my list</h2><div class="card">'+off.map(function(i){
     return '<div class="hrow"><div class="n"><b>'+esc(i.p.name)+'</b><span class="size">'+esc(i.p.size)+'</span></div><button class="add" type="button" data-toggle="'+i.p.id+'" aria-label="Put '+esc(i.p.name)+' on my list">+ List</button></div>'}).join("")+'</div>';
   h+='<h2 class="h2" style="font-size:1.35rem">This session</h2><div class="card"><p style="margin:0">'+esc(meterText())+'.</p><p class="sub" style="margin:.3rem 0 0">Items you look up stay counted even if you take them off the list. Clearing ends this session; your next lookup starts a new one'+(m&&m.plan!=="paid"?' ('+m.sessions_per_day+' free sessions a day)':'')+'.</p><div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-act="clear">Clear session</button></div></div>';
@@ -754,8 +824,9 @@ function clearSession(){
 
 /* ---------- Send to TrolleyUp ---------- */
 function exportDialog(){
-  var single=state.basket&&state.basket.cheapest_single_store;
-  ask("Send to TrolleyUp",'<p>This makes a file with your '+plural(onList().length,"item")+' that TrolleyUp can import into a shared shopping list.</p>'+
+  var single=state.basket&&state.basket.cheapest_single_store,n=pickedIds().length;
+  if(!n)return ask("Pick items first",'<p>Tap the <b>TrolleyUp icon</b> on the items you want to send. Only picked items go to TrolleyUp.</p>',[["OK","","btn"]]);
+  ask("Send to TrolleyUp",'<p>This makes a file with the '+plural(n,"item")+' you picked, to import into your TrolleyUp shopping list. Items you did not pick are not sent.</p>'+
     '<fieldset style="border:0;padding:0;margin:.6rem 0"><legend style="font-weight:650">Which store should each item go under?</legend>'+
     '<label class="check"><input type="radio" name="xmode" value="split" checked><span>The cheapest store for each item (split shop)</span></label>'+
     (single?'<label class="check"><input type="radio" name="xmode" value="single"><span>Everything at '+esc(single.store)+' (cheapest single store)</span></label>':'')+'</fieldset>'+
@@ -763,7 +834,7 @@ function exportDialog(){
 }
 function doExport(){
   var mode=(document.querySelector('input[name="xmode"]:checked')||{}).value||"split";
-  return api("GET","/session/export/trolleyup?"+qs({region:state.region,mode:mode})).then(function(r){
+  return api("GET","/session/export/trolleyup?"+qs({region:state.region,mode:mode,ids:pickedIds().join(",")})).then(function(r){
     var name=(/filename="([^"]+)"/.exec(r.headers.get("content-disposition")||"")||[])[1]||"pricepulse-for-trolleyup.csv";
     return r.blob().then(function(blob){
       var file=null;try{file=new File([blob],name,{type:"text/csv"})}catch(e){}
@@ -883,7 +954,7 @@ function howItWorks(){
     bub('<b>3. See every store\u2019s price</b>, cheapest first. Tap <b>+ List</b> to keep an item on your list.')+
     bub('Show me my shopping.',true)+
     bub('<b>4. Open List.</b> It shows what your whole list costs at the cheapest single store, or split across stores. <b>Towns</b> shows the total in each town.')+
-    bub('<b>5. Tap Send to TrolleyUp</b> to take your list into TrolleyUp.')+
+    bub('<b>5. Pick, then send.</b> Tap the green <b>TrolleyUp icon</b> on the items you want to buy, then tap <b>Send to TrolleyUp</b>. Only the picked items are sent.')+
     bub('What does it cost?',true)+
     bub('Free: <b>3 lookup sessions a day</b>, 45 items each. Unlimited sessions and items are <b>R99 a month</b> (see My account).')+
     bub('Liquor is only shown to people aged 18 and over.',false,'Prices come from the stores\u2019 websites and can differ in store. Always check at the till.')+
@@ -980,6 +1051,7 @@ function viewAdmin(){
     ADM_TABS.map(function(t){return '<button type="button" data-adm="tab" data-tab="'+t[0]+'" aria-pressed="'+(ADM.tab===t[0])+'">'+t[1]+'</button>'}).join("")+'</div>';
   if(ADM.err)h+='<div class="empty">'+esc(ADM.err)+'</div>';
   var tab=ADM.tab,d=ADM.data[tab];
+  if(ADM.preview&&tab==="items"&&d)return admPreview(d);
   if(!d&&!ADM.err)return h+'<p class="sub">Loading…</p>';
   if(!d)return h;
   if(tab==="overview"){
@@ -993,7 +1065,7 @@ function viewAdmin(){
     h+='<div class="admbar noprint"><div><label for="admstore">Store</label><select id="admstore" data-admf="store">'+opt(d.stores,ADM.f.store,"All stores")+'</select></div>'+
       '<div><label for="admcat">Type</label><select id="admcat" data-admf="category">'+opt(d.categories,ADM.f.category,"All types")+'</select></div>'+
       '<div class="admfull"><label for="admq">Search name or barcode</label><input id="admq" type="search" data-admf="q" value="'+esc(ADM.f.q)+'" autocomplete="off"></div>'+
-      '<button class="admbtn go" type="button" data-adm="print">Print this list</button></div>'+
+      '<button class="admbtn go" type="button" data-adm="preview">Print this list</button></div>'+
       '<p class="sub noprint" role="status">'+rows.length+' items'+(d.truncated?' (the list was cut short: choose a store or type)':'')+'. Prices are for '+esc(regionName(state.region))+'.</p>'+
       '<h2 class="printonly" style="font-size:12pt">'+esc(title)+'</h2>'+
       '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th></tr></thead><tbody>'+
@@ -1021,15 +1093,25 @@ function viewAdmin(){
   }
   return h;
 }
+function admItemRows(rows){
+  return admRows(rows.map(function(r){
+    var price=r.price==null?'no price':money(r.promo!=null?r.promo:r.price)+(r.promo!=null?' <span class="sub2">(was '+money(r.price)+')</span>':'');
+    return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td></tr>'}),"No items match.");
+}
+function admPreview(d){
+  var rows=d.items,title='PricePulse items'+(ADM.f.store?' \u00b7 '+ADM.f.store:' \u00b7 all stores')+(ADM.f.category?' \u00b7 '+ADM.f.category:' \u00b7 all types')+(ADM.f.q?' \u00b7 "'+ADM.f.q+'"':'')+' \u00b7 '+rows.length+' items \u00b7 '+fmtDate(new Date());
+  document.body.classList.add("adm-print");
+  return '<div class="noprint"><h2 class="h2">Print preview</h2><p class="sub">This is how the list will print. Tap <b>Print</b>, then choose your printer, or choose <b>Save as PDF</b>.</p>'+
+    '<div class="admbar"><button class="admbtn go" type="button" data-adm="doprint">Print</button><button class="admbtn" type="button" data-adm="back">Back to the list</button></div></div>'+
+    '<h2 class="printtitle">'+esc(title)+'</h2>'+
+    '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th></tr></thead><tbody>'+admItemRows(rows)+'</tbody></table></div>';
+}
 function admClick(t){
   var d=t.dataset;
-  if(d.adm==="tab"){ADM.tab=d.tab;ADM.err="";ADM.loading=null;renderMain();return admLoad()}
-  if(d.adm==="print"){
-    document.body.classList.add("adm-print");
-    var done=function(){document.body.classList.remove("adm-print");window.removeEventListener("afterprint",done)};
-    window.addEventListener("afterprint",done);
-    setTimeout(function(){window.print();setTimeout(done,1500)},50);return;
-  }
+  if(d.adm==="tab"){ADM.preview=false;document.body.classList.remove("adm-print");ADM.tab=d.tab;ADM.err="";ADM.loading=null;renderMain();return admLoad()}
+  if(d.adm==="preview"){ADM.preview=true;renderMain();window.scrollTo(0,0);return}
+  if(d.adm==="doprint")return void window.print();
+  if(d.adm==="back"){ADM.preview=false;document.body.classList.remove("adm-print");renderMain();return}
   if(d.adm==="reqshow"){ADM.reqStatus=d.status;ADM.loading=null;delete ADM.data.requests;renderMain();return admLoad()}
   if(d.adm==="reqset"){
     t.disabled=true;
@@ -1085,6 +1167,8 @@ function render(){
 }
 function go(v,focus){
   if(state.phase!=="app")return;
+  if(typeof ADM!=="undefined"&&ADM.preview){ADM.preview=false}
+  document.body.classList.remove("adm-print");
   if(v.indexOf("product/")===0){state.view="product";state.productId=+v.slice(8)}
   else if(v.indexOf("account")===0){state.view="account";if(v==="account/paid")afterPayment();if(v==="account/cancelled")say("Payment was cancelled. Nothing was charged.");v="account"}
   else if(v==="admin"&&state.me&&state.me.is_admin)state.view="admin";
@@ -1170,6 +1254,7 @@ document.addEventListener("click",function(e){
     return void setItem(i2.p.id,{quantity:nq}).then(function(){var b=document.querySelector('[data-'+(d.inc?'inc':'dec')+'="'+i2.p.id+'"]');if(b)b.focus();say(i2.p.name+": "+nq)});
   }
   if(d.adm)return admClick(t);
+  if(d.pick){return togglePick(+d.pick)}
   switch(d.act){
     case "google":return void Auth.google().catch(function(er){formState(document.getElementById("emailform"),false,er.message)});
     case "mode-in":state.signMode="in";state.authErr="";return renderMain();

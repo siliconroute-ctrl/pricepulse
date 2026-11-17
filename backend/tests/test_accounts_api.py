@@ -282,6 +282,21 @@ def test_trolleyup_export(client):
     assert "Castle Lite 24x340ml,1,Checkers LiquorShop,PricePulse price R 344.99" in single
 
 
+def test_trolleyup_export_sends_only_the_picked_items(client):
+    verify(client)
+    p = ids(client)
+    for name in ("Clover Full Cream Milk", "Albany Superior White Bread", "Castle Lite"):
+        add(client, p[name])
+    pick = f"{p['Albany Superior White Bread']},{p['Castle Lite']}"
+    r = client.get("/api/v1/session/export/trolleyup", params={"ids": pick}, headers=auth())
+    lines = r.text.lstrip("\ufeff").strip().split("\r\n")
+    assert len(lines) == 3 and not any("Clover" in x for x in lines)  # header + the two picked
+    assert any(x.startswith("Albany Superior White Bread 700g,1,") for x in lines)
+    # something that is not on the list cannot be sent, and nothing picked means nothing to send
+    nothing = client.get("/api/v1/session/export/trolleyup", params={"ids": "999999"}, headers=auth())
+    assert nothing.status_code == 404 and "Nothing is picked" in nothing.json()["detail"]["message"]
+
+
 def test_export_empty_list(client):
     verify(client)
     assert client.get("/api/v1/session/export/trolleyup", headers=auth()).status_code == 404
