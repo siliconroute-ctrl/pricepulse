@@ -14,7 +14,7 @@
 /* Layout: phone-first app shell. Sticky red header, scrolling content, fixed bottom nav.
    Sizes are in rem so the app follows the phone's text-size setting (1rem = 17px by default). */
 :root{
-  --bg:#f6f2f1; --card:#ffffff; --ink:#1d1415; --muted:#5a4d4e; --line:#d9cecd;
+  --bg:#d3d6da; --card:#ffffff; --ink:#1d1415; --muted:#5a4d4e; --line:#d9cecd;
   --brand:#b00d27; --brand-ink:#ffffff; --brand-text:#b00d27; --best:#08532a; --best-bg:#e1f2e6; --warn:#7a4f00; --warn-bg:#fff3d6;
   --item:#3f3738; --chip:#ece4e3; --chip-on:#1d1415; --chip-on-ink:#ffffff; --focus:#1d1415;
   --font-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
@@ -41,20 +41,22 @@ a{color:inherit}
 .skip{position:absolute;left:-9999px}.skip:focus{left:16px;top:8px;z-index:50;background:var(--card);padding:.5rem 1rem}
 .vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .wrap{max-width:40rem;margin:0 auto}
-header{position:sticky;top:0;z-index:10;background:var(--brand);color:var(--brand-ink);
-  margin-inline:calc(-1*max(16px,env(safe-area-inset-left,0px)));
+header{position:sticky;top:0;z-index:10;background:var(--bg);
+  margin-inline:calc(-1*max(16px,env(safe-area-inset-left,0px)))}
+header .apptop{background:var(--brand);color:var(--brand-ink);
   padding:calc(.2rem + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) .45rem max(16px,env(safe-area-inset-left,0px))}
-header :focus-visible{outline-color:#fff}
+header .findbar{padding:.45rem max(16px,env(safe-area-inset-right,0px)) .4rem max(16px,env(safe-area-inset-left,0px))}
+header .apptop :focus-visible{outline-color:#fff}
 header .row{max-width:40rem;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
 h1{font-family:var(--font-display);font-size:1.55rem;line-height:1;margin:0;font-weight:700}
 .find-row{align-items:stretch;justify-content:flex-start}
 .homelink{color:inherit;text-decoration:none;display:inline-flex;align-items:center;min-height:3rem}
-.search-row{margin-top:.35rem}
-.find-row select{flex:1 1 auto;width:auto;max-width:14rem;background:#fff;color:#1d1415;border:2px solid #fff;border-radius:.5rem;padding:.3rem .4rem;min-height:3rem;font-weight:600}
-.locbtn{flex:none;min-height:3rem;min-width:3rem;border-radius:.5rem;border:2px solid #fff;background:transparent;color:#fff;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center}
+header .search-row{margin-top:.6rem}
+.find-row select{flex:1 1 auto;width:auto;max-width:14rem;background:var(--card);color:var(--ink);border:2px solid var(--muted);border-radius:.5rem;padding:.3rem .4rem;min-height:3rem;font-weight:600}
+.locbtn{flex:none;min-height:3rem;min-width:3rem;border-radius:.5rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center}
 .locbtn svg{width:1.3rem;height:1.3rem;stroke:currentColor;fill:none;stroke-width:2}
 .search{flex:1;min-width:0}
-.search input{width:100%;min-height:3rem;padding:.5rem .7rem;border-radius:.6rem;border:2px solid transparent;background:#fff;color:#1d1415;font-size:1.06rem}
+.search input{width:100%;min-height:3rem;padding:.5rem .7rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.06rem}
 .banner{border-radius:.6rem;padding:.3rem .6rem;margin:.4rem 0;border:2px solid var(--line);background:var(--card);line-height:1.3}
 .banner.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--ink)}
 .banner b{display:inline;margin-right:.3rem}
@@ -119,12 +121,14 @@ pre{background:var(--card);border:1px solid var(--line);border-radius:.6rem;padd
 .legend li{display:flex;align-items:center;gap:.5rem;padding:.25rem 0}
 .legend svg{flex:none}
 .back{margin-top:.8rem}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--card);border-top:2px solid var(--line);
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--brand);border-top:2px solid var(--brand);
   padding:.35rem max(8px,env(safe-area-inset-right,0px)) calc(.35rem + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
 nav.tabs .in{max-width:40rem;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:.25rem}
-nav.tabs button{min-height:3.4rem;border:0;background:transparent;border-radius:.6rem;font-weight:650;font-size:.88rem;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
+nav.tabs button{min-height:3.4rem;border:0;background:transparent;border-radius:.6rem;font-weight:650;font-size:.88rem;color:var(--brand-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
 nav.tabs button svg{width:1.5rem;height:1.5rem;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-nav.tabs button[aria-current="page"]{color:var(--ink);background:var(--chip);box-shadow:inset 0 -3px 0 var(--brand)}
+nav.tabs button[aria-current="page"]{color:var(--brand-ink);background:rgba(255,255,255,.22);box-shadow:inset 0 -3px 0 #fff}
+nav.tabs :focus-visible{outline-color:#fff}
+nav.tabs .cnt{background:#fff;color:var(--brand)}
 .cnt{font-size:.76rem;background:var(--brand);color:var(--brand-ink);border-radius:999px;padding:0 .45rem;margin-left:.25rem}
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s}}
 /* --- Accounts, sessions and billing --- */
@@ -189,7 +193,7 @@ dialog.how:not([open]){display:none}
 :root[data-theme="dark"] .how .bub{background:#1f2c34;color:#f7eeee}
 :root[data-theme="dark"] .how .bub.me{background:#005c4b}
 :root[data-theme="dark"] .how .bub small{color:#cdbdbe}
-body.plainhead .find-row,body.plainhead nav.tabs{display:none}
+body.plainhead .findbar,body.plainhead nav.tabs{display:none}
 
 /* ---- Admin area ---- */
 .menupop:not([data-admin="1"]) [data-needs="admin"]{display:none}
@@ -234,10 +238,10 @@ body.plainhead .find-row,body.plainhead nav.tabs{display:none}
 :root[data-theme="dark"]{--f-all:#b5b8ff;--f-groceries:#ffc27a;--f-fresh:#8be3a3;--f-liquor:#f0b0f4;--f-health:#ffaac8}
 .cats{display:flex;gap:.35rem;overflow-x:auto;padding:.6rem 0 .3rem;scrollbar-width:none}
 .cats::-webkit-scrollbar{display:none}
-.cat{flex:1 0 auto;min-width:3.9rem;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.25rem .15rem;background:transparent;border:0;color:var(--ink);font-weight:600;font-size:1rem;line-height:1.1;border-radius:.6rem}
+.cat{flex:1 0 auto;min-width:3.5rem;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.25rem .15rem;background:transparent;border:0;color:var(--ink);font-weight:600;font-size:1rem;line-height:1.1;border-radius:.6rem}
 .cat .lbl{text-align:center;max-width:4.6rem}
-.cat .circ{width:3.3rem;height:3.3rem;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--fc) 16%,var(--card));border:3px solid transparent}
-.cat .circ svg{width:1.7rem;height:1.7rem;fill:none;stroke:var(--fc);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cat .circ{width:2.8rem;height:2.8rem;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--fc) 16%,var(--card));border:3px solid transparent}
+.cat .circ svg{width:1.45rem;height:1.45rem;fill:none;stroke:var(--fc);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .cat[aria-pressed="true"] .circ{border-color:var(--ink);background:color-mix(in srgb,var(--fc) 28%,var(--card))}
 .cat[aria-pressed="true"] .lbl{font-weight:800;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:4px}
 .cat-all{--fc:var(--f-all)}.cat-groceries{--fc:var(--f-groceries)}.cat-fresh{--fc:var(--f-fresh)}.cat-liquor{--fc:var(--f-liquor)}.cat-health{--fc:var(--f-health)}
@@ -255,12 +259,13 @@ body.plainhead .find-row,body.plainhead nav.tabs{display:none}
 <a class="skip" href="#main">Skip to content</a>
 <div class="wrap">
 <header>
-  <div class="row top">
+  <div class="apptop"><div class="row top">
     <h1><a class="homelink" href="#find" aria-label="PricePulse ZA, go to the home page">PricePulse ZA</a></h1>
     <button class="menubtn" id="menubtn" type="button" aria-label="Menu" aria-haspopup="true" aria-expanded="false" aria-controls="menupop">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
     </button>
-  </div>
+  </div></div>
+  <div class="findbar">
   <div class="row find-row">
     <label for="base" class="vh">Town</label>
     <select id="base"></select>
@@ -270,6 +275,7 @@ body.plainhead .find-row,body.plainhead nav.tabs{display:none}
   </div>
   <div class="row search-row">
     <div class="search"><input id="q" type="search" placeholder="Search products" aria-label="Search products, for example milk" autocomplete="off" enterkeyhint="search"></div>
+  </div>
   </div>
 </header>
 <div id="status" class="vh" role="status" aria-live="polite"></div>
@@ -306,7 +312,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 11;
+var APP_VERSION = 12;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -902,6 +908,11 @@ document.getElementById("dlg").addEventListener("click",function(e){
   if(a==="opentu"){window.open(TROLLEYUP_URL,"_blank","noopener");return}
   if(a==="doupdate"){b.disabled=true;return doUpdate()}
   if(a==="sendreq"){b.disabled=true;return sendRequest(b)}
+  if(a==="esimport")return esDoImport(b,d);
+  if(a.indexOf("esremove:")===0){
+    b.disabled=true;
+    return api("POST","/admin/essentials/remove",{id:+a.split(":")[1]}).then(function(){d.close();say("Item removed.");ADM.loading=null;admLoad()}).catch(function(e){d.close();ask("Could not remove",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+  }
   if(a.indexOf("admplan:")===0){
     var pp=a.split(":");b.disabled=true;
     return api("POST","/admin/users/"+encodeURIComponent(pp[1])+"/plan",{plan:pp[2]}).then(function(){d.close();say("Plan changed.");ADM.loading=null;admLoad()}).catch(function(e){d.close();ask("Could not change the plan",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
@@ -1020,7 +1031,7 @@ document.addEventListener("keydown",function(e){
 
 /* ---------- Admin area (admins only: the server refuses everyone else) ---------- */
 var ADM={tab:"overview",f:{store:"",category:"",q:""},data:{},err:"",timer:null,loading:null};
-var ADM_TABS=[["overview","Overview"],["items","Items"],["users","Accounts"],["requests","Requests"],["settings","Settings"]];
+var ADM_TABS=[["overview","Overview"],["items","Items"],["essentials","Essentials"],["users","Accounts"],["requests","Requests"],["settings","Settings"]];
 function admPath(tab){
   if(tab==="items")return "/admin/items?"+qs({store:ADM.f.store,category:ADM.f.category,q:ADM.f.q.trim(),region:state.region});
   if(tab==="requests")return "/admin/requests?status="+encodeURIComponent(ADM.reqStatus||"open");
@@ -1072,6 +1083,16 @@ function viewAdmin(){
       admRows(rows.map(function(r){
         var price=r.price==null?'no price':money(r.promo!=null?r.promo:r.price)+(r.promo!=null?' <span class="sub2">(was '+money(r.price)+')</span>':'');
         return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td></tr>'}),"No items match.")+'</tbody></table></div>';
+  }else if(tab==="essentials"){
+    h+='<p class="sub">Essential items are the words the app looks up in every store each night, so these items are always in the system with fresh prices. Add many at once from a CSV file: a column <b>item</b> and, if you like, a column <b>category</b> ('+d.categories.join(", ")+'). Items you approve under Requests are added here too. New items appear after the next overnight update.</p>'+
+      '<div class="admbar noprint"><button class="admbtn go" type="button" data-adm="espick">Import a CSV file</button>'+
+      '<input id="esfile" class="vh" type="file" accept=".csv,.txt,text/csv,text/plain" tabindex="-1" aria-hidden="true">'+
+      '<button class="admbtn" type="button" data-adm="esexample">Download an example file</button>'+
+      '<button class="admbtn" type="button" data-adm="esdownload">Download this list</button></div>'+
+      '<p class="sub" role="status">'+d.items.length+' essential items.</p>'+
+      '<div class="admwrap"><table class="admtable"><thead><tr><th>Item</th><th>Category</th><th>Added from</th><th>Remove</th></tr></thead><tbody>'+
+      admRows(d.items.map(function(r){
+        return '<tr><td>'+esc(r.term)+'</td><td>'+esc(r.category)+'</td><td>'+esc({csv:"CSV file",request:"A request",admin:"Admin"}[r.source]||r.source)+'</td><td><button class="admbtn" type="button" data-adm="esremove" data-id="'+r.id+'" data-term="'+esc(r.term)+'" aria-label="Remove '+esc(r.term)+' from the essential items">Remove</button></td></tr>'}),"No essential items yet. Import a CSV file to add some.")+'</tbody></table></div>';
   }else if(tab==="users"){
     h+='<p class="sub">'+d.total+' accounts'+(d.users.length<d.total?' (newest '+d.users.length+' shown)':'')+'. Accounts are shown by sign-in ID only: PricePulse keeps no names, emails or ID numbers.</p>'+
       '<div class="admwrap"><table class="admtable"><thead><tr><th>Account ID</th><th>Joined</th><th>Age check</th><th>Plan</th><th>Set plan</th></tr></thead><tbody>'+
@@ -1080,7 +1101,7 @@ function viewAdmin(){
         return '<tr><td><code>'+esc(u.uid)+'</code>'+(u.admin?' <b>(admin)</b>':'')+'</td><td>'+esc(fmtDate(u.created))+'</td><td>'+age+'</td><td>'+esc(u.plan)+(u.by_hand?' (by hand)':'')+(u.paid_until&&!u.by_hand?' until '+esc(fmtDate(u.paid_until)):'')+'</td>'+
           '<td><select aria-label="Plan for '+esc(u.uid)+'" data-admf="plan" data-uid="'+esc(u.uid)+'"><option value="">Choose…</option><option value="free">Free</option><option value="paid">Paid (unlimited)</option><option value="tester">Tester (unlimited)</option></select></td></tr>'}),"No accounts yet.")+'</tbody></table></div>';
   }else if(tab==="requests"){
-    h+='<p class="sub">What shoppers asked for that we do not list yet, most asked first. Add an accepted item to the search list on the scraper desktop with <b>pp requests --add "item"</b>, then tap <b>Mark added</b> here so the request closes.</p>'+
+    h+='<p class="sub">What shoppers asked for that we do not list yet, most asked first. Tap <b>Mark added</b> to put an item on the nightly search list (see Essentials); <b>Decline</b> closes it without adding.</p>'+
       '<div class="seg noprint" role="group" aria-label="Show requests" style="margin:.4rem 0">'+["open","added","declined"].map(function(x){return '<button type="button" data-adm="reqshow" data-status="'+x+'" aria-pressed="'+(d.status===x)+'">'+x[0].toUpperCase()+x.slice(1)+'</button>'}).join("")+'</div>'+
       '<div class="admwrap"><table class="admtable"><thead><tr><th>Item asked for</th><th class="num">People</th><th>Last asked</th><th>Action</th></tr></thead><tbody>'+
       admRows(d.requests.map(function(r){
@@ -1106,8 +1127,65 @@ function admPreview(d){
     '<h2 class="printtitle">'+esc(title)+'</h2>'+
     '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th></tr></thead><tbody>'+admItemRows(rows)+'</tbody></table></div>';
 }
+/* A small CSV reader: quotes, "" escapes, CRLF, BOM, and comma / semicolon / tab separators. */
+function parseCsv(text){
+  text=String(text).replace(/^\uFEFF/,"");
+  var first=text.split(/\r?\n/,1)[0]||"",sep=",";
+  [";","\t"].forEach(function(c){if(first.split(c).length>first.split(sep).length)sep=c});
+  var rows=[],row=[],cell="",q=false;
+  for(var i=0;i<text.length;i++){
+    var c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){cell+='"';i++}else q=false}else cell+=c}
+    else if(c==='"')q=true;
+    else if(c===sep){row.push(cell);cell=""}
+    else if(c==="\n"||c==="\r"){if(c==="\r"&&text[i+1]==="\n")i++;row.push(cell);cell="";if(row.some(function(x){return x.trim()}))rows.push(row);row=[]}
+    else cell+=c;
+  }
+  row.push(cell);if(row.some(function(x){return x.trim()}))rows.push(row);
+  return rows;
+}
+function essentialRows(text){
+  var rows=parseCsv(text);if(!rows.length)return [];
+  var head=rows[0].map(function(x){return x.trim().toLowerCase()});
+  var names=["item","item name","name","term","product","description"],cats=["category","type","department"];
+  var ic=-1,cc=-1;
+  head.forEach(function(h,i){if(ic<0&&names.indexOf(h)>=0)ic=i;if(cc<0&&cats.indexOf(h)>=0)cc=i});
+  var hasHead=ic>=0;
+  if(!hasHead){ic=0;cc=rows[0].length>1?1:-1}
+  return rows.slice(hasHead?1:0).map(function(r){return {term:(r[ic]||"").trim(),category:cc>=0?(r[cc]||"").trim():""}}).filter(function(r){return r.term});
+}
+function admSaveFile(name,text){
+  var blob=new Blob(["\uFEFF"+text],{type:"text/csv"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000);
+}
+function csvCell(v){v=String(v==null?"":v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function esFileChosen(file){
+  if(!file)return;
+  if(file.size>1000000)return ask("That file is too big",'<p>Please use a file under 1 MB (about 500 items at a time).</p>',[["OK","","btn"]]);
+  file.text().then(function(text){
+    var rows=essentialRows(text);
+    if(!rows.length)return ask("No items found",'<p>The file has no items. It needs a column called <b>item</b>, or the items in the first column, one per line.</p>',[["OK","","btn"]]);
+    if(rows.length>500)return ask("Too many items at once",'<p>The file has '+rows.length+' items. Please import up to 500 at a time.</p>',[["OK","","btn"]]);
+    ADM.pending=rows;
+    ask("Add these items?",'<p><b>'+rows.length+' items</b> found in <b>'+esc(file.name)+'</b>. The first few:</p><ul class="steps">'+rows.slice(0,6).map(function(r){return '<li>'+esc(r.term)+(r.category?' <span class="sub2">('+esc(r.category)+')</span>':'')+'</li>'}).join("")+'</ul><p class="sub">Items already on the list are skipped. Bad rows are reported, not added.</p>',[["Add "+rows.length+" items","esimport","btn"],["Cancel","","btn alt"]]);
+  }).catch(function(){ask("Could not read the file",'<p>Please choose a CSV or text file.</p>',[["OK","","btn"]])});
+}
+function esDoImport(btn,dlg){
+  var rows=ADM.pending||[];btn.disabled=true;
+  return api("POST","/admin/essentials/import",{rows:rows}).then(function(r){
+    ADM.pending=null;ADM.loading=null;delete ADM.data.essentials;
+    var bad=r.invalid.slice(0,6).map(function(x){return '<li>Row '+x.row+': '+esc(x.term||"(empty)")+' \u2013 '+esc(x.why)+'</li>'}).join("");
+    ask("Import finished",'<p><b>'+r.added+' added.</b> '+r.existing+' were already on the list.'+(r.invalid_count?' <b>'+r.invalid_count+' skipped</b>:':'')+'</p>'+(bad?'<ul class="steps">'+bad+'</ul>':'')+'<p class="sub">They are searched at the next overnight update.</p>',[["OK","","btn"]]);
+    say("Import finished: "+r.added+" added.");admLoad();
+  }).catch(function(e){dlg.close();ask("Could not import",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+}
 function admClick(t){
   var d=t.dataset;
+  if(d.adm==="espick"){var f=document.getElementById("esfile");if(f){f.value="";f.click()}return}
+  if(d.adm==="esexample")return admSaveFile("pricepulse-essential-items-example.csv","item,category\r\nwhite mushrooms 250g,Fresh\r\nKoo baked beans 410g,Groceries\r\nPanado tablets 24s,Health & Beauty\r\n");
+  if(d.adm==="esdownload"){var it=(ADM.data.essentials||{}).items||[];return admSaveFile("pricepulse-essential-items.csv","item,category\r\n"+it.map(function(r){return csvCell(r.term)+","+csvCell(r.category)}).join("\r\n")+"\r\n")}
+  if(d.adm==="esremove"){ask("Remove this item?",'<p>Stop searching for <b>'+esc(d.term)+'</b> each night? Prices already collected stay.</p>',[["Remove it","esremove:"+d.id,"btn"],["Keep it","","btn alt"]]);return}
   if(d.adm==="tab"){ADM.preview=false;document.body.classList.remove("adm-print");ADM.tab=d.tab;ADM.err="";ADM.loading=null;renderMain();return admLoad()}
   if(d.adm==="preview"){ADM.preview=true;renderMain();window.scrollTo(0,0);return}
   if(d.adm==="doprint")return void window.print();
@@ -1131,7 +1209,9 @@ function admField(el){
   clearTimeout(ADM.timer);
   ADM.timer=setTimeout(function(){ADM.loading=null;admLoad()},el.dataset.admf==="q"?350:0);
 }
-document.getElementById("main").addEventListener("change",function(e){if(e.target.dataset&&e.target.dataset.admf)admField(e.target)});
+document.getElementById("main").addEventListener("change",function(e){
+  if(e.target.id==="esfile")return esFileChosen(e.target.files&&e.target.files[0]);
+  if(e.target.dataset&&e.target.dataset.admf)admField(e.target)});
 document.getElementById("main").addEventListener("input",function(e){if(e.target.dataset&&e.target.dataset.admf==="q")admField(e.target)});
 
 /* ---------- Rendering and navigation ---------- */

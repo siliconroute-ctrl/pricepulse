@@ -86,12 +86,24 @@ await page.click("#idform button.btn");
 await page.waitForSelector(".pills");
 check(/3 free sessions left today/.test(await meter(page)), "meter before first lookup: " + await meter(page));
 const headH = await page.$eval("header", (h) => h.getBoundingClientRect().height);
-check(headH <= 190, "the top bar is compact (" + Math.round(headH) + "px tall)");
+check(headH <= 200, "the top bar is compact (" + Math.round(headH) + "px tall)");
 const rowsTop = await page.evaluate(() => ["base", "q"].map((id) => Math.round(document.getElementById(id).getBoundingClientRect().top)));
 check(rowsTop[1] > rowsTop[0] + 20, "the search box is on a line by itself under Town");
 const homeLink = await page.evaluate(() => { const a = document.querySelector("h1 a"); return a && a.getAttribute("href"); });
 check(homeLink === "#find", "the PricePulse ZA title is a link to the home page");
 check(await page.locator(".cat .circ svg").count() >= 4, "categories are soft circles with icons");
+const look = await page.evaluate(() => {
+  const css = (el, p) => getComputedStyle(el)[p];
+  const r = (el) => el.getBoundingClientRect();
+  const circ = r(document.querySelector(".cat .circ"));
+  return { bodyBg: css(document.body, "backgroundColor"), top: css(document.querySelector(".apptop"), "backgroundColor"), nav: css(document.querySelector("nav.tabs"), "backgroundColor"),
+    findbar: css(document.querySelector(".findbar"), "backgroundColor"), gap: r(document.getElementById("q")).top - r(document.getElementById("base")).bottom, circ: circ.width };
+});
+check(look.bodyBg === "rgb(211, 214, 218)", "the page is light charcoal (" + look.bodyBg + ")");
+check(look.top === "rgb(176, 13, 39)" && look.nav === "rgb(176, 13, 39)", "the title bar and the footer menu are red");
+check(look.findbar === "rgba(0, 0, 0, 0)", "the town and search blocks sit on the charcoal page, not on red");
+check(look.gap >= 8, "the search block is detached from the town block (" + Math.round(look.gap) + "px gap)");
+check(look.circ >= 46 && look.circ <= 50, "category circles are 15% smaller (" + Math.round(look.circ) + "px)");
 check((await page.$eval("#q", (q) => q.getBoundingClientRect().width)) >= 110, "the search box is still wide enough to type in");
 
 // Three-dot menu once signed in: every section, sharing and the version check.
@@ -366,6 +378,29 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await adm.click('[data-adm="tab"][data-tab="requests"]');
   await adm.waitForSelector(".admtable");
   check(/Item asked for/.test(await adm.textContent("#main")), "Admin requests tab opens");
+  await adm.click('[data-adm="tab"][data-tab="essentials"]');
+  await adm.waitForSelector('[data-adm="espick"]');
+  const csvText = "\uFEFFItem Name;Category\r\nWhite mushrooms 250g;Fresh\r\n\"Koo baked beans, 410g\";Groceries\r\nPanado tablets 24s;Health & Beauty\r\nx;Fresh\r\n";
+  await adm.setInputFiles("#esfile", { name: "essentials.csv", mimeType: "text/csv", buffer: Buffer.from(csvText, "utf8") });
+  await adm.waitForSelector("#dlg[open]");
+  check(/4 items/.test(await adm.textContent("#dlg")) && /White mushrooms/.test(await adm.textContent("#dlg")), "a CSV file (semicolons, quotes, BOM) is read and previewed");
+  await adm.click('#dlg button:has-text("Add 4 items")');
+  await adm.waitForFunction(() => /Import finished/.test(document.querySelector("#dlg").textContent));
+  const done = await adm.textContent("#dlg");
+  check(/3 added/.test(done) && /1 skipped/.test(done), "import adds the good rows and reports the bad one: " + done.replace(/\s+/g, " ").slice(0, 90));
+  await adm.click('#dlg button:has-text("OK")');
+  await adm.waitForFunction(() => document.querySelectorAll(".admtable tbody tr").length === 3);
+  check(/Koo baked beans, 410g/.test(await adm.textContent(".admtable")), "the essential items table lists what was imported");
+  await adm.setInputFiles("#esfile", { name: "again.csv", mimeType: "text/csv", buffer: Buffer.from("item\r\nwhite mushrooms 250g\r\n", "utf8") });
+  await adm.waitForSelector("#dlg[open]");
+  await adm.click('#dlg button:has-text("Add 1 items")');
+  await adm.waitForFunction(() => /0 added/.test(document.querySelector("#dlg").textContent));
+  check(true, "importing the same item again changes nothing");
+  await adm.click('#dlg button:has-text("OK")');
+  await adm.click('[data-adm="esremove"] >> nth=0');
+  await adm.click('#dlg button:has-text("Remove it")');
+  await adm.waitForFunction(() => document.querySelectorAll(".admtable tbody tr").length === 2);
+  check(true, "an essential item can be removed");
   await adm.click('[data-adm="tab"][data-tab="settings"]');
   await adm.waitForSelector(".admtable code");
   check(/PP_FREE_SESSIONS/.test(await adm.textContent("#main")), "Admin settings tab lists the settings");

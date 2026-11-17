@@ -27,6 +27,9 @@ echo "=== PricePulse night run started $(date '+%F %T') ==="
 # Pick up fixes and new product words (a pull that fails is not fatal: the old code still runs).
 git -C "$REPO" pull --ff-only || echo "(git pull did not work; carrying on with the code we have)"
 
+# Essential items added in the admin area (not fatal if the server cannot be reached).
+"$PY" fetch_terms.py || echo "(could not fetch the server's item list; using the last copy and products.txt)"
+
 "$PY" run_scrapers.py --no-db
 echo "--- scrape finished with code $? at $(date '+%T') ---"
 

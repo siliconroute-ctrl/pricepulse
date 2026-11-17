@@ -231,6 +231,19 @@ are never changed.
 4. Then `python admin.py report` shows the new match rate.
 To undo, put the backup copy back.
 
+## Essential items (admin area, Essentials tab)
+The words the app searches for every night. Add many at once: **Admin area, Essentials, Import a CSV
+file**. The file has a column `item` and, if you like, a column `category` (Groceries, Fresh,
+Health & Beauty, Liquor; blank means Groceries). Commas, semicolons or tabs work; use
+**Download an example file** for a starting point. Items already there are skipped, and bad rows are
+reported and not added. Up to 500 items per file.
+
+How it reaches the shelves: the night run on the Linux desktop first runs `fetch_terms.py`, which
+saves the server's list as `server_terms.txt`, and `run_scrapers.py` searches those words as well as
+the ones in `products.txt`. So an item imported today is searched tonight and has prices tomorrow
+morning, with no command to type. If the server cannot be reached the last copy is used. Approving a
+request (Admin area, Requests, Mark added) also puts its words on this list.
+
 ## Items shoppers ask for
 Shoppers send requests from the Find screen (**Request an item**).
 1. On the server, read them (most-asked first):
