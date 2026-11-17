@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from .db import Listing, Price, Product, ScrapeRun, Store
@@ -122,3 +122,19 @@ def last_success_per_store(session: Session) -> dict[str, ScrapeRun]:
     for r in runs:
         out.setdefault(r.store, r)
     return out
+
+
+def visible_clause():  # noqa: ANN201
+    """SQL test: is this product shown to shoppers?
+
+    The admin's choice wins ("show" / "hide"). Otherwise a product is hidden only when every one
+    of its listings is a lesser search hit (rank 2 or lower); it is shown when some store's listing
+    is the best match for a search word, or has no rank yet (loaded before ranking existed).
+    The hidden products stay in the database.
+    """
+    best_or_unknown = exists(
+        select(1)
+        .where(Listing.product_id == Product.id, or_(Listing.hit_rank.is_(None), Listing.hit_rank <= 1))
+        .correlate(Product)
+    )
+    return or_(Product.visibility == "show", and_(Product.visibility == "auto", best_or_unknown))

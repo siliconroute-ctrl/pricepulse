@@ -345,6 +345,18 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await adm.waitForTimeout(800);
   check(await adm.locator(".admtable tbody tr").count() > 0, "Store and type filters work together");
   await shot(adm, "11-admin-items");
+  // Hide one product from shoppers, see it under "Hidden items", show it again.
+  const firstName = (await adm.locator(".admtable tbody tr td:nth-child(2)").first().textContent()).trim();
+  await adm.click('[data-adm="vis"][data-state="hide"] >> nth=0');
+  await adm.waitForFunction(() => /Hidden/.test(document.querySelector(".admtable tbody tr").textContent));
+  await adm.selectOption("#admshown", "no");
+  await adm.waitForFunction(() => document.querySelectorAll(".admtable tbody tr").length === 1);
+  check(/Hidden/.test(await adm.textContent(".admtable tbody")) && (await adm.locator('[data-adm="vis"][data-state="show"]').count()) === 1, "an item can be hidden from shoppers and then found under Hidden items");
+  await adm.click('[data-adm="vis"][data-state="show"]');
+  await adm.waitForFunction(() => /No items match/.test(document.querySelector(".admtable tbody").textContent));
+  await adm.selectOption("#admshown", "");
+  await adm.waitForFunction(() => document.querySelectorAll(".admtable tbody tr").length > 0 && !/No items match/.test(document.querySelector(".admtable tbody").textContent));
+  check(firstName.length > 0, "the item is shown to shoppers again");
   await adm.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed++; }; });
   await adm.click('[data-adm="preview"]');
   await adm.waitForSelector('[data-adm="doprint"]');

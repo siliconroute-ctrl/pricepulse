@@ -105,3 +105,15 @@ Make an account an admin (on the Linux desktop; find the ID with `pp admin users
 pp admin admin-role <account-id> on
 ```
 `off` takes it away. The server answers "not found" to everyone else, so the area does not appear to exist.
+
+### What shoppers see (clean catalogue, app version 14)
+Each store's search for an essential item keeps up to three hits. The scraper ranks them by how close
+they are to the search word and size (rank 1 = closest). Shoppers see a product only when some store's
+best match for a word is that product (or when it has no rank yet, because it was loaded before ranking
+existed). The extra hits stay in the database, hidden. Rank is recorded the next night run after the
+update, so the catalogue tidies itself after that run.
+
+Admin area, Items: **Shoppers see** filter (All, Shown, Hidden) and a **Show / Hide** button on every
+line to override the rule by hand ("by hand" is marked). A product already on someone's list stays on it
+when hidden. House-brand and unbranded fresh produce (mushrooms, apples, onions...) are treated as the
+same item across stores, so they share one card.

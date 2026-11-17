@@ -296,6 +296,7 @@ MARKETING_WORDS = {
     "tray",
     "round",
     "chilled",
+    "punnet",
 }
 # Generic commodities can match across brands (store brand eggs vs loose eggs).
 GENERIC_WORDS = {
@@ -332,8 +333,52 @@ GENERIC_WORDS = {
     "beef",
     "lamb",
     "boerewors",
+    # more plain produce: house-brand and unbranded versions are the same item
+    "mushrooms",
+    "mushroom",
+    "grapes",
+    "grape",
+    "pears",
+    "pear",
+    "peaches",
+    "peach",
+    "plums",
+    "plum",
+    "naartjies",
+    "naartjie",
+    "mangoes",
+    "mango",
+    "pineapple",
+    "strawberries",
+    "strawberry",
+    "blueberries",
+    "broccoli",
+    "cauliflower",
+    "beetroot",
+    "garlic",
+    "ginger",
+    "sweetcorn",
+    "celery",
+    "leeks",
+    "leek",
+    "gem",
+    "squash",
+    "marrow",
+    "baby",
 }
-GENERIC_STOP = {"large", "medium", "small", "extra", "fresh", "golden", "delicious"}
+GENERIC_STOP = {
+    "large",
+    "medium",
+    "small",
+    "extra",
+    "fresh",
+    "golden",
+    "delicious",
+    "brown",
+    "button",
+    "punnet",
+    "sliced",
+}
 # Extra words that describe the product type without changing it. "Castle Lite" and
 # "Castle Lite Beer" are the same; "Coca-Cola" and "Coca-Cola No Sugar" are not.
 DESCRIPTOR_WORDS = {
