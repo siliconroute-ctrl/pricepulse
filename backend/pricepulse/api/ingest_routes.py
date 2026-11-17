@@ -17,6 +17,7 @@ from collections import defaultdict, deque
 from datetime import timedelta
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
@@ -61,6 +62,14 @@ def register_ingest_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001
             q.append(now)
             log.warning("Price upload refused: wrong or missing token from %s", ip)
             raise HTTPException(401, "Wrong or missing upload token.")
+
+    @app.get("/api/v1/ingest/terms", include_in_schema=False, dependencies=[Depends(check_token)])
+    def ingest_terms(s: Session = Depends(ctx.db)):  # noqa: B008
+        """The essential search words, for the scraper machine (same upload token as the prices)."""
+        from ..db import EssentialItem
+
+        rows = s.scalars(select(EssentialItem).order_by(EssentialItem.category, EssentialItem.term)).all()
+        return {"terms": [{"term": r.term, "category": r.category} for r in rows]}
 
     @app.post("/api/v1/ingest/prices", include_in_schema=False, dependencies=[Depends(check_token)])
     async def ingest_prices(request: Request, s: Session = Depends(ctx.db)):  # noqa: B008

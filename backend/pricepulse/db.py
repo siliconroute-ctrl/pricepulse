@@ -216,6 +216,18 @@ class ItemRequest(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
+class EssentialItem(Base):
+    """A search word list the scrapers look up every night (added by the owner in the admin area)."""
+
+    __tablename__ = "essential_item"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    term: Mapped[str] = mapped_column(String(80))
+    key: Mapped[str] = mapped_column(String(80), unique=True, index=True)  # lower-case
+    category: Mapped[str] = mapped_column(String(40), default="Groceries")
+    source: Mapped[str] = mapped_column(String(20), default="admin")  # csv / request / admin
+    added_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
 class SchemaVersion(Base):
     __tablename__ = "schema_version"
     version: Mapped[int] = mapped_column(primary_key=True)
@@ -258,12 +270,18 @@ def _m5_admin_flag(conn: Connection) -> None:
         conn.execute(text("ALTER TABLE app_user ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0"))
 
 
+def _m6_essentials(conn: Connection) -> None:
+    """Essential items (adds one table only)."""
+    Base.metadata.create_all(conn, tables=[EssentialItem.__table__])
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
     (3, "listing barcode", _m3_barcode),
     (4, "item requests", _m4_requests),
     (5, "admin flag", _m5_admin_flag),
+    (6, "essential items", _m6_essentials),
 ]
 
 

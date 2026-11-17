@@ -12,9 +12,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from .. import essentials
 from ..accounts import TESTER, is_paid, sa_today
 from ..db import (
     AppUser,
+    EssentialItem,
     ItemRequest,
     Listing,
     LookupSession,
@@ -32,6 +34,14 @@ MAX_ITEM_ROWS = 6000
 
 class PlanIn(BaseModel):
     plan: str = Field(pattern="^(free|paid|tester)$")
+
+
+class EssentialRowsIn(BaseModel):
+    rows: list[dict] = Field(max_length=essentials.MAX_ROWS)
+
+
+class EssentialRemoveIn(BaseModel):
+    id: int
 
 
 class RequestStatusIn(BaseModel):
@@ -238,8 +248,64 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         rows = s.scalars(select(ItemRequest).where(ItemRequest.key == key)).all()
         for r in rows:
             r.status = body.status
+        added = False
+        if body.status == "added" and rows:
+            # Approving a request puts the wording on the nightly search list straight away.
+            added = (
+                essentials.add_terms(s, [{"term": rows[0].term, "category": "Groceries"}], "request").added
+                > 0
+            )
         s.commit()
-        return {"term": body.term, "status": body.status, "changed": len(rows)}
+        return {"term": body.term, "status": body.status, "changed": len(rows), "search_list": added}
+
+    @app.get(base + "/essentials", tags=["admin"])
+    def essentials_list(admin: AppUser = Depends(admin_dep), s: Session = Depends(ctx.db)):  # noqa: B008
+        rows = s.scalars(select(EssentialItem).order_by(EssentialItem.category, EssentialItem.term)).all()
+        return {
+            "categories": essentials.CATEGORIES,
+            "max_rows": essentials.MAX_ROWS,
+            "items": [
+                {
+                    "id": r.id,
+                    "term": r.term,
+                    "category": r.category,
+                    "source": r.source,
+                    "added": r.added_at.isoformat() + "Z",
+                }
+                for r in rows
+            ],
+        }
+
+    @app.post(base + "/essentials/import", tags=["admin"])
+    def essentials_import(
+        body: EssentialRowsIn,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """Add many search words at once (the CSV file is read in the app; only clean rows get in)."""
+        if not body.rows:
+            raise HTTPException(422, {"code": "empty", "message": "The file has no items."})
+        result = essentials.add_terms(s, body.rows, "csv")
+        s.commit()
+        return {
+            "added": result.added,
+            "existing": result.existing,
+            "invalid": result.invalid[:50],
+            "invalid_count": len(result.invalid),
+        }
+
+    @app.post(base + "/essentials/remove", tags=["admin"])
+    def essentials_remove(
+        body: EssentialRemoveIn,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        row = s.get(EssentialItem, body.id)
+        if row is None:
+            raise HTTPException(404, {"code": "not_found", "message": "That item is not on the list."})
+        s.delete(row)
+        s.commit()
+        return {"removed": body.id}
 
     @app.get(base + "/settings", tags=["admin"])
     def settings_view(admin: AppUser = Depends(admin_dep), s: Session = Depends(ctx.db)):  # noqa: B008

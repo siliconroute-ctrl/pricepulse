@@ -66,12 +66,26 @@ def filter_terms(terms: list[tuple[str, str]], category: str | None) -> list[tup
 
 
 def choose_terms(
-    products_file: Path, category: str | None, explicit: list[str] | None
+    products_file: Path,
+    category: str | None,
+    explicit: list[str] | None,
+    server_file: Path | None = None,
 ) -> list[tuple[str, str]]:
-    """Search terms to use: ones typed with --term, else products.txt (optionally one category)."""
+    """Search terms to use: ones typed with --term, else products.txt plus the server's list.
+
+    The server's list (essential items added in the admin area, saved by fetch_terms.py) adds
+    words that products.txt does not have; a word in both is searched once, with products.txt's category.
+    """
     if explicit:
         return [(t.strip(), category or "Groceries") for t in explicit if t.strip()]
-    return filter_terms(read_terms(products_file), category)
+    terms = read_terms(products_file)
+    if server_file is not None and server_file.exists():
+        have = {t.lower() for t, _ in terms}
+        for term, cat in read_terms(server_file):
+            if term.lower() not in have:
+                have.add(term.lower())
+                terms.append((term, cat))
+    return filter_terms(terms, category)
 
 
 def write_atomic(path: Path, data: dict) -> None:
@@ -200,7 +214,9 @@ def run_once(args) -> int:
     """One full run. Returns 0 when at least one store worked."""
     settings = get_settings()
     regions = load_regions(str(settings.regions_file))
-    terms = choose_terms(Path(args.products), args.category, args.term)
+    terms = choose_terms(
+        Path(args.products), args.category, args.term, settings.data_dir / "server_terms.txt"
+    )
     if not terms:
         print(f"No search terms in category '{args.category}'. See the '# category:' lines in products.txt.")
         return 2
