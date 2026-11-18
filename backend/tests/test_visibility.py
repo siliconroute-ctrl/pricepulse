@@ -169,3 +169,11 @@ def test_migration_7_adds_the_columns_to_an_old_database(tmp_path):
         c.execute(text("SELECT hit_rank, term FROM listing"))
         c.execute(text("SELECT visibility FROM product"))
     assert migrate(engine) == []
+
+
+def test_front_screen_numbers_come_with_the_catalogue(api):
+    r = api.get("/api/v1/catalogue", params={"limit": 1}, headers=auth("alice")).json()
+    assert r["total"] >= 2 and len(r["items"]) == 1  # the count is of every product shoppers can see
+    assert r["stores"] == 2 and r["updated"]  # Checkers and Pick n Pay have prices; newest price date
+    nothing = api.get("/api/v1/catalogue", params={"q": "zzzz", "limit": 1}, headers=auth("alice")).json()
+    assert nothing["total"] == 0 and nothing["stores"] == 2
