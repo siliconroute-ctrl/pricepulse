@@ -228,3 +228,102 @@ def test_rematch_rereads_the_matching_words_so_old_products_join_under_new_rules
     rep = rematch(session, settings)
     assert rep.joined == 1 and products(session) == 1
     assert rep.refreshed >= 2  # the stored words were re-read
+
+
+def test_rematch_merges_products_that_already_hold_several_listings(session, settings):
+    from pricepulse.db import get_or_create_store
+    from pricepulse.ingest import rematch
+
+    def product_with(stores, name):
+        p = Product(
+            name=name,
+            size_text="250g",
+            size_key="1x250g",
+            unit="g",
+            qty=250,
+            category="Fresh",
+            brand_key="",
+            norm_name="brown mushroom",
+            is_generic=True,
+        )
+        session.add(p)
+        session.flush()
+        for store in stores:
+            st = get_or_create_store(session, store)
+            session.add(
+                Listing(
+                    store_id=st.id,
+                    ident=f"{store}|{name}",
+                    name=name,
+                    size_text="250g",
+                    product_id=p.id,
+                    match_status="new",
+                )
+            )
+        session.flush()
+        return p
+
+    product_with(["Checkers", "Woolworths"], "Brown Mushrooms")  # two listings already
+    product_with(
+        ["Pick n Pay", "Dis-Chem"], "PnP Brown Mushrooms"
+    )  # two listings: the single-listing rule cannot reach it
+    assert products(session) == 2
+    rep = rematch(session, settings)
+    assert rep.merged == 1 and products(session) == 1
+    assert session.scalar(select(func.count(func.distinct(Listing.store_id)))) == 4
+
+
+def test_merge_never_joins_products_that_share_a_store_or_were_decided_by_hand(session, settings):
+    from pricepulse.ingest import rematch
+
+    rows = [
+        row("Checkers", "Brown Mushrooms 250g", 39.99, url="https://c.example/1"),
+        row("Checkers", "Brown Mushrooms Pack 250g", 41.0, url="https://c.example/2"),
+    ]
+    ingest_items(session, rows, "paarl", T, settings)
+    before = products(session)
+    rematch(session, settings)
+    assert products(session) == before  # one store never sells one product twice
+
+    ingest_items(
+        session,
+        [row("Woolworths", "Brown Mushrooms 250g", 41.99, url="https://w.example/3")],
+        "paarl",
+        T,
+        settings,
+    )
+    for lst in session.scalars(select(Listing)).all():
+        lst.match_status = "manual"
+    session.flush()
+    n = products(session)
+    rematch(session, settings)
+    assert products(session) == n  # the owner's answers stay as they are
+
+
+def test_plain_produce_cards_carry_no_house_brand_label(session, settings):
+    from pricepulse.ingest import rematch
+
+    ingest_items(
+        session,
+        [
+            row("Pick n Pay", "PnP Brown Mushrooms 250g", 39.99),
+            row("Checkers", "Brown Mushrooms 250g", 39.99),
+            row("Pick n Pay", "PnP Full Cream Milk 2L", 30.0),
+        ],
+        "paarl",
+        T,
+        settings,
+    )
+    names = {p.name for p in session.scalars(select(Product)).all()}
+    assert "Brown Mushrooms" in names and not any(n.startswith("PnP Brown") for n in names)
+    assert any(
+        n.startswith("PnP Full Cream Milk") for n in names
+    )  # a house-brand milk is a different product
+    # an older card that still carries the label is cleaned by rematch
+    mush = session.scalars(select(Product).where(Product.name == "Brown Mushrooms")).one()
+    mush.name, mush.brand = "PnP Brown Mushrooms", "Pnp"
+    session.flush()
+    rematch(session, settings)
+    assert (
+        session.get(Product, mush.id).name == "Brown Mushrooms" and session.get(Product, mush.id).brand == ""
+    )

@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from .config import Settings
 from .db import Listing, Price, Product, ScrapeRun, SessionItem, get_or_create_store, slot_for, utcnow
-from .matching import Candidate, Normalised, match, normalise
+from .matching import HOUSE_BRANDS, Candidate, Normalised, compatible, match, neutral_name, normalise, score
 from .money import clean_price, to_cents
 from .sizes import Size, split_size
 
@@ -183,10 +183,13 @@ def display_name(name: str, size_text: str) -> str:
 
 def _new_product(session: Session, name: str, size_text: str, category: str, norm: Normalised) -> Product:
     display = display_name(name, size_text)
+    house_produce = norm.generic and norm.brand in HOUSE_BRANDS
+    if house_produce:
+        display = neutral_name(display)
     s = norm.size
     p = Product(
         name=display or name,
-        brand=norm.brand.title() if norm.brand else "",
+        brand="" if house_produce else (norm.brand.title() if norm.brand else ""),
         brand_key=norm.brand,
         size_text=size_text,
         size_key=norm.size_key,
@@ -341,13 +344,14 @@ class RematchReport:
     refreshed: int = 0  # products whose size was read again and changed
     joined: int = 0  # single-listing products folded into another store's product
     joined_by_barcode: int = 0
+    merged: int = 0  # products that already held several listings, folded into another store's product
     review_before: int = 0
     review_after: int = 0
 
     def summary(self) -> str:
         return (
-            f"{self.refreshed} product sizes re-read, {self.joined} products joined "
-            f"({self.joined_by_barcode} by barcode), "
+            f"{self.refreshed} product records refreshed, {self.joined} products joined "
+            f"({self.joined_by_barcode} by barcode), {self.merged} merged, "
             f"review queue {self.review_before} -> {self.review_after}."
         )
 
@@ -436,6 +440,12 @@ def rematch(session: Session, settings: Settings) -> RematchReport:
             lst.match_status, lst.match_score = result.status, result.score
             lst.match_reason, lst.suggestion_id = result.reason, result.suggestion_id
     session.flush()
+    _merge_pass(session, settings, rep)
+    for p in session.scalars(select(Product).where(Product.is_generic.is_(True))).all():
+        if p.brand_key in HOUSE_BRANDS:  # a shared card for plain produce carries no store label
+            tidy = neutral_name(p.name)
+            if tidy != p.name or p.brand:
+                p.name, p.brand = tidy, ""
     rep.review_after = (
         session.scalar(
             select(func.count()).select_from(Listing).where(Listing.match_status == "needs_review")
@@ -443,6 +453,55 @@ def rematch(session: Session, settings: Settings) -> RematchReport:
         or 0
     )
     return rep
+
+
+def _same_item(a: Normalised, b: Normalised, auto: float) -> bool:
+    """Would the matcher join these two without asking? (Same rules as ``match``.)"""
+    if not compatible(a, b):
+        return False
+    if a.key == b.key:
+        return True
+    if not (a.brand or a.generic):
+        return False  # unknown brand: only an identical name is safe
+    return score(a, b) >= auto
+
+
+def _merge_pass(session: Session, settings: Settings, rep: RematchReport) -> None:
+    """Fold together products that sell the same item in different stores, even when they already
+    hold several listings. A product is never merged with another that shares a store (a store does
+    not sell one product twice), and products holding an answer the owner gave by hand are left alone.
+    """
+    groups: dict[str, list[Product]] = {}
+    for p in session.scalars(select(Product).order_by(Product.id)).all():
+        if p.size_key and p.listings:
+            groups.setdefault(p.size_key, []).append(p)
+    for group in groups.values():
+        changed = True
+        while changed:
+            changed = False
+            alive = [p for p in group if session.get(Product, p.id) is not None]
+            for i, a in enumerate(alive):
+                for b in alive[i + 1 :]:
+                    if session.get(Product, b.id) is None or session.get(Product, a.id) is None:
+                        continue
+                    la, lb = list(a.listings), list(b.listings)
+                    if not la or not lb or {x.store_id for x in la} & {x.store_id for x in lb}:
+                        continue
+                    if any(x.match_status == "manual" for x in la + lb):
+                        continue
+                    if not _same_item(_norm_from_product(a), _norm_from_product(b), settings.match_auto):
+                        continue
+                    for x in lb:
+                        x.product_id = a.id
+                        x.match_status, x.suggestion_id = "fuzzy", None
+                        x.match_reason = "merged by rematch"
+                    session.flush()
+                    session.expire(a)
+                    session.expire(b)
+                    _retire_product(session, b.id, a.id)
+                    rep.merged += 1
+                    changed = True
+        session.flush()
 
 
 def record_runs(session: Session, items: list[dict], region: str, when: datetime) -> None:
