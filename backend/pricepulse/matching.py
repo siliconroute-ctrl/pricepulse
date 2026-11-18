@@ -420,6 +420,18 @@ DESCRIPTOR_WORDS = {
 }
 WINE_COLOURS = {"white", "red", "rose"}
 
+# Store house-brand labels (in brand-key form). On plain fresh produce they say who packed it, not
+# what it is, so a shared card for "Brown Mushrooms" must not carry "PnP" in its name.
+HOUSE_BRANDS = {"pnp", "checkers housebrand", "simple truth"}
+_HOUSE_PREFIX = re.compile(r"^(?:pnp|pick n pay|checkers housebrand|simple truth)\b[\s:\-]*", re.I)
+
+
+def neutral_name(name: str) -> str:
+    """ "PnP Brown Mushrooms" -> "Brown Mushrooms" (only used for plain produce)."""
+    cleaned = _HOUSE_PREFIX.sub("", name or "").strip()
+    return cleaned or (name or "")
+
+
 DEFAULT_AUTO_THRESHOLD = 88.0
 DEFAULT_REVIEW_THRESHOLD = 70.0
 

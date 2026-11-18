@@ -312,7 +312,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 14;
+var APP_VERSION = 15;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -1081,7 +1081,7 @@ function viewAdmin(){
       '<p class="sub noprint" role="status">'+rows.length+' items'+(d.truncated?' (the list was cut short: choose a store or type)':'')+'. Prices are for '+esc(regionName(state.region))+'.</p>'+
       '<h2 class="printonly" style="font-size:12pt">'+esc(title)+'</h2>'+
       '<p class="sub noprint">Shoppers see only each store\u2019s best match for each essential item. Hidden items stay in the system: tap <b>Show</b> to show one, or <b>Hide</b> to hide one.</p>'+
-      '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th><th class="noprint">Shoppers</th></tr></thead><tbody>'+admItemRows(rows,true)+'</tbody></table></div>';
+      '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th><th class="noprint">Card #</th><th class="noprint">Shoppers</th></tr></thead><tbody>'+admItemRows(rows,true)+'</tbody></table></div>';
   }else if(tab==="essentials"){
     h+='<p class="sub">Essential items are the words the app looks up in every store each night, so these items are always in the system with fresh prices. Add many at once from a CSV file: a column <b>item</b> and, if you like, a column <b>category</b> ('+d.categories.join(", ")+'). Items you approve under Requests are added here too. New items appear after the next overnight update.</p>'+
       '<div class="admbar noprint"><button class="admbtn go" type="button" data-adm="espick">Import a CSV file</button>'+
@@ -1122,7 +1122,7 @@ function admItemRows(rows,buttons){
       who='<td class="noprint">'+(hid?'Hidden':'Shown')+(r.visibility!=="auto"?' <span class="sub2">(by hand)</span>':(r.hit_rank?' <span class="sub2">(match '+r.hit_rank+')</span>':''))+
         ' <button class="admbtn" type="button" data-adm="vis" data-pid="'+r.product_id+'" data-state="'+(hid?'show':'hide')+'" aria-label="'+(hid?'Show ':'Hide ')+esc(r.name)+(hid?' to shoppers':' from shoppers')+'">'+(hid?'Show':'Hide')+'</button></td>';
     }
-    return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td>'+who+'</tr>'}),"No items match.");
+    return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td>'+(buttons?'<td class="noprint num" title="Lines with the same number are on the same shopper card">'+r.product_id+'</td>':'')+who+'</tr>'}),"No items match.");
 }
 function admPreview(d){
   var rows=d.items,title='PricePulse items'+(ADM.f.store?' \u00b7 '+ADM.f.store:' \u00b7 all stores')+(ADM.f.category?' \u00b7 '+ADM.f.category:' \u00b7 all types')+(ADM.f.q?' \u00b7 "'+ADM.f.q+'"':'')+' \u00b7 '+rows.length+' items \u00b7 '+fmtDate(new Date());
