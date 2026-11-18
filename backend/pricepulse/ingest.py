@@ -388,6 +388,13 @@ def rematch(session: Session, settings: Settings) -> RematchReport:
             p.size_key, p.unit, p.qty, p.pack, p.by_weight = new
             p.size_text = size_text or p.size_text
             rep.refreshed += 1
+        # The words used for matching are stored on the product when it is made, so they must be
+        # read again too, or products made under older rules (brand, "generic" produce, packaging
+        # words) never match newer listings.
+        words = (norm.brand, norm.name, norm.generic)
+        if words != (p.brand_key, p.norm_name, p.is_generic):
+            p.brand_key, p.norm_name, p.is_generic = words
+            rep.refreshed += 1
     session.flush()
     # 2. Join lonely products to other stores' products.
     for p in session.scalars(select(Product).order_by(Product.id)).all():
