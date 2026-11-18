@@ -53,6 +53,7 @@ class Settings:
     match_review: float = field(default_factory=lambda: _float("PP_MATCH_REVIEW", 70))
     slot_hours: int = field(default_factory=lambda: int(_float("PP_SLOT_HOURS", 6)))
     stale_hours: int = field(default_factory=lambda: int(_float("PP_STALE_HOURS", 48)))
+    local_stale_hours: int = field(default_factory=lambda: int(_float("PP_LOCAL_STALE_HOURS", 192)))
     alert_hours: int = field(default_factory=lambda: int(_float("PP_ALERT_HOURS", 24)))
     frontend_dir: Path = field(
         default_factory=lambda: Path(os.environ.get("PP_FRONTEND_DIR", BACKEND_DIR.parent / "frontend"))

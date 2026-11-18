@@ -46,9 +46,26 @@ class Base(DeclarativeBase):
 
 
 class Store(Base):
+    """A store. ``kind`` is "chain" (scraped national retailers) or "local" (a private store whose
+    owner sends its own items and prices; it belongs to one region and is only seen there)."""
+
     __tablename__ = "store"
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(80), unique=True)
+    kind: Mapped[str] = mapped_column(String(8), default="chain", server_default="chain")
+    region: Mapped[str] = mapped_column(String(40), default="", server_default="")  # local: region slug
+    town: Mapped[str] = mapped_column(String(60), default="", server_default="")
+    address: Mapped[str] = mapped_column(String(160), default="", server_default="")
+    contact_name: Mapped[str] = mapped_column(String(80), default="", server_default="")
+    phone: Mapped[str] = mapped_column(String(30), default="", server_default="")
+    email: Mapped[str] = mapped_column(String(120), default="", server_default="")
+    notes: Mapped[str] = mapped_column(String(300), default="", server_default="")
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=utcnow, nullable=True)
+    last_submission_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    api_key_hash: Mapped[str] = mapped_column(
+        String(64), default="", server_default=""
+    )  # sha256 of the API key
 
 
 class Product(Base):
@@ -97,6 +114,14 @@ class Listing(Base):
     term: Mapped[str] = mapped_column(
         String(80), default="", server_default=""
     )  # the search word that last found it
+    sku: Mapped[str] = mapped_column(String(40), default="", server_default="")  # the store's own item code
+    department: Mapped[str] = mapped_column(String(60), default="", server_default="")  # e.g. Butchery
+    source: Mapped[str] = mapped_column(
+        String(8), default="scrape", server_default="scrape"
+    )  # scrape/csv/api
+    active: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="1"
+    )  # False = not in the latest list
     match_status: Mapped[str] = mapped_column(String(20), default="new", index=True)
     match_score: Mapped[float] = mapped_column(Float, default=0)
     match_reason: Mapped[str] = mapped_column(String(200), default="")
@@ -237,6 +262,24 @@ class EssentialItem(Base):
     added_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
+class StoreSubmission(Base):
+    """One weekly file (or API call) from a local store: what arrived and what was done with it."""
+
+    __tablename__ = "store_submission"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    store_id: Mapped[int] = mapped_column(ForeignKey("store.id"), index=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    source: Mapped[str] = mapped_column(String(8), default="csv")  # csv / api
+    filename: Mapped[str] = mapped_column(String(120), default="")
+    rows: Mapped[int] = mapped_column(Integer, default=0)
+    added: Mapped[int] = mapped_column(Integer, default=0)  # new items
+    updated: Mapped[int] = mapped_column(Integer, default=0)  # known items, price refreshed
+    removed: Mapped[int] = mapped_column(Integer, default=0)  # left out of this file, hidden (replace mode)
+    invalid: Mapped[int] = mapped_column(Integer, default=0)
+    replace: Mapped[bool] = mapped_column(Boolean, default=True)
+    by: Mapped[str] = mapped_column(String(128), default="")  # admin account or "api"
+
+
 class SchemaVersion(Base):
     __tablename__ = "schema_version"
     version: Mapped[int] = mapped_column(primary_key=True)
@@ -296,6 +339,38 @@ def _m7_visibility(conn: Connection) -> None:
         conn.execute(text("ALTER TABLE product ADD COLUMN visibility VARCHAR(6) NOT NULL DEFAULT 'auto'"))
 
 
+def _m8_local_stores(conn: Connection) -> None:
+    """Local stores: more store fields, item code / department / active on listings, a submissions log
+    (adds columns and one table only; fresh databases already have them)."""
+    scols = {c["name"] for c in inspect(conn).get_columns("store")}
+    for name, ddl in (
+        ("kind", "VARCHAR(8) NOT NULL DEFAULT 'chain'"),
+        ("region", "VARCHAR(40) NOT NULL DEFAULT ''"),
+        ("town", "VARCHAR(60) NOT NULL DEFAULT ''"),
+        ("address", "VARCHAR(160) NOT NULL DEFAULT ''"),
+        ("contact_name", "VARCHAR(80) NOT NULL DEFAULT ''"),
+        ("phone", "VARCHAR(30) NOT NULL DEFAULT ''"),
+        ("email", "VARCHAR(120) NOT NULL DEFAULT ''"),
+        ("notes", "VARCHAR(300) NOT NULL DEFAULT ''"),
+        ("active", "BOOLEAN NOT NULL DEFAULT 1"),
+        ("created_at", "DATETIME"),
+        ("last_submission_at", "DATETIME"),
+        ("api_key_hash", "VARCHAR(64) NOT NULL DEFAULT ''"),
+    ):
+        if name not in scols:
+            conn.execute(text(f"ALTER TABLE store ADD COLUMN {name} {ddl}"))
+    lcols = {c["name"] for c in inspect(conn).get_columns("listing")}
+    for name, ddl in (
+        ("sku", "VARCHAR(40) NOT NULL DEFAULT ''"),
+        ("department", "VARCHAR(60) NOT NULL DEFAULT ''"),
+        ("source", "VARCHAR(8) NOT NULL DEFAULT 'scrape'"),
+        ("active", "BOOLEAN NOT NULL DEFAULT 1"),
+    ):
+        if name not in lcols:
+            conn.execute(text(f"ALTER TABLE listing ADD COLUMN {name} {ddl}"))
+    Base.metadata.create_all(conn, tables=[StoreSubmission.__table__])
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
@@ -304,6 +379,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (5, "admin flag", _m5_admin_flag),
     (6, "essential items", _m6_essentials),
     (7, "search-hit rank and product visibility", _m7_visibility),
+    (8, "local stores, item codes, departments and submissions", _m8_local_stores),
 ]
 
 

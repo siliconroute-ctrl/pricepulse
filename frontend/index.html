@@ -216,6 +216,16 @@ body.plainhead .findbar,body.plainhead nav.tabs{display:none}
 .admbtn{min-height:3rem;padding:.4rem .9rem;border-radius:.6rem;border:2px solid var(--brand);background:var(--card);color:var(--ink);font-size:1rem;font-weight:650}
 .admbtn.go{background:var(--brand);color:var(--brand-ink)}
 .printonly{display:none}
+body.adm-wide .wrap{max-width:80rem}
+body.adm-wide header .row{max-width:80rem}
+body.adm-wide header .findbar{display:none}
+body.adm-wide nav.tabs .in{max-width:80rem}
+.admform{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:.2rem .8rem}
+.admform .field{margin:.35rem 0}
+.admform .field.wide{grid-column:1/-1}
+.field select,.field textarea{width:100%;min-height:3.2rem;padding:.5rem .8rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.05rem}
+.admtable .acts{white-space:nowrap}
+.admtable .acts .admbtn{margin:.1rem .15rem .1rem 0}
 .printtitle{margin:.4rem 0;font-size:1.15rem}
 @media print{
   body.adm-print header,body.adm-print nav.tabs,body.adm-print .menupop,body.adm-print dialog,body.adm-print .skip,body.adm-print #status,body.adm-print .disclaimer{display:none!important}
@@ -316,7 +326,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 16;
+var APP_VERSION = 17;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -353,8 +363,9 @@ function storeColor(s){
 }
 function storeColorOn(s){return document.documentElement.dataset.dark==="1"?(STORES_DARK[s]||"#f7eeee"):storeColor(s)}
 function badgeLink(s,r){
-  if(!r||!r.url)return badge(s);
-  return '<a class="badge blink" href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer" style="background:'+storeColor(s)+'" aria-label="Open this product on the '+esc(s)+' website (opens a new tab)">'+esc(s)+' \u2197</a>';
+  var lab=r&&r.local?' <span class="tag localtag">Local store</span>':'';
+  if(!r||!r.url)return badge(s)+lab;
+  return '<a class="badge blink" href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer" style="background:'+storeColor(s)+'" aria-label="Open this product on the '+esc(s)+' website (opens a new tab)">'+esc(s)+' \u2197</a>'+lab;
 }
 function badge(s){return '<span class="badge" style="background:'+storeColor(s)+'">'+esc(s)+'</span>'}
 function regionName(slug){var r=state.regions.find(function(x){return x.slug===slug});return r?r.name:slug}
@@ -447,7 +458,7 @@ function qs(o){return Object.keys(o).filter(function(k){return o[k]!==""&&o[k]!=
 function eff(p){return p.promo!=null?p.promo:p.price}
 function sortedStores(prod){return Object.keys(prod.prices).sort(function(a,b){return eff(prod.prices[a])-eff(prod.prices[b])||(a<b?-1:1)})}
 function toProduct(it){
-  var prices={};it.prices.forEach(function(p){prices[p.store]={price:p.price,promo:p.promo_price,url:p.url,at:p.scraped_at,stale:p.stale,unit:p.unit_price}});
+  var prices={};it.prices.forEach(function(p){prices[p.store]={price:p.price,promo:p.promo_price,url:p.url,at:p.scraped_at,stale:p.stale,local:!!p.local,unit:p.unit_price}});
   return {id:it.id,name:it.name,brand:it.brand,size:it.size,cat:it.category,prices:prices};
 }
 function applySession(s,fromCache){
@@ -500,11 +511,12 @@ function banners(){
   if(state.offline)h+='<div class="banner warn" role="note"><b>'+(state.savedAt&&state.items.length?'Showing saved prices from '+esc(fmtDate(state.savedAt))+'.':'No connection.')+'</b>'+esc(state.error||"You are offline.")+' You can read your list, but looking up new items needs a connection.</div>';
   if(state.isSample)h+='<div class="banner warn" role="note"><b>Example prices.</b>The price server is running with test data, not real shelf prices.</div>';
   var o=oldestPrice();
-  if(o&&hoursOld(o)>STALE_HOURS)h+='<div class="banner warn" role="note"><b>Some prices are over 2 days old.</b>Marked "Old price". Check at the till.</div>';
+  var anyOld=state.items.some(function(i){for(var s in i.p.prices){var r=i.p.prices[s];if(r.stale!==undefined?r.stale:hoursOld(r.at)>STALE_HOURS)return true}return false});
+  if(o&&anyOld)h+='<div class="banner warn" role="note"><b>Some prices are over 2 days old.</b>Marked "Old price". Check at the till.</div>';
   return h;
 }
 function disclaimer(){return '<p class="disclaimer">'+DISCLAIMER+'</p>'}
-function oldTag(r){return r.at&&hoursOld(r.at)>STALE_HOURS?' <span class="old">Old price ('+esc(fmtDate(r.at))+')</span>':''}
+function oldTag(r){return r.at&&(r.stale!==undefined?r.stale:hoursOld(r.at)>STALE_HOURS)?' <span class="old">Old price ('+esc(fmtDate(r.at))+')</span>':''}
 
 /* ---------- Sign in ---------- */
 function viewSignin(){
@@ -932,6 +944,8 @@ document.getElementById("dlg").addEventListener("click",function(e){
   if(a==="doupdate"){b.disabled=true;return doUpdate()}
   if(a==="sendreq"){b.disabled=true;return sendRequest(b)}
   if(a==="esimport")return esDoImport(b,d);
+  if(a==="lsload")return lsDoLoad(b,d);
+  if(a.indexOf("lssave:")===0)return lsSave(b,d,a.slice(7));
   if(a.indexOf("esremove:")===0){
     b.disabled=true;
     return api("POST","/admin/essentials/remove",{id:+a.split(":")[1]}).then(function(){d.close();say("Item removed.");ADM.loading=null;admLoad()}).catch(function(e){d.close();ask("Could not remove",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
@@ -1054,7 +1068,7 @@ document.addEventListener("keydown",function(e){
 
 /* ---------- Admin area (admins only: the server refuses everyone else) ---------- */
 var ADM={tab:"overview",f:{store:"",category:"",shown:"",q:""},data:{},err:"",timer:null,loading:null};
-var ADM_TABS=[["overview","Overview"],["items","Items"],["essentials","Essentials"],["users","Accounts"],["requests","Requests"],["settings","Settings"]];
+var ADM_TABS=[["overview","Overview"],["items","Items"],["localstores","Local stores"],["essentials","Essentials"],["users","Accounts"],["requests","Requests"],["settings","Settings"]];
 function admPath(tab){
   if(tab==="items")return "/admin/items?"+qs({store:ADM.f.store,category:ADM.f.category,shown:ADM.f.shown||"",q:ADM.f.q.trim(),region:state.region});
   if(tab==="requests")return "/admin/requests?status="+encodeURIComponent(ADM.reqStatus||"open");
@@ -1067,6 +1081,7 @@ function admRender(){
 }
 function admLoad(){
   var tab=ADM.tab,path=admPath(tab);
+  if(tab==="localstores"&&!ADM.regions)api("GET","/admin/regions").then(function(r){ADM.regions=r.regions;if(state.view==="admin"&&ADM.tab==="localstores")admRender()}).catch(function(){});
   if(ADM.loading===path)return;
   ADM.loading=path;ADM.err="";
   api("GET",path).then(function(r){
@@ -1105,6 +1120,21 @@ function viewAdmin(){
       '<h2 class="printonly" style="font-size:12pt">'+esc(title)+'</h2>'+
       '<p class="sub noprint">Shoppers see only each store\u2019s best match for each essential item. Hidden items stay in the system: tap <b>Show</b> to show one, or <b>Hide</b> to hide one.</p>'+
       '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th><th class="noprint">Card #</th><th class="noprint">Shoppers</th></tr></thead><tbody>'+admItemRows(rows,true)+'</tbody></table></div>';
+  }else if(tab==="localstores"){
+    h+='<p class="sub">Local stores send us a list of the items they sell most, with their own selling prices, once a week. Their prices show next to the big chains in their own town only. Each new file <b>replaces</b> the store\u2019s list: items missing from the new file are hidden. A store\u2019s prices are marked old after 8 days.</p>'+
+      '<div class="admbar noprint"><button class="admbtn go" type="button" data-adm="lsnew">Add a local store</button>'+
+      '<button class="admbtn" type="button" data-adm="lstemplate">Download the CSV template</button>'+
+      '<input id="lsfile" class="vh" type="file" accept=".csv,.txt,text/csv,text/plain" tabindex="-1" aria-hidden="true"></div>'+
+      '<p class="sub" role="status">'+d.stores.length+' local '+(d.stores.length===1?'store':'stores')+'. Up to '+d.max_rows+' items per file.</p>'+
+      '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Region</th><th>Contact</th><th class="num">Items</th><th>Last file</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
+      admRows(d.stores.map(function(r){
+        var last=r.last_submission?fmtDate(r.last_submission):"none yet";
+        var old=r.last_submission&&(Date.now()-new Date(r.last_submission).getTime())>8*864e5;
+        return '<tr><td><b>'+esc(r.name)+'</b>'+(r.town?'<div class="sub2">'+esc(r.town)+'</div>':'')+'</td><td>'+esc(r.region_name)+'</td><td>'+esc(r.contact_name)+(r.phone?'<div class="sub2">'+esc(r.phone)+'</div>':'')+'</td>'+
+          '<td class="num">'+r.items+'</td><td>'+esc(last)+(old?' <b>(over 8 days ago)</b>':'')+'</td><td>'+(r.active?'Active':'<b>Switched off</b>')+'</td>'+
+          '<td class="acts"><button class="admbtn go" type="button" data-adm="lsimport" data-id="'+r.id+'" aria-label="Load the weekly file for '+esc(r.name)+'">Load weekly file</button>'+
+          '<button class="admbtn" type="button" data-adm="lsedit" data-id="'+r.id+'" aria-label="Edit '+esc(r.name)+'">Edit</button>'+
+          '<button class="admbtn" type="button" data-adm="lshistory" data-id="'+r.id+'" data-name="'+esc(r.name)+'" aria-label="File history of '+esc(r.name)+'">History</button></td></tr>'}),"No local stores yet. Tap Add a local store.")+'</tbody></table></div>';
   }else if(tab==="essentials"){
     h+='<p class="sub">Essential items are the words the app looks up in every store each night, so these items are always in the system with fresh prices. Add many at once from a CSV file: a column <b>item</b> and, if you like, a column <b>category</b> ('+d.categories.join(", ")+'). Items you approve under Requests are added here too. New items appear after the next overnight update.</p>'+
       '<div class="admbar noprint"><button class="admbtn go" type="button" data-adm="espick">Import a CSV file</button>'+
@@ -1208,8 +1238,62 @@ function esDoImport(btn,dlg){
     say("Import finished: "+r.added+" added.");admLoad();
   }).catch(function(e){dlg.close();ask("Could not import",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
 }
+var LS_TEMPLATE="item,price,size,barcode,sku,department,category,promo price\r\nClover Full Cream Milk,34.50,2L,,MILK2,Dairy,Groceries,\r\nBoerewors,89.90,1kg,,BW1,Butchery,Fresh,79.90\r\nBrown Bread,16.00,700g,6001234567890,BR7,Bakery,Groceries,\r\n";
+function lsStore(id){var d=ADM.data.localstores;return d&&d.stores.filter(function(x){return String(x.id)===String(id)})[0]}
+function lsForm(st){
+  var r=st||{},opts=(ADM.regions||[]).map(function(x){return '<option value="'+esc(x.slug)+'"'+(x.slug===r.region?' selected':'')+'>'+esc(x.name)+'</option>'}).join("");
+  var f=function(id,label,val,max,cls){return '<label class="field'+(cls?' '+cls:'')+'"><span>'+label+'</span><input id="'+id+'" type="text" maxlength="'+max+'" value="'+esc(val||"")+'" autocomplete="off"></label>'};
+  ask(st?"Edit local store":"Add a local store",'<div class="admform">'+f("lsname","Store name",r.name,80,"wide")+
+    '<label class="field"><span>Region (their shoppers see this store)</span><select id="lsregion">'+opts+'</select></label>'+f("lstown","Town or suburb",r.town,60)+
+    f("lsaddr","Address",r.address,160,"wide")+f("lscontact","Contact person",r.contact_name,80)+f("lsphone","Phone",r.phone,30)+f("lsemail","Email",r.email,120,"wide")+
+    f("lsnotes","Notes (only you see these)",r.notes,300,"wide")+
+    (st?'<label class="check wide" style="grid-column:1/-1"><input type="checkbox" id="lsactive"'+(r.active?' checked':'')+'><span>Store is active (shoppers can see its items)</span></label>':'')+
+    '</div><p class="err" id="lserr" role="alert"></p>',[["Save","lssave:"+(st?st.id:"new"),"btn"],["Cancel","","btn alt"]]);
+}
+function lsSave(b,dlg,id){
+  var v=function(x){return (document.getElementById(x)||{}).value||""};
+  var body={name:v("lsname"),region:v("lsregion"),town:v("lstown"),address:v("lsaddr"),contact_name:v("lscontact"),phone:v("lsphone"),email:v("lsemail"),notes:v("lsnotes"),active:id==="new"?true:!!(document.getElementById("lsactive")||{}).checked};
+  b.disabled=true;
+  return api("POST","/admin/localstores"+(id==="new"?"":"/"+id),body).then(function(){dlg.close();say("Store saved.");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lserr");if(el)el.textContent=e.message});
+}
+function lsFileChosen(input){
+  var file=input.files&&input.files[0],id=input.dataset.id;if(!file||!id)return;
+  var st=lsStore(id);
+  if(file.size>2000000)return ask("That file is too big",'<p>Please use a file under 2 MB.</p>',[["OK","","btn"]]);
+  file.text().then(function(text){
+    ADM.lsPending={id:id,csv:text,filename:file.name};
+    return api("POST","/admin/localstores/"+id+"/import",{csv:text,filename:file.name,dry_run:true,replace:true});
+  }).then(function(r){
+    var bad=r.invalid.slice(0,6).map(function(x){return '<li>Row '+x.row+': '+esc(x.name||"(empty)")+' \u2013 '+esc(x.why)+'</li>'}).join("");
+    ask("Load this file for "+(st?st.name:"the store")+"?",'<p><b>'+r.rows+' rows</b> in <b>'+esc(file.name)+'</b>:</p><ul class="steps"><li><b>'+r.added+'</b> new items</li><li><b>'+r.updated+'</b> items already known (price refreshed)</li>'+
+      '<li><b>'+r.matched_to_chains+'</b> items also sold by a big chain (one card, prices side by side)</li>'+(r.duplicates?'<li>'+r.duplicates+' repeated lines ignored</li>':'')+
+      '<li id="lsremoved"><b>'+r.removed+'</b> of the store\u2019s current items are not in this file and will be hidden</li>'+(r.invalid_count?'<li><b>'+r.invalid_count+' rows skipped</b> because of problems:</li>':'')+'</ul>'+(bad?'<ul class="steps">'+bad+'</ul>':'')+
+      '<label class="check"><input type="checkbox" id="lsreplace" checked><span>Replace the store\u2019s list (hide items missing from this file)</span></label>',
+      [["Load the file","lsload","btn"],["Cancel","","btn alt"]]);
+  }).catch(function(e){ask("Could not read that file",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+}
+function lsDoLoad(b,dlg){
+  var p=ADM.lsPending;if(!p)return dlg.close();
+  var replace=!!(document.getElementById("lsreplace")||{}).checked;b.disabled=true;
+  return api("POST","/admin/localstores/"+p.id+"/import",{csv:p.csv,filename:p.filename,replace:replace,dry_run:false}).then(function(r){
+    ADM.lsPending=null;ADM.loading=null;
+    ask("File loaded",'<p><b>'+r.added+' added</b>, '+r.updated+' updated'+(replace?', '+r.removed+' hidden':'')+'.'+(r.invalid_count?' '+r.invalid_count+' rows were skipped.':'')+'</p><p class="sub">Shoppers in that region see the prices straight away.</p>',[["OK","","btn"]]);
+    say("File loaded: "+r.added+" added.");admLoad();
+  }).catch(function(e){dlg.close();ask("Could not load the file",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+}
+function lsHistory(id,name){
+  api("GET","/admin/localstores/"+id+"/submissions").then(function(r){
+    var rows=r.submissions.map(function(x){return '<tr><td>'+esc(fmtDate(x.received))+'</td><td>'+esc(x.filename||x.source)+'</td><td class="num">'+x.rows+'</td><td class="num">'+x.added+'</td><td class="num">'+x.updated+'</td><td class="num">'+x.removed+'</td><td class="num">'+x.invalid+'</td></tr>'}).join("");
+    ask("Files from "+name,r.submissions.length?'<div class="admwrap"><table class="admtable" style="min-width:0"><thead><tr><th>Received</th><th>File</th><th class="num">Rows</th><th class="num">New</th><th class="num">Updated</th><th class="num">Hidden</th><th class="num">Skipped</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<p>No files yet.</p>',[["Close","","btn"]]);
+  }).catch(function(e){ask("Could not load the history",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+}
 function admClick(t){
   var d=t.dataset;
+  if(d.adm==="lsnew")return lsForm(null);
+  if(d.adm==="lsedit")return lsForm(lsStore(d.id));
+  if(d.adm==="lstemplate")return admSaveFile("pricepulse-local-store-template.csv",LS_TEMPLATE);
+  if(d.adm==="lshistory")return lsHistory(d.id,d.name);
+  if(d.adm==="lsimport"){var f=document.getElementById("lsfile");if(f){f.value="";f.dataset.id=d.id;f.click()}return}
   if(d.adm==="espick"){var f=document.getElementById("esfile");if(f){f.value="";f.click()}return}
   if(d.adm==="esexample")return admSaveFile("pricepulse-essential-items-example.csv","item,category\r\nwhite mushrooms 250g,Fresh\r\nKoo baked beans 410g,Groceries\r\nPanado tablets 24s,Health & Beauty\r\n");
   if(d.adm==="esdownload"){var it=(ADM.data.essentials||{}).items||[];return admSaveFile("pricepulse-essential-items.csv","item,category\r\n"+it.map(function(r){return csvCell(r.term)+","+csvCell(r.category)}).join("\r\n")+"\r\n")}
@@ -1245,6 +1329,7 @@ function admField(el){
 }
 document.getElementById("main").addEventListener("change",function(e){
   if(e.target.id==="esfile")return esFileChosen(e.target.files&&e.target.files[0]);
+  if(e.target.id==="lsfile")return lsFileChosen(e.target);
   if(e.target.dataset&&e.target.dataset.admf)admField(e.target)});
 document.getElementById("main").addEventListener("input",function(e){if(e.target.dataset&&e.target.dataset.admf==="q")admField(e.target)});
 
@@ -1264,6 +1349,7 @@ function renderNav(){
 }
 function renderMain(){
   var m=document.getElementById("main"),h;
+  document.body.classList.toggle("adm-wide",state.view==="admin"&&state.phase==="app");
   if(state.phase==="boot")h='<p class="empty">Opening PricePulse…</p>';
   else if(state.phase==="signin")h=viewSignin();
   else if(state.phase==="idcheck")h=viewIdCheck();
