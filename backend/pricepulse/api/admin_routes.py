@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .. import essentials
+from .. import essentials, localstores
 from ..accounts import TESTER, is_paid, sa_today
 from ..db import (
     AppUser,
@@ -25,6 +25,7 @@ from ..db import (
     SchemaVersion,
     ScrapeRun,
     Store,
+    StoreSubmission,
     Subscription,
 )
 from ..money import from_cents
@@ -35,6 +36,25 @@ MAX_ITEM_ROWS = 6000
 
 class PlanIn(BaseModel):
     plan: str = Field(pattern="^(free|paid|tester)$")
+
+
+class LocalStoreIn(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+    region: str = Field(min_length=1, max_length=40)
+    town: str = Field(default="", max_length=60)
+    address: str = Field(default="", max_length=160)
+    contact_name: str = Field(default="", max_length=80)
+    phone: str = Field(default="", max_length=30)
+    email: str = Field(default="", max_length=120)
+    notes: str = Field(default="", max_length=300)
+    active: bool = True
+
+
+class StoreImportIn(BaseModel):
+    csv: str = Field(max_length=2_000_000)
+    filename: str = Field(default="", max_length=120)
+    replace: bool = True
+    dry_run: bool = False
 
 
 class VisibilityIn(BaseModel):
@@ -290,6 +310,150 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             )
         s.commit()
         return {"term": body.term, "status": body.status, "changed": len(rows), "search_list": added}
+
+    # --- Local (private) stores -------------------------------------------------------
+
+    def clean_text(v: str) -> str:
+        return " ".join((v or "").split())
+
+    def store_row(st: Store, s: Session) -> dict:
+        items = s.scalar(
+            select(func.count())
+            .select_from(Listing)
+            .where(Listing.store_id == st.id, Listing.active.is_(True))
+        )
+        subs = s.scalar(
+            select(func.count()).select_from(StoreSubmission).where(StoreSubmission.store_id == st.id)
+        )
+        region = ctx.regions.regions.get(st.region)
+        return {
+            "id": st.id,
+            "name": st.name,
+            "region": st.region,
+            "region_name": region.name if region else st.region,
+            "town": st.town,
+            "address": st.address,
+            "contact_name": st.contact_name,
+            "phone": st.phone,
+            "email": st.email,
+            "notes": st.notes,
+            "active": bool(st.active),
+            "items": items,
+            "submissions": subs,
+            "last_submission": st.last_submission_at.isoformat() + "Z" if st.last_submission_at else None,
+            "has_api_key": bool(st.api_key_hash),
+        }
+
+    @app.get(base + "/regions", tags=["admin"])
+    def regions_list(admin: AppUser = Depends(admin_dep)):  # noqa: B008
+        return {"regions": [{"slug": k, "name": r.name} for k, r in ctx.regions.regions.items()]}
+
+    @app.get(base + "/localstores", tags=["admin"])
+    def localstores_list(admin: AppUser = Depends(admin_dep), s: Session = Depends(ctx.db)):  # noqa: B008
+        rows = s.scalars(select(Store).where(Store.kind == "local").order_by(Store.name)).all()
+        return {"stores": [store_row(r, s) for r in rows], "max_rows": localstores.MAX_ROWS}
+
+    def validate_store(body: LocalStoreIn, s: Session, current: Store | None = None) -> dict:
+        data = {k: clean_text(v) if isinstance(v, str) else v for k, v in body.model_dump().items()}
+        if body.region not in ctx.regions.regions:
+            raise HTTPException(422, {"code": "bad_region", "message": "Choose one of the listed regions."})
+        if "@" in data["email"] and "." not in data["email"].split("@")[-1]:
+            raise HTTPException(
+                422, {"code": "bad_email", "message": "That email address does not look right."}
+            )
+        clash = s.scalar(select(Store).where(func.lower(Store.name) == data["name"].lower()))
+        if clash is not None and (current is None or clash.id != current.id):
+            raise HTTPException(
+                422, {"code": "name_taken", "message": "A store with that name already exists."}
+            )
+        return data
+
+    @app.post(base + "/localstores", tags=["admin"])
+    def localstore_create(
+        body: LocalStoreIn,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        data = validate_store(body, s)
+        st = Store(kind="local", **data)
+        s.add(st)
+        s.commit()
+        return store_row(st, s)
+
+    @app.post(base + "/localstores/{store_id}", tags=["admin"])
+    def localstore_update(
+        store_id: int,
+        body: LocalStoreIn,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        st = s.get(Store, store_id)
+        if st is None or st.kind != "local":
+            raise HTTPException(404, {"code": "not_found", "message": "No such local store."})
+        for k, v in validate_store(body, s, st).items():
+            setattr(st, k, v)
+        s.commit()
+        return store_row(st, s)
+
+    @app.post(base + "/localstores/{store_id}/import", tags=["admin"])
+    def localstore_import(
+        store_id: int,
+        body: StoreImportIn,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """Load a store's weekly CSV. ``dry_run`` shows what would happen and keeps nothing."""
+        st = s.get(Store, store_id)
+        if st is None or st.kind != "local":
+            raise HTTPException(404, {"code": "not_found", "message": "No such local store."})
+        rows, problems = localstores.parse_csv(body.csv)
+        if problems:
+            raise HTTPException(422, {"code": "bad_file", "message": " ".join(problems)})
+        if not rows:
+            raise HTTPException(422, {"code": "empty", "message": "The file has no items."})
+        report = localstores.import_for_store(
+            s,
+            st,
+            rows,
+            settings,
+            filename=body.filename,
+            replace=body.replace,
+            by=admin.uid,
+            dry_run=body.dry_run,
+        )
+        if not body.dry_run:
+            s.commit()
+        return report.as_dict()
+
+    @app.get(base + "/localstores/{store_id}/submissions", tags=["admin"])
+    def localstore_submissions(
+        store_id: int,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        rows = s.scalars(
+            select(StoreSubmission)
+            .where(StoreSubmission.store_id == store_id)
+            .order_by(StoreSubmission.id.desc())
+            .limit(30)
+        ).all()
+        return {
+            "submissions": [
+                {
+                    "id": r.id,
+                    "received": r.received_at.isoformat() + "Z",
+                    "source": r.source,
+                    "filename": r.filename,
+                    "rows": r.rows,
+                    "added": r.added,
+                    "updated": r.updated,
+                    "removed": r.removed,
+                    "invalid": r.invalid,
+                    "replace": r.replace,
+                }
+                for r in rows
+            ]
+        }
 
     @app.get(base + "/essentials", tags=["admin"])
     def essentials_list(admin: AppUser = Depends(admin_dep), s: Session = Depends(ctx.db)):  # noqa: B008

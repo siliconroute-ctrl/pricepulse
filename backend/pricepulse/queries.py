@@ -22,6 +22,7 @@ class StorePrice:
     url: str
     scraped_at: datetime
     is_sample: bool
+    local: bool = False  # a local (private) store, not a national chain
 
     @property
     def effective_cents(self) -> int:
@@ -68,7 +69,7 @@ def latest_prices(
         .join(Listing, Listing.id == Price.listing_id)
         .join(Store, Store.id == Listing.store_id)
         .join(Product, Product.id == Listing.product_id)
-        .where(Price.region == region)
+        .where(Price.region == region, Listing.active.is_(True), Store.active.is_(True))
     )
     if product_ids:
         stmt = stmt.where(Product.id.in_(product_ids))
@@ -94,6 +95,7 @@ def latest_prices(
             url=listing.url,
             scraped_at=price.scraped_at,
             is_sample=price.is_sample,
+            local=store.kind == "local",
         )
         current = next((x for x in pp.prices if x.store == store.name), None)
         if current is None:
@@ -134,7 +136,14 @@ def visible_clause():  # noqa: ANN201
     """
     best_or_unknown = exists(
         select(1)
-        .where(Listing.product_id == Product.id, or_(Listing.hit_rank.is_(None), Listing.hit_rank <= 1))
+        .select_from(Listing)
+        .join(Store, Store.id == Listing.store_id)
+        .where(
+            Listing.product_id == Product.id,
+            Listing.active.is_(True),
+            Store.active.is_(True),
+            or_(Listing.hit_rank.is_(None), Listing.hit_rank <= 1),
+        )
         .correlate(Product)
     )
     return or_(Product.visibility == "show", and_(Product.visibility == "auto", best_or_unknown))

@@ -235,7 +235,10 @@ def ingest_items(
             _, size_text = split_size(name)
         url = str(row.get("url") or "").strip()[:400]
         category = str(row.get("category") or "").strip()
-        ident = (url or f"{name}|{size_text}").lower()[:400]
+        ident = str(row.get("ident") or url or f"{name}|{size_text}").lower()[:400]
+        sku = str(row.get("sku") or "").strip()[:40]
+        department = str(row.get("department") or "").strip()[:60]
+        source = str(row.get("source") or "scrape")[:8]
 
         store = get_or_create_store(session, store_name)
         listing = session.scalar(select(Listing).where(Listing.store_id == store.id, Listing.ident == ident))
@@ -269,6 +272,10 @@ def ingest_items(
                 barcode=barcode,
                 hit_rank=hit_rank,
                 term=hit_term,
+                sku=sku,
+                department=department,
+                source=source,
+                active=True,
             )
             if by_code is not None:
                 listing.product_id = by_code.id
@@ -298,6 +305,11 @@ def ingest_items(
             listing.url = url or listing.url
             listing.category = category or listing.category
             listing.last_seen = utcnow()
+            listing.active = True  # seen in the latest list again
+            if sku:
+                listing.sku = sku
+            if department:
+                listing.department = department
             if hit_rank:
                 listing.hit_rank, listing.term = hit_rank, hit_term
             if barcode and not listing.barcode:

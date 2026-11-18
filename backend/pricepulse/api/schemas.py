@@ -26,7 +26,10 @@ class PriceOut(_Model):
     promo_price: float | None = None
     url: str = ""
     scraped_at: datetime
-    stale: bool = Field(description="True when older than the stale limit (48 hours by default)")
+    stale: bool = Field(
+        description="True when older than the stale limit (48 hours; 8 days for local stores)"
+    )
+    local: bool = Field(default=False, description="True for a local (private) store")
     unit_price: UnitPrice | None = None
 
 

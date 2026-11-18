@@ -186,6 +186,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     open_dep = [Depends(open_only)]
     stale_after = timedelta(hours=settings.stale_hours)
+    local_stale_after = timedelta(hours=settings.local_stale_hours)  # local stores send their list weekly
 
     def product_out(pp: ProductPrices) -> S.ProductOut:
         p = pp.product
@@ -201,7 +202,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     promo_price=from_cents(sp.promo_cents),
                     url=sp.url,
                     scraped_at=sp.scraped_at,
-                    stale=now - sp.scraped_at > stale_after,
+                    stale=now - sp.scraped_at > (local_stale_after if sp.local else stale_after),
+                    local=sp.local,
                     unit_price=S.UnitPrice(value=up[0], unit=up[1]) if up else None,
                 )
             )

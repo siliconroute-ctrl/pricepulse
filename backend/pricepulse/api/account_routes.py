@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from .. import accounts, payfast, trolleyup
 from ..auth import AuthError, Identity, make_verifier
-from ..db import AppUser, ItemRequest, Listing, Price, Product, Subscription, utcnow
+from ..db import AppUser, ItemRequest, Listing, Price, Product, Store, Subscription, utcnow
 from ..money import from_cents
 from ..queries import ProductPrices, latest_prices, visible_clause
 from . import schemas as S
@@ -147,7 +147,8 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         stores = (
             select(Listing.product_id, func.count(func.distinct(Listing.store_id)).label("n"))
             .join(Price, Price.listing_id == Listing.id)
-            .where(Price.region == region)
+            .join(Store, Store.id == Listing.store_id)
+            .where(Price.region == region, Listing.active.is_(True), Store.active.is_(True))
             .group_by(Listing.product_id)
             .subquery()
         )
@@ -183,7 +184,8 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             select(func.count(func.distinct(Listing.store_id)))
             .select_from(Listing)
             .join(Price, Price.listing_id == Listing.id)
-            .where(Price.region == region)
+            .join(Store, Store.id == Listing.store_id)
+            .where(Price.region == region, Listing.active.is_(True), Store.active.is_(True))
         )
         newest = s.scalar(select(func.max(Price.scraped_at)).where(Price.region == region))
         return S.CatalogueOut(
