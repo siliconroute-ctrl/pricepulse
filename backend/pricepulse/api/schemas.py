@@ -192,6 +192,8 @@ class CatalogueOut(_Model):
     limit: int
     offset: int
     note: str = ""
+    stores: int = 0  # how many stores have prices in this town (for the front screen)
+    updated: datetime | None = None  # when the newest price in this town was collected
     items: list[CatalogueItem]
 
 

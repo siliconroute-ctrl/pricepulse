@@ -245,6 +245,10 @@ body.plainhead .findbar,body.plainhead nav.tabs{display:none}
 .cat[aria-pressed="true"] .circ{border-color:var(--ink);background:color-mix(in srgb,var(--fc) 28%,var(--card))}
 .cat[aria-pressed="true"] .lbl{font-weight:800;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:4px}
 .cat-all{--fc:var(--f-all)}.cat-groceries{--fc:var(--f-groceries)}.cat-fresh{--fc:var(--f-fresh)}.cat-liquor{--fc:var(--f-liquor)}.cat-health{--fc:var(--f-health)}
+.homecard{text-align:center;padding:1.2rem .9rem;margin-top:.7rem}
+.homenum{font-family:var(--font-display);font-size:3.4rem;line-height:1;margin:0;font-weight:700;color:var(--brand-text);font-variant-numeric:tabular-nums}
+.homelabel{font-size:1.2rem;font-weight:650;margin:.25rem 0 0}
+.homehint{margin:.8rem 0 0;color:var(--ink)}
 .cardfoot{display:flex;justify-content:flex-end;margin-top:.5rem}
 .tupick{display:inline-flex;align-items:center;gap:.4rem;min-height:3rem;padding:.2rem .7rem .2rem .3rem;border-radius:.7rem;border:2px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;font-size:.95rem}
 .tupick svg{width:2.2rem;height:2.2rem;border-radius:.5rem;flex:none}
@@ -312,7 +316,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 15;
+var APP_VERSION = 16;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -542,9 +546,14 @@ function runFind(now){
   findTimer=setTimeout(function(){
     var key=state.region+"|"+state.cat+"|"+state.q;
     state.finding=true;state.findErr="";
-    api("GET","/catalogue?"+qs({region:state.region,q:state.q.trim(),category:state.cat==="All"?"":state.cat,limit:50})).then(function(r){
+    var browsing=!state.q.trim()&&state.cat==="All";
+    api("GET","/catalogue?"+qs({region:state.region,q:state.q.trim(),category:state.cat==="All"?"":state.cat,limit:browsing?1:50})).then(function(r){
       if(key!==state.region+"|"+state.cat+"|"+state.q)return;
-      state.finding=false;state.found=r;if(state.view==="find")renderMain();
+      state.finding=false;state.found=r;
+      if(browsing)state.home={total:r.total,stores:r.stores,updated:r.updated,region:state.region};
+      var q=document.getElementById("q");
+      if(q&&state.home&&state.home.total)q.placeholder="Search "+bigNum(state.home.total)+" products";
+      if(state.view==="find")renderMain();
     }).catch(function(e){
       if(handleAuthError(e))return;
       state.finding=false;state.findErr=e.message;if(state.view==="find")renderMain();
@@ -587,11 +596,25 @@ function pruneToList(){
   if(Object.keys(keep).length!==Object.keys(state.picked).length){state.picked=keep;store("pp_picks",keep)}
 }
 function priceUnit(p,row){return row.unit||null}
+function bigNum(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g," ")}
+function homeCard(f){
+  var upd=f&&f.updated?fmtDate(f.updated):"";
+  return '<section class="card homecard" aria-labelledby="homecount"><p class="homenum" id="homecount">'+bigNum(f.total)+'</p>'+
+    '<p class="homelabel">products with prices loaded'+(f.stores?' from '+plural(f.stores,"store"):'')+'</p>'+
+    '<p class="sub" style="margin:.2rem 0 0">'+esc(regionName(state.region))+(upd?' \u00b7 updated '+esc(upd):'')+'</p>'+
+    '<p class="homehint">Type what you are looking for in the search box above, for example <b>milk</b> or <b>brown mushrooms</b>. The products you can compare appear as you type.</p></section>';
+}
 function viewFind(){
   var cats=CATS.filter(function(c){return c!=="Liquor"||(state.me&&state.me.adult)});
   var h=banners();
-  var upd=newestPrice();
-  if(upd)h+='<p class="size" style="margin:.5rem 0 0">Prices updated '+fmtDate(upd)+'</p>';
+  var typing=!!state.q.trim()||state.cat!=="All";
+  if(!typing){
+    var f0=state.found;
+    if(state.findErr)return h+'<div class="empty">'+esc(state.findErr)+' <button class="linkbtn" type="button" data-act="refind">Try again</button></div>'+disclaimer();
+    var hm=state.home&&state.home.region===state.region?state.home:f0;
+    h+=hm?homeCard(hm):'<p class="sub" aria-busy="true">Loading…</p>';
+    return h+catCircles(cats)+pickBar()+disclaimer();
+  }
   h+=catCircles(cats)+pickBar();
   h+='<div class="seg" role="group" aria-label="Show prices as"><button type="button" data-unit="0" aria-pressed="'+!state.unitMode+'">Pack price</button><button type="button" data-unit="1" aria-pressed="'+state.unitMode+'">Per 100g / 100ml</button></div>';
   if(state.findErr)return h+'<div class="empty">'+esc(state.findErr)+' <button class="linkbtn" type="button" data-act="refind">Try again</button></div>'+disclaimer();

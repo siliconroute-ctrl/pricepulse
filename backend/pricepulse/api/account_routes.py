@@ -179,8 +179,17 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
                 else "No prices for this town yet."
             )
         )
+        store_count = s.scalar(
+            select(func.count(func.distinct(Listing.store_id)))
+            .select_from(Listing)
+            .join(Price, Price.listing_id == Listing.id)
+            .where(Price.region == region)
+        )
+        newest = s.scalar(select(func.max(Price.scraped_at)).where(Price.region == region))
         return S.CatalogueOut(
             region=region,
+            stores=store_count or 0,
+            updated=newest,
             total=len(rows),
             limit=limit,
             offset=offset,

@@ -105,6 +105,24 @@ check(look.findbar === "rgba(0, 0, 0, 0)", "the town and search blocks sit on th
 check(look.gap >= 8, "the search block is detached from the town block (" + Math.round(look.gap) + "px gap)");
 check(look.circ >= 46 && look.circ <= 50, "category circles are 15% smaller (" + Math.round(look.circ) + "px)");
 check((await page.$eval("#q", (q) => q.getBoundingClientRect().width)) >= 110, "the search box is still wide enough to type in");
+// The front screen shows no products: only how many have prices, and a prompt to search.
+await page.waitForSelector(".homecard");
+const homeText = await page.textContent(".homecard");
+check(/\d/.test(await page.textContent(".homenum")) && /products with prices loaded/.test(homeText) && /Type what you are looking for/.test(homeText), "the front screen shows how many products have prices and asks the person to search");
+check((await page.locator("#main article.card").count()) === 0, "no products are listed on the front screen until the person types");
+check(/^Search \d+/.test((await page.getAttribute("#q", "placeholder")) || ""), "the search box says how many products it searches");
+await shot(page, "3a-home");
+await page.fill("#q", "milk");
+await page.locator("button.lookup").first().waitFor();
+check((await page.locator(".homecard").count()) === 0 && (await page.locator("#main article.card").count()) > 0, "products appear as soon as the person types");
+await page.fill("#q", "");
+await page.waitForSelector(".homecard");
+check((await page.locator("#main article.card").count()) === 0, "clearing the search brings back the clean front screen");
+await page.locator('button.cat[data-cat="Groceries"]').click();
+await page.locator("button.lookup").first().waitFor();
+check(true, "choosing a category lists its products");
+await page.locator('button.cat[data-cat="All"]').click();
+await page.waitForSelector(".homecard");
 
 // Three-dot menu once signed in: every section, sharing and the version check.
 await page.click("#menubtn");
