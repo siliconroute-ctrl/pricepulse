@@ -189,3 +189,42 @@ def test_rematch_joins_lonely_products_keeps_manual_and_moves_session_items(sess
     lst = session.scalars(select(Listing)).first()
     lst.match_status = "manual"
     assert rematch(session, settings).joined == 0
+
+
+def test_rematch_rereads_the_matching_words_so_old_products_join_under_new_rules(session, settings):
+    from pricepulse.ingest import rematch
+
+    ingest_items(
+        session,
+        [
+            row("Checkers", "Brown Mushrooms 250g", 39.99),
+            row("Pick n Pay", "PnP Brown Mushrooms 250g", 39.99),
+        ],
+        "paarl",
+        T,
+        settings,
+    )
+    # Make the two products look as they did under older rules: the words stored on them differ.
+    first, second = session.scalars(select(Listing).order_by(Listing.id)).all()
+    if first.product_id == second.product_id:  # joined already at ingest (new rules): split them
+        old = session.get(Product, first.product_id)
+        extra = Product(
+            name=old.name,
+            size_text="250g",
+            size_key=old.size_key,
+            unit=old.unit,
+            qty=old.qty,
+            category=old.category,
+        )
+        session.add(extra)
+        session.flush()
+        second.product_id = extra.id
+        second.match_status = "new"
+    for lst, brand in ((first, ""), (second, "pnp")):
+        p = session.get(Product, lst.product_id)
+        p.brand_key, p.norm_name, p.is_generic = brand, "brown mushroom " + brand, False
+    session.flush()
+    assert products(session) == 2
+    rep = rematch(session, settings)
+    assert rep.joined == 1 and products(session) == 1
+    assert rep.refreshed >= 2  # the stored words were re-read
