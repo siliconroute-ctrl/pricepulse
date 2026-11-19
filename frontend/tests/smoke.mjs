@@ -105,18 +105,20 @@ check(look.findbar === "rgb(21, 34, 46)", "the town chip and the search box sit 
 check(look.gap >= 8, "the search box has a gap under the town chip (" + Math.round(look.gap) + "px)");
 check(look.circ >= 58 && look.circ <= 66, "category circles are big and bright (" + Math.round(look.circ) + "px)");
 check((await page.$eval("#q", (q) => q.getBoundingClientRect().width)) >= 110, "the search box is still wide enough to type in");
-// The front screen shows no products: only how many have prices, and a prompt to search.
+// The front screen shows no products: a short message, two tap tiles, and the Aisles.
 await page.waitForSelector(".homecard");
 const homeText = await page.textContent(".homecard");
-check(/\d/.test(await page.textContent(".homenum")) && /products with prices loaded/.test(homeText) && /Type what you are looking for/.test(homeText), "the front screen shows how many products have prices and asks the person to search");
-check((await page.locator("#main .grid article.card").count()) === 0, "no product list on the front screen until the person types (only the Specials and Local rows)");
-check(/^Search \d+/.test((await page.getAttribute("#q", "placeholder")) || ""), "the search box says how many products it searches");
+check(/Local shops\. Big-chain prices\. One search\./.test(homeText) && /in Paarl/.test(homeText), "the front message says local shops, big-chain prices, one search, and names the town");
+check(!/products with prices loaded|\d+ products/.test(await page.textContent("#main")), "the front screen does not show a product count");
+check((await page.locator("#main article.card").count()) === 0 && (await page.locator("#main .hscroll").count()) === 0 && (await page.locator("#main .pimg").count()) === 0, "the first screen displays no products");
+check(/^Search for a product/.test((await page.getAttribute("#q", "placeholder")) || ""), "the search box invites a search without a count");
+check(/Aisles/.test(await page.textContent("#main")) && !/Quick shops/i.test(await page.textContent("#main")), "the category row is called Aisles");
 await shot(page, "3a-home");
-check((await page.locator("#main .hscroll").count()) >= 1 && (await page.$eval("#main .hscroll", (e) => e.scrollWidth > e.clientWidth)), "the front screen has a Specials row that scrolls sideways");
-await page.locator('button[data-act="viewall"]').first().click();
+check((await page.locator('button[data-act="viewall"]').count()) === 2, "there are two tiles: From local stores and Specials");
+await page.locator('button[data-kind="special"]').click();
 await page.waitForSelector('[data-act="clearflt"]');
 await page.locator(".grid article.card").first().waitFor();
-check(/Showing only specials/.test(await page.textContent("#main")) && (await page.locator(".grid article.card").count()) >= 1, "View all lists only the specials");
+check(/Showing only specials/.test(await page.textContent("#main")), "the Specials tile opens a filtered list only when tapped");
 await page.locator('[data-act="clearflt"]').click();
 await page.waitForSelector(".homecard");
 check(true, "Show everything returns to the front screen");

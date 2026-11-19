@@ -258,6 +258,14 @@ body.adm-wide nav.tabs .in{max-width:80rem}
 .cat[aria-pressed="true"] .lbl{font-weight:800;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:4px}
 .cat-all{--fc:var(--f-all)}.cat-groceries{--fc:var(--f-groceries)}.cat-fresh{--fc:var(--f-fresh)}.cat-liquor{--fc:var(--f-liquor)}.cat-health{--fc:var(--f-health)}
 .homecard{text-align:center;padding:1.2rem .9rem;margin-top:.7rem}
+.homehead{font-family:var(--font-display);font-size:2.1rem;line-height:1.05;margin:0;font-weight:700;color:var(--nav)}
+:root[data-theme="dark"] .homehead{color:var(--ink)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .homehead{color:var(--ink)}}
+.homehead .hl{display:block}
+.fronttiles{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin:.7rem 0 0}
+.fronttile{min-height:3.4rem;display:flex;align-items:center;justify-content:center;gap:.5rem;border-radius:1rem;border:2px solid var(--accent);background:var(--card);color:var(--accent);font-weight:800;padding:.4rem .6rem;text-align:center}
+.fronttile .ft-ic svg{width:1.6rem;height:1.6rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:root[data-theme="dark"] .fronttile{color:var(--nav-hi);border-color:var(--nav-hi)}
 .homenum{font-family:var(--font-display);font-size:3.4rem;line-height:1;margin:0;font-weight:700;color:var(--brand-text);font-variant-numeric:tabular-nums}
 .homelabel{font-size:1.2rem;font-weight:650;margin:.25rem 0 0}
 .homehint{margin:.8rem 0 0;color:var(--ink)}
@@ -358,7 +366,7 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
     </button>
   </div>
   <div class="row search-row">
-    <div class="search"><input id="q" type="search" placeholder="Search products" aria-label="Search products, for example milk" autocomplete="off" enterkeyhint="search"></div>
+    <div class="search"><input id="q" type="search" placeholder="Search for a product" aria-label="Search products, for example milk" autocomplete="off" enterkeyhint="search"></div>
   </div>
   </div>
 </header>
@@ -396,7 +404,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 21;
+var APP_VERSION = 22;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -634,12 +642,10 @@ function runFind(now){
     var key=state.region+"|"+state.cat+"|"+state.q;
     state.finding=true;state.findErr="";
     var browsing=!state.q.trim()&&state.cat==="All"&&!state.flt;
-    api("GET","/catalogue?"+qs({region:state.region,q:state.q.trim(),category:state.cat==="All"?"":state.cat,special:state.flt==="special"?"true":"",local:state.flt==="local"?"true":"",limit:browsing?1:50})).then(function(r){
+    if(browsing){state.finding=false;state.found=null;if(state.view==="find")renderMain();return}
+    api("GET","/catalogue?"+qs({region:state.region,q:state.q.trim(),category:state.cat==="All"?"":state.cat,special:state.flt==="special"?"true":"",local:state.flt==="local"?"true":"",limit:50})).then(function(r){
       if(key!==state.region+"|"+state.cat+"|"+state.q)return;
       state.finding=false;state.found=r;
-      if(browsing){state.home={total:r.total,stores:r.stores,updated:r.updated,region:state.region};loadRows()}
-      var q=document.getElementById("q");
-      if(q&&state.home&&state.home.total)q.placeholder="Search "+bigNum(state.home.total)+" products";
       if(state.view==="find")renderMain();
     }).catch(function(e){
       if(handleAuthError(e))return;
@@ -647,23 +653,11 @@ function runFind(now){
     });
   },now?0:350);
 }
-function loadRows(){
-  var r=state.region;
-  if(state.rows&&state.rows.region===r&&Date.now()-state.rows.at<60000)return;
-  Promise.all([api("GET","/catalogue?"+qs({region:r,special:"true",limit:10})),api("GET","/catalogue?"+qs({region:r,local:"true",limit:10}))]).then(function(x){
-    state.rows={region:r,at:Date.now(),special:x[0].items,local:x[1].items};
-    if(state.view==="find")renderMain();
-  }).catch(function(){});
-}
 function catTile(c){
   var it=findItem(c.id);
   if(it)return card(it);
   return '<article class="card pcard">'+tileImg(c.image,c.category,0,"")+(c.special?'<span class="tag specialtag">Special</span>':'')+'<h3>'+esc(c.name)+'</h3><div class="size">'+esc(c.size)+' \u00b7 at '+plural(c.store_count,"store")+'</div>'+
     '<div class="cardfoot"><button class="lookup" type="button" data-look="'+c.id+'" aria-label="Look up price of '+esc(c.name)+' '+esc(c.size)+'">+ Look up price</button></div></article>';
-}
-function rowSection(title,kind,items){
-  if(!items||!items.length)return "";
-  return '<section aria-label="'+esc(title)+'"><div class="sect"><h2>'+esc(title)+'</h2><button class="viewall" type="button" data-act="viewall" data-kind="'+kind+'" aria-label="View all: '+esc(title)+'">View all</button></div><div class="hscroll">'+items.map(catTile).join("")+'</div></section>';
 }
 var TU_ICON='<svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" fill="#0b7a4b"/><g fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"><path d="M110 150h56l44 170h170l36-120H184"/></g><circle cx="232" cy="378" r="24" fill="#fff"/><circle cx="372" cy="378" r="24" fill="#fff"/><path d="M290 110l36-40 36 40" fill="none" stroke="#ff7a1a" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var CAT_ICONS={
@@ -702,24 +696,20 @@ function pruneToList(){
 }
 function priceUnit(p,row){return row.unit||null}
 function bigNum(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g," ")}
-function homeCard(f){
-  var upd=f&&f.updated?fmtDate(f.updated):"";
-  return '<section class="card homecard" aria-labelledby="homecount"><p class="homenum" id="homecount">'+bigNum(f.total)+'</p>'+
-    '<p class="homelabel">products with prices loaded'+(f.stores?' from '+plural(f.stores,"store"):'')+'</p>'+
-    '<p class="sub" style="margin:.2rem 0 0">'+esc(regionName(state.region))+(upd?' \u00b7 updated '+esc(upd):'')+'</p>'+
-    '<p class="homehint">Type what you are looking for in the search box above, for example <b>milk</b> or <b>brown mushrooms</b>. The products you can compare appear as you type.</p></section>';
+function homeCard(){
+  return '<section class="card homecard" aria-labelledby="homehead"><h2 class="homehead" id="homehead"><span class="hl">Local shops.</span> <span class="hl">Big-chain prices.</span> <span class="hl">One search.</span></h2>'+
+    '<p class="homehint">Type what you need and see who has it, and for how much, in '+esc(regionName(state.region))+'.</p></section>';
+}
+function frontTiles(){
+  return '<div class="fronttiles"><button class="fronttile" type="button" data-act="viewall" data-kind="local"><span class="ft-ic" aria-hidden="true">'+CAT_ICONS.Groceries+'</span><span>From local stores</span></button>'+
+    '<button class="fronttile" type="button" data-act="viewall" data-kind="special"><span class="ft-ic" aria-hidden="true">'+CAT_ICONS["Health & Beauty"]+'</span><span>Specials</span></button></div>';
 }
 function viewFind(){
   var cats=CATS.filter(function(c){return c!=="Liquor"||(state.me&&state.me.adult)});
   var h=banners();
   var typing=!!state.q.trim()||state.cat!=="All"||!!state.flt;
   if(!typing){
-    var f0=state.found;
-    if(state.findErr)return h+'<div class="empty">'+esc(state.findErr)+' <button class="linkbtn" type="button" data-act="refind">Try again</button></div>'+disclaimer();
-    var hm=state.home&&state.home.region===state.region?state.home:f0;
-    h+=hm?homeCard(hm):'<p class="sub" aria-busy="true">Loading…</p>';
-    var rw=state.rows&&state.rows.region===state.region?state.rows:null;
-    return h+'<div class="sect"><h2>Quick shops</h2></div>'+catCircles(cats)+pickBar()+(rw?rowSection("Specials","special",rw.special)+rowSection("From local stores","local",rw.local):"")+disclaimer();
+    return h+homeCard()+frontTiles()+'<div class="sect"><h2>Aisles</h2></div>'+catCircles(cats)+pickBar()+disclaimer();
   }
   h+=catCircles(cats)+pickBar();
   if(state.flt)h+='<div class="banner"><b>Showing only '+(state.flt==="special"?"specials":"items from local stores")+'.</b> <button class="linkbtn" type="button" data-act="clearflt">Show everything</button></div>';
