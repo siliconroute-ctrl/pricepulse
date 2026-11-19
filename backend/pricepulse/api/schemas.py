@@ -190,6 +190,8 @@ class CatalogueItem(_Model):
     store_count: int
     in_session: bool
     image: str = ""
+    special: bool = False
+    local: bool = False
 
 
 class CatalogueOut(_Model):

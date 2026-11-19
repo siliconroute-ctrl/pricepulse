@@ -30,6 +30,16 @@ from .ingest import clean_barcode, ingest_items
 from .money import clean_price
 
 MAX_ROWS = 5000
+DEFAULT_MAX_ITEMS = 1000  # per store; the admin can raise it for a store, up to MAX_ROWS
+
+
+STORE_TYPES = ["", "Supermarket", "Butchery", "Stationery", "IT & Electronics", "Other"]
+
+
+class ImportTooBig(ValueError):
+    """The file has more usable items than this store may list."""
+
+
 MAX_PRICE = 100_000.0
 MIN_PRICE = 0.5
 
@@ -62,15 +72,16 @@ HEADS = {
         "inc vat",
         "price r",
         "selling",
-        "price excl vat",
-        "priceexclvat",
     ],
+    # A price column that EXCLUDES VAT. Never used as the price: shoppers must see what they pay at
+    # the till, VAT included, so a file with only this kind of column is refused with an explanation.
+    "price_ex": ["price excl vat", "priceexclvat", "price ex vat", "excl vat", "ex vat"],
     "promo": ["promo price", "promo", "special price", "special", "sale price", "was price"],
     "size": ["size", "pack size", "pack", "unit size", "weight", "volume"],
     "barcode": ["barcode", "ean", "upc", "gtin", "bar code"],
     "sku": ["sku", "item code", "product code", "stock code", "code", "plu", "part number", "product"],
     "department": ["department", "dept", "section", "aisle", "subcategory", "sub category", "sub-category"],
-    "category": ["category", "type", "class", "main category"],
+    "category": ["category", "type", "class", "main category", "item group", "group"],
     "brand": ["brand", "manufacturer", "make"],
     "image": [
         "image url",
@@ -83,7 +94,18 @@ HEADS = {
         "photo",
         "product image",
     ],
-    "stock": ["stock level", "stocklevel", "stock status", "in stock", "availability", "stock", "on hand"],
+    "stock": [
+        "stock level",
+        "stocklevel",
+        "stock status",
+        "in stock",
+        "availability",
+        "stock",
+        "on hand",
+        "stock on hand",
+        "quantity on hand",
+        "qty on hand",
+    ],
 }
 FIELDS = set(HEADS)
 LABEL = {"name": "item name", "price": "price"}
@@ -130,11 +152,19 @@ def parse_csv(text: str) -> tuple[list[dict], list[str]]:
             if hit is not None:
                 cols[field_name] = hit
                 break
+    only_ex_vat = "price" not in cols and "price_ex" in cols
+    cols.pop("price_ex", None)
     body = table[1:]
     problems = []
     for need in ("name", "price"):
         if need not in cols:
             problems.append(f"There is no '{LABEL[need]}' column. The first row must name the columns.")
+    if only_ex_vat:
+        problems = [
+            "The only price column is a price that excludes VAT. PricePulse shows what the buyer pays, "
+            "so every price must include VAT and any other tax. Please add a column called "
+            "'Selling Price' with the VAT-inclusive price."
+        ]
     if problems:
         return [], problems
     rows = []
@@ -282,6 +312,7 @@ class ImportReport:
     new_categories: list[str] = field(default_factory=list)
     pictures: int = 0
     bad_pictures: int = 0
+    max_items: int = 0
 
     def as_dict(self) -> dict:
         return {
@@ -295,6 +326,7 @@ class ImportReport:
             "matched_to_chains": self.matched_to_chains,
             "out_of_stock": self.out_of_stock,
             "new_categories": self.new_categories[:20],
+            "max_items": self.max_items,
             "pictures": self.pictures,
             "bad_pictures": self.bad_pictures,
             "dry_run": self.dry_run,
@@ -322,7 +354,14 @@ def import_for_store(
         raise ValueError("That store is not a local store.")
     now = now or utcnow()
     checked = check_rows(rows)
+    limit = min(store.max_items or DEFAULT_MAX_ITEMS, MAX_ROWS)
+    if len(checked.ok) > limit:
+        raise ImportTooBig(
+            f"This store may list up to {limit:,} items and the file has {len(checked.ok):,}. "
+            "Please send the best sellers only, or ask us to raise the limit for this store."
+        )
     rep = ImportReport(
+        max_items=limit,
         rows=len(rows),
         invalid=checked.invalid,
         duplicates=checked.duplicates,

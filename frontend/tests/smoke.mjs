@@ -33,7 +33,7 @@ async function signIn(page, name, id) {
 }
 async function lookUp(page, word) {
   await page.fill("#q", word);
-  const btn = page.locator("button.lookup").first();
+  const btn = page.locator(".grid button.lookup").first();
   await btn.waitFor();
   await btn.click();
 }
@@ -99,27 +99,37 @@ const look = await page.evaluate(() => {
   return { bodyBg: css(document.body, "backgroundColor"), top: css(document.querySelector(".apptop"), "backgroundColor"), nav: css(document.querySelector("nav.tabs"), "backgroundColor"),
     findbar: css(document.querySelector(".findbar"), "backgroundColor"), gap: r(document.getElementById("q")).top - r(document.getElementById("base")).bottom, circ: circ.width };
 });
-check(look.bodyBg === "rgb(211, 214, 218)", "the page is light charcoal (" + look.bodyBg + ")");
-check(look.top === "rgb(176, 13, 39)" && look.nav === "rgb(176, 13, 39)", "the title bar and the footer menu are red");
-check(look.findbar === "rgba(0, 0, 0, 0)", "the town and search blocks sit on the charcoal page, not on red");
-check(look.gap >= 8, "the search block is detached from the town block (" + Math.round(look.gap) + "px gap)");
-check(look.circ >= 46 && look.circ <= 50, "category circles are 15% smaller (" + Math.round(look.circ) + "px)");
+check(look.bodyBg === "rgb(238, 241, 245)", "the page is a light cool grey so white cards stand out (" + look.bodyBg + ")");
+check(look.top === "rgb(21, 34, 46)" && look.nav === "rgb(21, 34, 46)", "the title bar and the footer menu are dark navy");
+check(look.findbar === "rgb(21, 34, 46)", "the town chip and the search box sit in the navy bar");
+check(look.gap >= 8, "the search box has a gap under the town chip (" + Math.round(look.gap) + "px)");
+check(look.circ >= 58 && look.circ <= 66, "category circles are big and bright (" + Math.round(look.circ) + "px)");
 check((await page.$eval("#q", (q) => q.getBoundingClientRect().width)) >= 110, "the search box is still wide enough to type in");
-// The front screen shows no products: only how many have prices, and a prompt to search.
+// The front screen shows no products: a short message, two tap tiles, and the Aisles.
 await page.waitForSelector(".homecard");
 const homeText = await page.textContent(".homecard");
-check(/\d/.test(await page.textContent(".homenum")) && /products with prices loaded/.test(homeText) && /Type what you are looking for/.test(homeText), "the front screen shows how many products have prices and asks the person to search");
-check((await page.locator("#main article.card").count()) === 0, "no products are listed on the front screen until the person types");
-check(/^Search \d+/.test((await page.getAttribute("#q", "placeholder")) || ""), "the search box says how many products it searches");
+check(/Local shops\. Big-chain prices\. One search\./.test(homeText) && /in Paarl/.test(homeText), "the front message says local shops, big-chain prices, one search, and names the town");
+check(!/products with prices loaded|\d+ products/.test(await page.textContent("#main")), "the front screen does not show a product count");
+check((await page.locator("#main article.card").count()) === 0 && (await page.locator("#main .hscroll").count()) === 0 && (await page.locator("#main .pimg").count()) === 0, "the first screen displays no products");
+check(/^Search for a product/.test((await page.getAttribute("#q", "placeholder")) || ""), "the search box invites a search without a count");
+check(/Aisles/.test(await page.textContent("#main")) && !/Quick shops/i.test(await page.textContent("#main")), "the category row is called Aisles");
 await shot(page, "3a-home");
+check((await page.locator('button[data-act="viewall"]').count()) === 2, "there are two tiles: From local stores and Specials");
+await page.locator('button[data-kind="special"]').click();
+await page.waitForSelector('[data-act="clearflt"]');
+await page.locator(".grid article.card").first().waitFor();
+check(/Showing only specials/.test(await page.textContent("#main")), "the Specials tile opens a filtered list only when tapped");
+await page.locator('[data-act="clearflt"]').click();
+await page.waitForSelector(".homecard");
+check(true, "Show everything returns to the front screen");
 await page.fill("#q", "milk");
-await page.locator("button.lookup").first().waitFor();
-check((await page.locator(".homecard").count()) === 0 && (await page.locator("#main article.card").count()) > 0, "products appear as soon as the person types");
+await page.locator(".grid button.lookup").first().waitFor();
+check((await page.locator(".homecard").count()) === 0 && (await page.locator("#main .grid article.card").count()) > 0, "products appear as soon as the person types");
 await page.fill("#q", "");
 await page.waitForSelector(".homecard");
-check((await page.locator("#main article.card").count()) === 0, "clearing the search brings back the clean front screen");
+check((await page.locator("#main .grid article.card").count()) === 0, "clearing the search brings back the clean front screen");
 await page.locator('button.cat[data-cat="Groceries"]').click();
-await page.locator("button.lookup").first().waitFor();
+await page.locator(".grid button.lookup").first().waitFor();
 check(true, "choosing a category lists its products");
 await page.locator('button.cat[data-cat="All"]').click();
 await page.waitForSelector(".homecard");
@@ -184,14 +194,14 @@ await page.waitForSelector(".pills");
 
 // 2. Look up a price.
 await page.fill("#q", "milk");
-await page.locator("button.lookup").first().waitFor();
+await page.locator(".grid button.lookup").first().waitFor();
 check(!/R \d/.test(await page.textContent(".grid")), "no prices shown until an item is looked up");
 await shot(page, "3-find");
-await page.locator("button.lookup").first().click();
+await page.locator(".grid button.lookup").first().click();
 const cardEl = page.locator("article.card:has(.best)").first();
 await cardEl.waitFor();
 check((await cardEl.locator("h3").evaluate((h) => getComputedStyle(h).color)) === "rgb(63, 55, 56)", "item names are 15% lighter than before (rgb 63,55,56)");
-check(await cardEl.locator(".badge").count() >= 3, "looked-up milk shows at least 3 stores");
+check((await cardEl.locator(".badge").count()) + (await cardEl.locator(".others li").count()) >= 3, "looked-up milk shows the best store and the next stores on the card");
 check((await cardEl.textContent()).includes("Best price"), "best price is labelled in text, not only colour");
 check(/Session 1 of 3 today · 1 of 45 items/.test(await meter(page)), "meter after lookup: " + await meter(page));
 await shot(page, "4-looked-up");
@@ -417,6 +427,7 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await adm.fill("#lsname", "Paarl Corner Cafe");
   await adm.selectOption("#lsregion", "paarl");
   await adm.fill("#lscontact", "Tannie Sanet");
+  await adm.selectOption("#lstype", "Butchery");
   await adm.click('#dlg button:has-text("Save")');
   await adm.waitForSelector(".admtable tbody tr b");
   check(/Paarl Corner Cafe/.test(await adm.textContent(".admtable")), "a local store can be added");
@@ -426,6 +437,7 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await adm.waitForSelector("#dlg[open] #lsreplace");
   const lsPrev = await adm.textContent("#dlg");
   check(/3 rows/.test(lsPrev) && /2<\/b> new items|2 new items/.test(lsPrev.replace(/\s+/g, " ")) && /1 rows skipped|1 row/.test(lsPrev.replace(/\s+/g, " ")), "the weekly file is checked first: " + lsPrev.replace(/\s+/g, " ").slice(0, 120));
+  check(/up to <b>1000<\/b> items|up to 1000 items/.test(lsPrev.replace(/\s+/g, " ")), "the preview shows the item limit");
   check(/1<\/b> picture links found|1 picture links found/.test(lsPrev.replace(/\s+/g, " ")) && /not usable/.test(lsPrev), "the preview counts picture links and bad ones");
   await adm.click('#dlg button:has-text("Load the file")');
   await adm.waitForFunction(() => /File loaded/.test(document.querySelector("#dlg").textContent));

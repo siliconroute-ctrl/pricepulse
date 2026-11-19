@@ -7,7 +7,7 @@ from urllib.parse import parse_qsl
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse, Response
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from .. import accounts, payfast, trolleyup
@@ -136,6 +136,8 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         region: str = Query("paarl"),
         q: str | None = Query(None, max_length=80),
         category: str | None = Query(None, max_length=40),
+        special: bool = Query(False, description="Only products with a special price at some store"),
+        local: bool = Query(False, description="Only products sold by a local store"),
         limit: int = Query(50, ge=1, le=100),
         offset: int = Query(0, ge=0, le=100000),
         user: AppUser = Depends(user_dep),  # noqa: B008
@@ -145,14 +147,25 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         ctx.check_region(region)
         adult = accounts.is_adult(user, accounts.sa_today())
         stores = (
-            select(Listing.product_id, func.count(func.distinct(Listing.store_id)).label("n"))
+            select(
+                Listing.product_id,
+                func.count(func.distinct(Listing.store_id)).label("n"),
+                func.max(case((Price.promo_cents.is_not(None), 1), else_=0)).label("special"),
+                func.max(case((Store.kind == "local", 1), else_=0)).label("local"),
+            )
             .join(Price, Price.listing_id == Listing.id)
             .join(Store, Store.id == Listing.store_id)
             .where(Price.region == region, Listing.active.is_(True), Store.active.is_(True))
             .group_by(Listing.product_id)
             .subquery()
         )
-        stmt = select(Product, stores.c.n).join(stores, stores.c.product_id == Product.id)
+        stmt = select(Product, stores.c.n, stores.c.special, stores.c.local).join(
+            stores, stores.c.product_id == Product.id
+        )
+        if special:
+            stmt = stmt.where(stores.c.special == 1)
+        if local:
+            stmt = stmt.where(stores.c.local == 1)
         stmt = stmt.where(visible_clause())  # extra search hits stay in the database, hidden
         if not adult:
             stmt = stmt.where(Product.category != accounts.LIQUOR)
@@ -171,7 +184,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         sess = accounts.current_session(s, user.uid)
         have = {i.product_id for i in sess.items} if sess else set()
         page = rows[offset : offset + limit]
-        pictures = product_images(s, [p.id for p, _ in page])
+        pictures = product_images(s, [row[0].id for row in page])
         note = (
             ""
             if rows
@@ -207,8 +220,10 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
                     store_count=n,
                     in_session=p.id in have,
                     image=pictures.get(p.id, ""),
+                    special=bool(sp),
+                    local=bool(lc),
                 )
-                for p, n in page
+                for p, n, sp, lc in page
             ],
         )
 
