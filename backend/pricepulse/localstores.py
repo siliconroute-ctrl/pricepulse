@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from .config import Settings
 from .db import Listing, Store, StoreSubmission, utcnow
-from .essentials import CATEGORIES, clean_category
+from .essentials import CATEGORIES
 from .ingest import clean_barcode, ingest_items
 from .money import clean_price
 
@@ -33,16 +33,48 @@ MAX_ROWS = 5000
 MAX_PRICE = 100_000.0
 MIN_PRICE = 0.5
 
+# Header names a file may use, best name first. Matching ignores capitals, spaces and punctuation,
+# so "PriceInclVAT", "Price incl. VAT" and "price_incl_vat" are the same. For each of our fields the
+# BEST name wins, not the leftmost column ("Description" is the item name even if a "Product" code
+# column comes first).
 HEADS = {
-    "name": ["item", "item name", "name", "product", "description", "product name", "item description"],
-    "price": ["price", "selling price", "sell price", "sales price", "retail price", "selling", "price r"],
+    "name": [
+        "item name",
+        "item",
+        "name",
+        "product name",
+        "description",
+        "item description",
+        "product description",
+        "product",
+    ],
+    "price": [
+        "selling price",
+        "price",
+        "sell price",
+        "sales price",
+        "retail price",
+        "price incl vat",
+        "priceinclvat",
+        "price inc vat",
+        "price including vat",
+        "incl vat",
+        "inc vat",
+        "price r",
+        "selling",
+        "price excl vat",
+        "priceexclvat",
+    ],
     "promo": ["promo price", "promo", "special price", "special", "sale price", "was price"],
     "size": ["size", "pack size", "pack", "unit size", "weight", "volume"],
     "barcode": ["barcode", "ean", "upc", "gtin", "bar code"],
-    "sku": ["sku", "item code", "product code", "code", "stock code", "plu"],
-    "department": ["department", "dept", "section", "aisle"],
-    "category": ["category", "type", "class"],
+    "sku": ["sku", "item code", "product code", "stock code", "code", "plu", "part number", "product"],
+    "department": ["department", "dept", "section", "aisle", "subcategory", "sub category", "sub-category"],
+    "category": ["category", "type", "class", "main category"],
+    "brand": ["brand", "manufacturer", "make"],
+    "stock": ["stock level", "stocklevel", "stock status", "in stock", "availability", "stock", "on hand"],
 }
+FIELDS = set(HEADS)
 LABEL = {"name": "item name", "price": "price"}
 
 
@@ -50,29 +82,44 @@ def _norm_head(text: str) -> str:
     return re.sub(r"[^a-z0-9 ]", " ", text.lower()).strip()
 
 
-def parse_csv(text: str) -> tuple[list[dict], list[str]]:
-    """CSV text to raw row dicts (keys: name, price, promo, size, barcode, sku, department, category).
+def _separator(text: str) -> str:
+    """Comma, semicolon or tab: the one that appears on every one of the first lines."""
+    lines = [ln for ln in text.splitlines()[:12] if ln.strip()]
+    best, best_min = ",", 0
+    for c in (",", ";", "\t"):
+        low = min([ln.count(c) for ln in lines] or [0])
+        if low > best_min:
+            best, best_min = c, low
+    if best_min == 0:  # none on every line: take the commonest one in the first line
+        first = lines[0] if lines else ""
+        best = max((",", ";", "\t"), key=first.count)
+    return best
 
+
+def parse_csv(text: str) -> tuple[list[dict], list[str]]:
+    """CSV or tab-separated text to raw row dicts (keys: name, price, promo, size, barcode, sku,
+    department, category, brand, stock).
+
+    The first row must name the columns.
     Returns (rows, problems). ``problems`` explains file-level trouble such as a missing column.
     """
-    text = (text or "").lstrip("﻿")
+    text = (text or "").lstrip("\ufeff")
     if not text.strip():
         return [], ["The file is empty."]
-    first = text.splitlines()[0]
-    sep = ","
-    for c in (";", "\t"):
-        if first.count(c) > first.count(sep):
-            sep = c
+    sep = _separator(text)
     table = [r for r in csv.reader(io.StringIO(text), delimiter=sep) if any(x.strip() for x in r)]
     if not table:
         return [], ["The file has no rows."]
-    head = [_norm_head(h) for h in table[0]]
+    head = [re.sub(r"[^a-z0-9]", "", h.lower()) for h in table[0]]
     cols: dict[str, int] = {}
     for field_name, names in HEADS.items():
-        for i, h in enumerate(head):
-            if h in names and i not in cols.values():
-                cols[field_name] = i
+        for n in names:  # best name first
+            key = re.sub(r"[^a-z0-9]", "", n.lower())
+            hit = next((i for i, h in enumerate(head) if h == key and i not in cols.values()), None)
+            if hit is not None:
+                cols[field_name] = hit
                 break
+    body = table[1:]
     problems = []
     for need in ("name", "price"):
         if need not in cols:
@@ -80,7 +127,7 @@ def parse_csv(text: str) -> tuple[list[dict], list[str]]:
     if problems:
         return [], problems
     rows = []
-    for r in table[1:]:
+    for r in body:
         row = {k: (r[i].strip() if i < len(r) else "") for k, i in cols.items()}
         if any(row.values()):
             rows.append(row)
@@ -94,6 +141,8 @@ class CleanRows:
     ok: list[dict] = field(default_factory=list)
     invalid: list[dict] = field(default_factory=list)  # {"row", "name", "why"}
     duplicates: int = 0
+    out_of_stock: int = 0  # rows the store marked as not in stock: left out, so not shown
+    new_categories: list[str] = field(default_factory=list)  # categories outside our four
 
 
 def _money(value: str) -> float | None:
@@ -105,42 +154,66 @@ def _money(value: str) -> float | None:
     return clean_price(v)
 
 
+_NO_STOCK = re.compile(
+    r"(?i)\b(no stock|out of stock|unavailable|sold out|not available|discontinued|backorder)\b"
+    r"|^(0|no|n|false)$"
+)
+KNOWN_CATEGORIES = {c.lower(): c for c in CATEGORIES}
+
+
+def in_stock(value: str) -> bool:
+    """Blank, or anything that is not clearly "no stock", counts as in stock."""
+    return not _NO_STOCK.search((value or "").strip())
+
+
+def store_category(text: str) -> str:
+    """Our four categories keep their names; other text (a wholesaler's own sections) is kept as typed."""
+    t = re.sub(r"\s+", " ", (text or "").strip())
+    if not t:
+        return "Groceries"
+    known = KNOWN_CATEGORIES.get(t.lower()) or KNOWN_CATEGORIES.get(t.lower().replace(" and ", " & "))
+    if known:
+        return known
+    if len(t) > 40 or not re.fullmatch(r"[\w &/,'()+-]+", t):
+        raise ValueError("the category must be plain text of up to 40 characters")
+    return t
+
+
+def _bad(out: CleanRows, i: int, name: str, why: str) -> None:
+    out.invalid.append({"row": i, "name": name[:60], "why": why})
+
+
 def check_rows(rows: list[dict]) -> CleanRows:
     """Check every row. Good rows come back shaped for ``ingest_items``; bad ones are explained."""
     out = CleanRows()
     seen: set[str] = set()
-    for i, raw in enumerate(rows, 2):  # row 1 is the header
+    for i, raw in enumerate(rows, 2):  # row 1 is the header (or the first line of a file without one)
         name = re.sub(r"\s+", " ", raw.get("name", "")).strip()
-        if len(name) < 2 or len(name) > 120:
-            out.invalid.append(
-                {"row": i, "name": name[:60], "why": "the item name must be 2 to 120 characters"}
-            )
+        if len(name) < 2:
+            _bad(out, i, name, "the item name must be at least 2 characters")
             continue
+        if len(name) > 200:
+            name = name[:197].rsplit(" ", 1)[0] + "..."  # long supplier descriptions are shortened
         if re.search(r"https?:|www\.|@", name, re.I):
-            out.invalid.append(
-                {"row": i, "name": name[:60], "why": "the item name must not contain a web address"}
-            )
+            _bad(out, i, name, "the item name must not contain a web address")
             continue
         price = _money(raw.get("price", ""))
         if price is None or not (MIN_PRICE <= price <= MAX_PRICE):
-            out.invalid.append(
-                {
-                    "row": i,
-                    "name": name[:60],
-                    "why": f"the price must be a number from R{MIN_PRICE:.2f} to R{MAX_PRICE:,.0f}",
-                }
-            )
+            _bad(out, i, name, f"the price must be a number from R{MIN_PRICE:.2f} to R{MAX_PRICE:,.0f}")
             continue
         promo = _money(raw.get("promo", "")) if raw.get("promo") else None
         if promo is not None and not (MIN_PRICE <= promo < price):
             promo = None  # a promo that is not lower than the price is ignored, not an error
-        try:
-            category = clean_category(raw.get("category", ""))
-        except ValueError:
-            out.invalid.append(
-                {"row": i, "name": name[:60], "why": "category must be one of " + ", ".join(CATEGORIES)}
-            )
+        if not in_stock(raw.get("stock", "")):
+            out.out_of_stock += 1
             continue
+        try:
+            category = store_category(raw.get("category", ""))
+        except ValueError as exc:
+            _bad(out, i, name, str(exc))
+            continue
+        if category not in CATEGORIES and category not in out.new_categories:
+            out.new_categories.append(category)
         barcode = clean_barcode(raw.get("barcode", ""))
         sku = re.sub(r"\s+", "", raw.get("sku", ""))[:40]
         key = f"sku:{sku.lower()}" if sku else f"{name.lower()}|{raw.get('size', '').strip().lower()}"
@@ -157,8 +230,9 @@ def check_rows(rows: list[dict]) -> CleanRows:
                 "barcode": barcode,
                 "sku": sku,
                 "department": re.sub(r"\s+", " ", raw.get("department", "")).strip()[:60],
+                "brand": re.sub(r"\s+", " ", raw.get("brand", "")).strip()[:80],
                 "category": category,
-                "ident": f"{key}",
+                "ident": key,
             }
         )
     return out
@@ -174,6 +248,8 @@ class ImportReport:
     duplicates: int = 0
     dry_run: bool = False
     matched_to_chains: int = 0
+    out_of_stock: int = 0
+    new_categories: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict:
         return {
@@ -185,6 +261,8 @@ class ImportReport:
             "invalid_count": len(self.invalid),
             "invalid": self.invalid[:50],
             "matched_to_chains": self.matched_to_chains,
+            "out_of_stock": self.out_of_stock,
+            "new_categories": self.new_categories[:20],
             "dry_run": self.dry_run,
         }
 
@@ -211,7 +289,12 @@ def import_for_store(
     now = now or utcnow()
     checked = check_rows(rows)
     rep = ImportReport(
-        rows=len(rows), invalid=checked.invalid, duplicates=checked.duplicates, dry_run=dry_run
+        rows=len(rows),
+        invalid=checked.invalid,
+        duplicates=checked.duplicates,
+        dry_run=dry_run,
+        out_of_stock=checked.out_of_stock,
+        new_categories=checked.new_categories,
     )
     before = {lst.ident: lst for lst in s.scalars(select(Listing).where(Listing.store_id == store.id)).all()}
     items = [

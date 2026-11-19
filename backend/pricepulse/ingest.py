@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from sqlalchemy import delete, func, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from .config import Settings
 from .db import Listing, Price, Product, ScrapeRun, SessionItem, get_or_create_store, slot_for, utcnow
@@ -85,7 +85,13 @@ def _norm_from_product(p: Product) -> Normalised:
 
 
 def _candidates(session: Session, size_key: str) -> list[Candidate]:
-    rows = session.scalars(select(Product).where(Product.size_key == size_key)).all()
+    if not size_key:
+        return []  # nothing can be matched without a size (match() sends such items to review anyway)
+    rows = session.scalars(
+        select(Product)
+        .where(Product.size_key == size_key)
+        .options(selectinload(Product.listings).selectinload(Listing.store))
+    ).all()
     out = []
     for p in rows:
         stores = {lst.store.name for lst in p.listings}
