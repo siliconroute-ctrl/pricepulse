@@ -223,12 +223,15 @@ await page.locator(".grid button.lookup").first().click();
 const cardEl = page.locator("article.card:has(.best)").first();
 await cardEl.waitFor();
 check((await cardEl.locator("h3").evaluate((h) => getComputedStyle(h).color)) === "rgb(63, 55, 56)", "item names are 15% lighter than before (rgb 63,55,56)");
-check((await cardEl.locator(".badge").count()) >= 1 && /Next:/.test(await cardEl.textContent()), "looked-up milk shows the best store and the next store on the row");
+check((await cardEl.locator(".sbtn").count()) >= 2 && /Best price/.test(await cardEl.textContent()) && /Next:/.test(await cardEl.textContent()), "looked-up milk shows the best store and the next store as two store buttons on the row");
+const sb = await cardEl.locator(".sbtn").evaluateAll((els) => els.map((e) => ({ h: Math.round(e.getBoundingClientRect().height), a: e.tagName === "A", blank: e.getAttribute("target") === "_blank", safe: /noopener/.test(e.getAttribute("rel") || ""), label: e.getAttribute("aria-label") || "" })));
+check(sb.every((x) => x.h >= 48), "the store buttons are at least 48px tall (" + sb.map((x) => x.h).join(", ") + ")");
+check(sb.filter((x) => x.a).every((x) => x.blank && x.safe && /opens a new tab/.test(x.label)), "store buttons that link open the store's page in a new tab, safely (" + sb.filter((x) => x.a).length + " links)");
 const vp = page.viewportSize();
 const rowH = await cardEl.evaluate((e) => Math.round(e.getBoundingClientRect().height));
 const smallH = await page.locator("article.prow.small").first().evaluate((e) => Math.round(e.getBoundingClientRect().height)).catch(() => 0);
 console.log("INFO row heights at " + vp.width + "px: looked-up " + rowH + "px, not looked up " + smallH + "px");
-check(rowH <= 230 && (smallH === 0 || smallH <= 130), "product rows are compact (looked-up " + rowH + "px, not looked up " + smallH + "px)");
+check(rowH <= 240 && (smallH === 0 || smallH <= 130), "product rows are compact (looked-up " + rowH + "px, not looked up " + smallH + "px)");
 check((await page.locator(".grid").evaluate((g) => getComputedStyle(g).display)) === "flex", "results are one column of rows");
 check((await page.locator(".grid .pimg, .grid .pph").count()) === 0, "listings show no picture and no picture icon for grocery items");
 await page.setViewportSize({ width: 360, height: 780 });
@@ -236,11 +239,19 @@ await page.waitForTimeout(250);
 const rowH360 = await cardEl.evaluate((e) => Math.round(e.getBoundingClientRect().height));
 const overflow360 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
 console.log("INFO row height at 360px: " + rowH360 + "px");
-check(rowH360 <= 230 && !overflow360, "on a 360px phone a looked-up row is " + rowH360 + "px tall and nothing scrolls sideways");
+check(rowH360 <= 260 && !overflow360, "on a 360px phone a looked-up row is " + rowH360 + "px tall and nothing scrolls sideways");
 await page.setViewportSize({ width: vp.width, height: vp.height });
 check((await cardEl.textContent()).includes("Best price"), "best price is labelled in text, not only colour");
 check(/Session 1 of 3 today · 1 of 45 items/.test(await meter(page)), "meter after lookup: " + await meter(page));
 await shot(page, "4-looked-up");
+const rowHtml = await page.evaluate(() => {
+  const mk = (url) => ({ price: 10, promo: null, url, at: new Date().toISOString(), stale: false, local: false, unit: null });
+  return card({ p: { id: 9001, name: "Test milk", size: "1L", cat: "Groceries", image: "", prices: { Checkers: mk("https://www.checkers.co.za/p/1"), "Pick n Pay": { ...mk("https://www.pnp.co.za/p/2"), price: 12 }, Woolworths: { ...mk(""), price: 13 } } }, on: false, q: 1 });
+});
+check((rowHtml.match(/<a class="sbtn[^"]*" href="https:\/\/www\.checkers\.co\.za\/p\/1" target="_blank" rel="noopener noreferrer"/g) || []).length === 1 && (rowHtml.match(/<a class="sbtn[^"]*" href="https:\/\/www\.pnp\.co\.za\/p\/2" target="_blank" rel="noopener noreferrer"/g) || []).length === 1, "on a row both the best store and the next store are links to their own product pages");
+check(/Open this product on the Checkers website \(opens a new tab\)/.test(rowHtml) && /Open this product on the Pick n Pay website/.test(rowHtml), "the row store links say where they go");
+const noLink = await page.evaluate(() => { const mk = (url) => ({ price: 10, promo: null, url, at: new Date().toISOString(), stale: false, local: false, unit: null }); return card({ p: { id: 9002, name: "Plain", size: "1L", cat: "Groceries", image: "", prices: { Checkers: mk(""), "Pick n Pay": mk("") } }, on: false, q: 1 }); });
+check(!/<a class="sbtn/.test(noLink) && (noLink.match(/<span class="sbtn/g) || []).length === 2, "a store without a product link is a plain label of the same size");
 const badges = await page.evaluate(() => ({
   withUrl: badgeLink("Checkers", { url: "https://www.checkers.co.za/p/1" }),
   without: badgeLink("Checkers", { url: "" }),

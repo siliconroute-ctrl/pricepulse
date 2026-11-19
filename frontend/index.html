@@ -399,6 +399,15 @@ body.front .disclaimer{margin:.5rem 0 0;padding:.35rem .7rem;font-size:.94rem;li
 body.front .cats8{padding:.2rem 0 .2rem;gap:.2rem .2rem}
 body.front .fronttile{min-height:3rem}
 body.front .homecard .homehint{font-size:.94rem}
+
+/* ---- Store buttons on the rows (v25) ---- */
+.storelinks{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.3rem}
+.storelinks.one{grid-template-columns:1fr}
+.sbtn{display:flex;flex-direction:column;justify-content:center;min-height:3rem;border-radius:.6rem;border:2px solid var(--line);padding:.1rem .55rem;text-decoration:none;color:var(--ink);background:var(--card);font-weight:700;line-height:1.15;min-width:0}
+.sbtn .sn{font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbtn .cap{font-size:.88rem;font-weight:600}
+.sbtn.best1{color:#fff}
+.sbtn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 </style>
 </head>
 <body class="plainhead">
@@ -458,7 +467,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 24;
+var APP_VERSION = 25;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -498,6 +507,13 @@ function badgeLink(s,r){
   var lab=r&&r.local?' <span class="tag localtag">Local store</span>':'';
   if(!r||!r.url)return badge(s)+lab;
   return '<a class="badge blink" href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer" style="background:'+storeColor(s)+'" aria-label="Open this product on the '+esc(s)+' website (opens a new tab)">'+esc(s)+' \u2197</a>'+lab;
+}
+/* Store button for a row: opens that store's own product page in a new tab (48px tall); plain label when there is no link. */
+function storeBtn(s,r,cap,best){
+  var st=best?'background:'+storeColor(s)+';color:#fff;border-color:'+storeColor(s):'border-color:'+storeColor(s);
+  var inner='<span class="sn">'+esc(s)+(r&&r.url?' \u2197':'')+'</span><span class="cap">'+cap+'</span>';
+  if(!r||!r.url)return '<span class="sbtn'+(best?' best1':'')+'" style="'+st+'">'+inner+'</span>';
+  return '<a class="sbtn'+(best?' best1':'')+'" href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer" style="'+st+'" aria-label="Open this product on the '+esc(s)+' website (opens a new tab)">'+inner+'</a>';
 }
 function badge(s){return '<span class="badge" style="background:'+storeColor(s)+'">'+esc(s)+'</span>'}
 function regionName(slug){var r=state.regions.find(function(x){return x.slug===slug});return r?r.name:slug}
@@ -824,10 +840,8 @@ function card(it){
   var nx=others[0],nr=nx?p.prices[nx]:null,nu=nr?priceUnit(p,nr):null;
   return '<article class="'+rc+'">'+img+'<div class="pbody">'+title+
     '<div class="best"><div class="price'+(bp.promo!=null?' sp':'')+'">'+priceHtml(main)+(state.unitMode&&u?' <span class="unit">'+esc(u.unit)+'</span>':'')+'</div>'+
-    (save>0?'<span class="savetxt">Save R'+save.toFixed(2)+'</span>':'')+'</div>'+
-    '<div class="atstore"><span class="tag">Best price</span>'+badge(b)+(bp.local?' <span class="tag localtag">Local store</span>':'')+oldTag(bp)+'</div>'+
-    (nx?'<div class="nextline">Next: <b>'+(state.unitMode&&nu?money(nu.value)+' '+esc(nu.unit):money(eff(nr)))+'</b> '+esc(nx)+'</div>':'<div class="nextline">Only one store has this item.</div>')+
-    '</div><div class="cardfoot">'+addBtn+pickBtn(p.id,p.name)+'</div></article>';
+    (save>0?'<span class="savetxt">Save R'+save.toFixed(2)+'</span>':'')+(bp.local?' <span class="tag localtag">Local store</span>':'')+oldTag(bp)+'</div>'+
+    '</div><div class="storelinks'+(nx?'':' one')+'">'+storeBtn(b,bp,'\u2713 Best price',true)+(nx?storeBtn(nx,nr,'Next: '+(state.unitMode&&nu?money(nu.value)+' '+esc(nu.unit):money(eff(nr))),false):'')+'</div><div class="cardfoot">'+addBtn+pickBtn(p.id,p.name)+'</div></article>';
 }
 function lookUp(id){
   if(state.busy)return;state.busy=true;
