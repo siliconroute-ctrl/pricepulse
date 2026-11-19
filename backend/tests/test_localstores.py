@@ -495,3 +495,21 @@ def test_store_settings_through_the_admin_api(api, app_settings):
         headers=h,
     ).json()
     assert prev["max_items"] == 20
+
+
+def test_catalogue_can_show_only_specials_or_only_local_store_items(api, app_settings):
+    h = auth("boss")
+    sid = api.post("/api/v1/admin/localstores", json=STORE, headers=h).json()["id"]
+    csv_ = "item,price,promo price,size\nBoerewors,89.90,79.90,1kg\nBiltong,150,,500g\n"
+    assert (
+        api.post(f"/api/v1/admin/localstores/{sid}/import", json={"csv": csv_}, headers=h).status_code == 200
+    )
+    names = lambda r: sorted(i["name"] for i in r.json()["items"])  # noqa: E731
+    sp = api.get("/api/v1/catalogue", params={"special": "true", "q": "o"}, headers=auth("alice"))
+    assert names(sp) == ["Boerewors 1kg"] or names(sp) == ["Boerewors"]
+    item = sp.json()["items"][0]
+    assert item["special"] is True and item["local"] is True
+    loc = api.get("/api/v1/catalogue", params={"local": "true", "q": "biltong"}, headers=auth("alice"))
+    assert loc.json()["total"] == 1 and loc.json()["items"][0]["special"] is False
+    allr = api.get("/api/v1/catalogue", params={"q": "biltong"}, headers=auth("alice"))
+    assert allr.json()["items"][0]["local"] is True

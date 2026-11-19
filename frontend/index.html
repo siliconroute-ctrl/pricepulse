@@ -269,6 +269,74 @@ body.adm-wide nav.tabs .in{max-width:80rem}
 .pickbar{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;border:2px solid var(--best);background:var(--best-bg);color:var(--best);border-radius:.7rem;padding:.4rem .7rem;margin:.5rem 0}
 .pickbar .btn{margin:0}
 .li .tupick{margin-left:auto}
+
+/* ---- New look (v21): navy bars, bright white product tiles, round category circles ---- */
+:root{--bg:#eef1f5;--nav:#15222e;--nav-ink:#ffffff;--nav-hi:#7ee8ee;--accent:#08595e;--accent-ink:#ffffff;--save:#9f2813;--save-ink:#ffffff;--tile:#e9f1f2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--nav:#0b141b;--nav-hi:#7ee8ee;--accent:#3cc4cc;--accent-ink:#04292b;--save:#ff9b82;--save-ink:#2b0a02;--tile:#2a3a3c}}
+:root[data-theme="dark"]{--nav:#0b141b;--nav-hi:#7ee8ee;--accent:#3cc4cc;--accent-ink:#04292b;--save:#ff9b82;--save-ink:#2b0a02;--tile:#2a3a3c}
+header{background:var(--nav)}
+header .apptop{background:var(--nav);color:var(--nav-ink)}
+header .findbar{background:var(--nav);padding-bottom:.7rem}
+header .apptop :focus-visible,header .findbar :focus-visible{outline-color:#fff}
+.chip{position:relative;flex:1 1 auto;min-width:0;max-width:16rem;display:flex;align-items:center}
+.chip svg.pin{position:absolute;left:.75rem;width:1.2rem;height:1.2rem;stroke:var(--nav-hi);fill:none;stroke-width:2;pointer-events:none}
+.find-row .chip select{width:100%;max-width:none;padding-left:2.4rem;background:rgba(255,255,255,.1);color:var(--nav-ink);border:2px solid var(--nav-hi);border-radius:999px;font-weight:700;appearance:auto}
+.find-row .chip select option{color:#1d1415;background:#fff}
+.locbtn{background:rgba(255,255,255,.1);color:var(--nav-hi);border:2px solid var(--nav-hi);border-radius:999px}
+.search input{border:2px solid #fff;border-radius:999px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2315222e' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l5 5'/%3E%3C/svg%3E") no-repeat .8rem center/1.35rem;padding-left:2.7rem;color:#1d1415}
+.search input::placeholder{color:#4a5560;opacity:1}
+nav.tabs{background:var(--nav);border-top:0;box-shadow:0 -2px 10px rgba(0,0,0,.18)}
+nav.tabs button{color:var(--nav-ink)}
+nav.tabs button[aria-current="page"]{color:var(--nav-hi);background:rgba(255,255,255,.1);box-shadow:inset 0 3px 0 var(--nav-hi)}
+nav.tabs :focus-visible{outline-color:#fff}
+nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
+.cats{gap:.5rem;padding:.4rem 0 .5rem}
+.cat{min-width:4.3rem}
+.cat .lbl{max-width:5.4rem}
+.cat .circ{width:3.7rem;height:3.7rem;background:color-mix(in srgb,var(--fc) 18%,var(--card));box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.cat .circ svg{width:1.8rem;height:1.8rem}
+.cat[aria-pressed="true"] .circ{border-color:var(--nav)}
+.sect{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;margin:1.1rem 0 .1rem}
+.sect h2{margin:0;font-family:var(--font-display);font-size:1.45rem;text-transform:uppercase;letter-spacing:.02em;line-height:1.1}
+.sect .viewall{min-height:3rem;display:inline-flex;align-items:center;padding:0 .2rem;background:transparent;border:0;color:var(--accent);font-weight:800;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:2px}
+:root[data-theme="dark"] .sect .viewall{color:var(--nav-hi)}
+.hscroll{display:flex;gap:.7rem;overflow-x:auto;scroll-snap-type:x mandatory;padding:.3rem 0 .6rem;scrollbar-width:none;margin-right:-16px;padding-right:16px}
+.hscroll::-webkit-scrollbar{display:none}
+.hscroll>.card{flex:0 0 min(46%,11.5rem);scroll-snap-align:start}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin-top:.6rem}
+@media (min-width:34rem){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:21rem){.grid{grid-template-columns:minmax(0,1fr)}}
+.pcard{display:flex;flex-direction:column;padding:.55rem;border-radius:1rem;border:0;box-shadow:0 1px 4px rgba(20,34,46,.14)}
+.pimg{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;border-radius:.7rem;background:var(--tile);overflow:hidden;position:relative;text-decoration:none}
+.pimg .pic{width:100%;height:100%;border:0;background:transparent;border-radius:0}
+.pph{display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:color-mix(in srgb,var(--fc,var(--f-all)) 14%,var(--card))}
+.pph svg{width:38%;height:38%;fill:none;stroke:var(--fc,var(--f-all));stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.pcard .save{position:absolute;left:.4rem;bottom:.4rem;background:var(--save);color:var(--save-ink);font-weight:800;font-size:.88rem;padding:.15rem .5rem;border-radius:.4rem}
+.pcard h3{margin:.5rem 0 0;font-size:1.02rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pcard .size{margin:.1rem 0 0}
+.pcard .best{margin-top:.4rem;background:transparent;padding:0;gap:.2rem;display:block}
+.pcard .tag{display:block;margin-bottom:.1rem}
+.pcard .price{font-size:2.05rem;font-weight:800;white-space:nowrap}
+.pcard .price sup{font-size:.55em;font-weight:800;vertical-align:top;position:relative;top:.05em;margin-left:.04em}
+.pcard .price.sp{color:var(--save)}
+.pcard .atstore{font-size:.94rem;color:var(--ink);font-weight:650;margin-top:.1rem}
+.pcard .others{margin:.35rem 0 0}
+.pcard .others li{padding:.25rem 0;gap:.3rem;font-size:.94rem;border-top:1px solid var(--line)}
+.pcard .others .p{font-size:.98rem}
+.pcard .cardfoot{margin-top:auto;padding-top:.5rem;flex-direction:column;align-items:stretch;gap:.4rem}
+.pillbtn{min-height:3rem;border-radius:999px;border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:800;padding:0 .8rem;display:flex;align-items:center;justify-content:center;gap:.3rem;width:100%}
+.pillbtn[aria-pressed="true"]{background:transparent;color:var(--accent)}
+:root[data-theme="dark"] .pillbtn[aria-pressed="true"]{color:var(--nav-hi)}
+.pcard .tupick{justify-content:center;width:100%}
+.btn,.lookup{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.alt{background:transparent;color:var(--accent);border-color:var(--accent)}
+:root[data-theme="dark"] .btn.alt{color:var(--nav-hi);border-color:var(--nav-hi)}
+.pcard .lookup{border-radius:999px;width:100%}
+.pimg .pic{position:absolute;inset:0}
+.specialtag{margin:.4rem 0 0;display:block;color:var(--save)}
+.specialtag::before{content:""}
+.pcard .moreof{display:flex;align-items:center;min-height:3rem;color:var(--accent);font-weight:700}
+:root[data-theme="dark"] .pcard .moreof{color:var(--nav-hi)}
 </style>
 </head>
 <body class="plainhead">
@@ -284,7 +352,7 @@ body.adm-wide nav.tabs .in{max-width:80rem}
   <div class="findbar">
   <div class="row find-row">
     <label for="base" class="vh">Town</label>
-    <select id="base"></select>
+    <span class="chip"><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.500-6-6.500-11a6.500 6.500 0 0113 0c0 5-6.500 11-6.500 11z"/><circle cx="12" cy="10" r="2.400"/></svg><select id="base"></select></span>
     <button class="locbtn" id="locate" type="button" aria-label="Use my location to choose the nearest town">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
     </button>
@@ -328,7 +396,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 20;
+var APP_VERSION = 21;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -565,11 +633,11 @@ function runFind(now){
   findTimer=setTimeout(function(){
     var key=state.region+"|"+state.cat+"|"+state.q;
     state.finding=true;state.findErr="";
-    var browsing=!state.q.trim()&&state.cat==="All";
-    api("GET","/catalogue?"+qs({region:state.region,q:state.q.trim(),category:state.cat==="All"?"":state.cat,limit:browsing?1:50})).then(function(r){
+    var browsing=!state.q.trim()&&state.cat==="All"&&!state.flt;
+    api("GET","/catalogue?"+qs({region:state.region,q:state.q.trim(),category:state.cat==="All"?"":state.cat,special:state.flt==="special"?"true":"",local:state.flt==="local"?"true":"",limit:browsing?1:50})).then(function(r){
       if(key!==state.region+"|"+state.cat+"|"+state.q)return;
       state.finding=false;state.found=r;
-      if(browsing)state.home={total:r.total,stores:r.stores,updated:r.updated,region:state.region};
+      if(browsing){state.home={total:r.total,stores:r.stores,updated:r.updated,region:state.region};loadRows()}
       var q=document.getElementById("q");
       if(q&&state.home&&state.home.total)q.placeholder="Search "+bigNum(state.home.total)+" products";
       if(state.view==="find")renderMain();
@@ -578,6 +646,24 @@ function runFind(now){
       state.finding=false;state.findErr=e.message;if(state.view==="find")renderMain();
     });
   },now?0:350);
+}
+function loadRows(){
+  var r=state.region;
+  if(state.rows&&state.rows.region===r&&Date.now()-state.rows.at<60000)return;
+  Promise.all([api("GET","/catalogue?"+qs({region:r,special:"true",limit:10})),api("GET","/catalogue?"+qs({region:r,local:"true",limit:10}))]).then(function(x){
+    state.rows={region:r,at:Date.now(),special:x[0].items,local:x[1].items};
+    if(state.view==="find")renderMain();
+  }).catch(function(){});
+}
+function catTile(c){
+  var it=findItem(c.id);
+  if(it)return card(it);
+  return '<article class="card pcard">'+tileImg(c.image,c.category,0,"")+(c.special?'<span class="tag specialtag">Special</span>':'')+'<h3>'+esc(c.name)+'</h3><div class="size">'+esc(c.size)+' \u00b7 at '+plural(c.store_count,"store")+'</div>'+
+    '<div class="cardfoot"><button class="lookup" type="button" data-look="'+c.id+'" aria-label="Look up price of '+esc(c.name)+' '+esc(c.size)+'">+ Look up price</button></div></article>';
+}
+function rowSection(title,kind,items){
+  if(!items||!items.length)return "";
+  return '<section aria-label="'+esc(title)+'"><div class="sect"><h2>'+esc(title)+'</h2><button class="viewall" type="button" data-act="viewall" data-kind="'+kind+'" aria-label="View all: '+esc(title)+'">View all</button></div><div class="hscroll">'+items.map(catTile).join("")+'</div></section>';
 }
 var TU_ICON='<svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" fill="#0b7a4b"/><g fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"><path d="M110 150h56l44 170h170l36-120H184"/></g><circle cx="232" cy="378" r="24" fill="#fff"/><circle cx="372" cy="378" r="24" fill="#fff"/><path d="M290 110l36-40 36 40" fill="none" stroke="#ff7a1a" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var CAT_ICONS={
@@ -626,27 +712,24 @@ function homeCard(f){
 function viewFind(){
   var cats=CATS.filter(function(c){return c!=="Liquor"||(state.me&&state.me.adult)});
   var h=banners();
-  var typing=!!state.q.trim()||state.cat!=="All";
+  var typing=!!state.q.trim()||state.cat!=="All"||!!state.flt;
   if(!typing){
     var f0=state.found;
     if(state.findErr)return h+'<div class="empty">'+esc(state.findErr)+' <button class="linkbtn" type="button" data-act="refind">Try again</button></div>'+disclaimer();
     var hm=state.home&&state.home.region===state.region?state.home:f0;
     h+=hm?homeCard(hm):'<p class="sub" aria-busy="true">Loading…</p>';
-    return h+catCircles(cats)+pickBar()+disclaimer();
+    var rw=state.rows&&state.rows.region===state.region?state.rows:null;
+    return h+'<div class="sect"><h2>Quick shops</h2></div>'+catCircles(cats)+pickBar()+(rw?rowSection("Specials","special",rw.special)+rowSection("From local stores","local",rw.local):"")+disclaimer();
   }
   h+=catCircles(cats)+pickBar();
+  if(state.flt)h+='<div class="banner"><b>Showing only '+(state.flt==="special"?"specials":"items from local stores")+'.</b> <button class="linkbtn" type="button" data-act="clearflt">Show everything</button></div>';
   h+='<div class="seg" role="group" aria-label="Show prices as"><button type="button" data-unit="0" aria-pressed="'+!state.unitMode+'">Pack price</button><button type="button" data-unit="1" aria-pressed="'+state.unitMode+'">Per 100g / 100ml</button></div>';
   if(state.findErr)return h+'<div class="empty">'+esc(state.findErr)+' <button class="linkbtn" type="button" data-act="refind">Try again</button></div>'+disclaimer();
   var f=state.found;
   if(!f)return h+'<p class="sub" aria-busy="true">Loading products…</p>'+disclaimer();
   if(!f.items.length)return h+'<div class="empty">'+esc(f.note||"No products match.")+'</div>'+requestCard()+disclaimer();
   h+='<p class="sub">'+plural(f.total,"product")+(f.total>f.items.length?' (showing the first '+f.items.length+'; type more of the name to narrow it down)':'')+'. Tap <b>Look up price</b> to compare stores.</p><div class="grid">';
-  h+=f.items.map(function(c){
-    var it=findItem(c.id);
-    if(it)return card(it);
-    return '<article class="card"><div class="hrow">'+pic(c.image)+'<div class="n"><b>'+esc(c.name)+'</b><span class="size">'+esc(c.size)+' · at '+plural(c.store_count,"store")+'</span></div>'+
-      '<button class="lookup" type="button" data-look="'+c.id+'" aria-label="Look up price of '+esc(c.name)+' '+esc(c.size)+'">Look up price</button></div></article>';
-  }).join("")+'</div>';
+  h+=f.items.map(catTile  ).join("")+'</div>';
   return h+requestCard()+disclaimer();
 }
 function requestCard(){
@@ -671,24 +754,33 @@ function sendRequest(b){
     b.disabled=false;m.textContent=e.message||"Could not send. Please try again.";
   });
 }
+function priceHtml(v){var p=Number(v).toFixed(2).split(".");return '<span class="vh">'+money(v)+'</span><span aria-hidden="true">R'+p[0].replace(/\B(?=(\d{3})+(?!\d))/g," ")+'<sup>.'+p[1]+'</sup></span>'}
+function tileImg(url,cat,saveAmt,href){
+  var ph='<span class="pph cat-'+(CAT_CLASS[cat]||"all")+'">'+(CAT_ICONS[cat]||CAT_ICONS.All)+'</span>';
+  var img=url&&(url.indexOf("https://")===0||url.indexOf("/api/v1/img/")===0)?'<img class="pic" src="'+esc(url)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">':'';
+  var inner=ph+img+(saveAmt>0?'<span class="save">Save R'+saveAmt.toFixed(2)+'</span>':'');
+  return href?'<a class="pimg" href="'+href+'" tabindex="-1" aria-hidden="true">'+inner+'</a>':'<div class="pimg">'+inner+'</div>';
+}
 function card(it){
   var p=it.p,stores=sortedStores(p);
-  var head='<div class="top">'+pic(p.image)+'<div style="min-width:0;flex:1"><h3 id="p'+p.id+'" tabindex="-1"><a href="#product/'+p.id+'">'+esc(p.name)+'</a></h3><div class="size">'+esc(p.size)+'</div></div>'+
-    '<button class="add" type="button" data-toggle="'+p.id+'" aria-pressed="'+it.on+'" aria-label="'+(it.on?'Take '+esc(p.name)+' off my list':'Put '+esc(p.name)+' on my list')+'">'+(it.on?'On list':'+ List')+'</button></div>';
-  if(!stores.length)return '<article class="card">'+head+'<div class="size" style="margin-top:.5rem">No store in '+esc(regionName(state.region))+' has a price for this right now.</div></article>';
+  var title='<h3 id="p'+p.id+'" tabindex="-1"><a href="#product/'+p.id+'">'+esc(p.name)+'</a></h3><div class="size">'+esc(p.size)+'</div>';
+  var addBtn='<button class="pillbtn" type="button" data-toggle="'+p.id+'" aria-pressed="'+it.on+'" aria-label="'+(it.on?'Take '+esc(p.name)+' off my list':'Put '+esc(p.name)+' on my list')+'">'+(it.on?'✓ On list':'+ Add to list')+'</button>';
+  if(!stores.length)return '<article class="card pcard">'+tileImg(p.image,p.cat,0,'#product/'+p.id)+title+'<div class="size" style="margin-top:.4rem">No store in '+esc(regionName(state.region))+' has a price for this right now.</div><div class="cardfoot">'+addBtn+'</div></article>';
   var b=stores[0],bp=p.prices[b],others=stores.slice(1),u=priceUnit(p,bp);
-  var main=state.unitMode&&u?money(u.value):money(eff(bp));
+  var main=state.unitMode&&u?u.value:eff(bp);
   var second=state.unitMode&&u?money(eff(bp))+' for '+esc(p.size):(u?money(u.value)+' '+esc(u.unit):'');
-  return '<article class="card">'+head+
-    '<div class="best"><div><div class="tag">Best price</div><div class="price">'+main+(state.unitMode&&u?' <span class="unit">'+esc(u.unit)+'</span>':'')+'</div>'+
-    (second?'<div class="unit">'+second+'</div>':'')+(bp.promo!=null?'<div class="was">Usually '+money(bp.price)+'</div>':'')+oldTag(bp)+'</div>'+badgeLink(b,bp)+'</div>'+
-    (others.length?'<ul class="others">'+others.map(function(s){
+  var save=bp.promo!=null?bp.price-bp.promo:0;
+  var shown=others.slice(0,2);
+  return '<article class="card pcard">'+tileImg(p.image,p.cat,save,'#product/'+p.id)+title+
+    '<div class="best"><div class="tag">Best price</div><div class="price'+(bp.promo!=null?' sp':'')+'">'+priceHtml(main)+(state.unitMode&&u?' <span class="unit">'+esc(u.unit)+'</span>':'')+'</div>'+
+    (second?'<div class="unit">'+second+'</div>':'')+(bp.promo!=null?'<div class="was">Usually '+money(bp.price)+'</div>':'')+oldTag(bp)+'<div style="margin-top:.2rem">'+badgeLink(b,bp)+'</div></div>'+
+    (shown.length?'<ul class="others" aria-label="Other stores">'+shown.map(function(s){
       var r=p.prices[s],uu=priceUnit(p,r);
-      var shown=state.unitMode&&uu?money(uu.value)+' '+esc(uu.unit):money(eff(r));
-      var diff=state.unitMode&&uu?'':' <span class="diff">'+money(eff(r)-eff(bp))+' more</span>';
-      return '<li><span>'+badgeLink(s,r)+'</span><span><span class="p">'+shown+'</span>'+diff+oldTag(r)+'</span></li>'}).join("")+'</ul>':
-      '<div class="size" style="margin-top:.5rem">Only one store has this item.</div>')+
-    '<div class="cardfoot">'+pickBtn(p.id,p.name)+'</div></article>';
+      var sh=state.unitMode&&uu?money(uu.value)+' '+esc(uu.unit):money(eff(r));
+      return '<li><span>'+esc(s)+'</span><span class="p">'+sh+'</span></li>'}).join("")+
+      (others.length>shown.length?'<li><a class="moreof" href="#product/'+p.id+'">+ '+(others.length-shown.length)+' more '+(others.length-shown.length===1?'store':'stores')+'</a></li>':'')+'</ul>':
+      '<div class="size" style="margin-top:.4rem">Only one store has this item.</div>')+
+    '<div class="cardfoot">'+addBtn+pickBtn(p.id,p.name)+'</div></article>';
 }
 function lookUp(id){
   if(state.busy)return;state.busy=true;
@@ -1456,7 +1548,7 @@ document.addEventListener("click",function(e){
   var t=e.target.closest("button");if(!t)return;
   var d=t.dataset;
   if(d.view)return go(d.view);
-  if(d.cat){state.cat=d.cat;state.found=null;renderMain();return runFind(true)}
+  if(d.cat){state.cat=d.cat;state.flt="";state.found=null;renderMain();return runFind(true)}
   if(d.unit){state.unitMode=d.unit==="1";savePrefs();return renderMain()}
   if(d.radius){state.radius=+d.radius;return render()}
   if(d.theme){state.theme=d.theme;savePrefs();return render()}
@@ -1482,6 +1574,8 @@ document.addEventListener("click",function(e){
     }
     case "signout":return void Auth.out();
     case "refind":state.findErr="";return runFind(true);
+    case "viewall":state.flt=t.dataset.kind;state.cat="All";state.found=null;renderMain();window.scrollTo(0,0);return runFind(true);
+    case "clearflt":state.flt="";state.found=null;renderMain();return runFind(true);
     case "request":return requestDialog(t.dataset.term||"");
     case "share":return shareList();
     case "export":return exportDialog();
