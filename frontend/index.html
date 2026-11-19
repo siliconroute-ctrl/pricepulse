@@ -390,6 +390,11 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
 .fronttiles{margin:.5rem 0 0}
 .sect{margin:.6rem 0 0}
 body.front{padding-bottom:4.5rem}
+body.front header .findbar{padding-bottom:.5rem}
+body.front .homecard{padding:.45rem .7rem;margin-top:.4rem}
+body.front .fronttiles{margin-top:.4rem;gap:.5rem}
+body.front .sect{margin-top:.4rem}
+body.front .sect h2{line-height:1}
 body.front .disclaimer{margin:.5rem 0 0;padding:.35rem .7rem;font-size:.94rem;line-height:1.3}
 body.front .cats8{padding:.2rem 0 .2rem;gap:.2rem .2rem}
 body.front .fronttile{min-height:3rem}
@@ -755,7 +760,7 @@ function homeCard(){
     '<p class="homehint">Type what you need and see who has it, and for how much, in '+esc(regionName(state.region))+'.</p></section>';
 }
 function frontTiles(){
-  return '<div class="fronttiles"><button class="fronttile" type="button" data-act="viewall" data-kind="local"><span class="ft-ic" aria-hidden="true">'+CAT_ICONS.Groceries+'</span><span>From local stores</span></button>'+
+  return '<div class="fronttiles"><button class="fronttile" type="button" data-act="viewall" data-kind="local"><span class="ft-ic" aria-hidden="true">'+CAT_ICONS.Groceries+'</span><span>Local stores</span></button>'+
     '<button class="fronttile" type="button" data-act="viewall" data-kind="special"><span class="ft-ic" aria-hidden="true">'+CAT_ICONS["Health & Beauty"]+'</span><span>Specials</span></button></div>';
 }
 function viewFind(){
@@ -763,7 +768,7 @@ function viewFind(){
   var typing=!!state.q.trim()||state.cat!=="All"||!!state.flt;
   var h=banners(!typing);
   if(!typing){
-    return h+homeCard()+frontTiles()+'<div class="sect"><h2>Aisles</h2></div>'+catCircles(cats)+pickBar()+disclaimer();
+    return h+homeCard()+frontTiles()+'<div class="sect"><h2>Aisles</h2></div>'+catCircles(cats)+pickBar()+'<p class="disclaimer">Prices may differ in store. Always check at the till.</p>';
   }
   h+=catCircles(cats)+pickBar();
   if(state.flt)h+='<div class="banner"><b>Showing only '+(state.flt==="special"?"specials":"items from local stores")+'.</b> <button class="linkbtn" type="button" data-act="clearflt">Show everything</button></div>';

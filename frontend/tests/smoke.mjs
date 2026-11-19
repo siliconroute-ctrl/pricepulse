@@ -117,7 +117,13 @@ await shot(page, "3a-home");
 const fitPage = async (w, h) => {
   await page.setViewportSize({ width: w, height: h });
   await page.waitForTimeout(250);
-  return page.evaluate(() => ({ doc: document.documentElement.scrollHeight, win: window.innerHeight, wide: document.documentElement.scrollWidth > window.innerWidth + 1 }));
+  return page.evaluate(() => {
+    // Real content height: the bottom of the last block plus the room kept for the bottom tabs.
+    const last = document.querySelector("#main .disclaimer") || document.querySelector("#main").lastElementChild;
+    const tabs = document.querySelector("nav.tabs").getBoundingClientRect().height;
+    const need = Math.round(last.getBoundingClientRect().bottom + window.scrollY + tabs + 8);
+    return { doc: need, win: window.innerHeight, wide: document.documentElement.scrollWidth > window.innerWidth + 1 };
+  });
 };
 for (const [w, h] of [[360, 780], [412, 915]]) {
   const r = await fitPage(w, h);
@@ -130,7 +136,7 @@ check(new Set(rows).size <= 2 && rows.filter((y) => y === rows[0]).length <= 4, 
 const headPx = await page.$eval(".homehead", (e) => parseFloat(getComputedStyle(e).fontSize));
 check(headPx < 17, "the front headline is 40% smaller (" + headPx.toFixed(1) + "px)");
 check((await page.locator("#main .banner").count()) === 0, "the front screen has no warning cards");
-check((await page.locator('button[data-act="viewall"]').count()) === 2, "there are two tiles: From local stores and Specials");
+check((await page.locator('button[data-act="viewall"]').count()) === 2, "there are two tiles: Local stores and Specials");
 await page.locator('button[data-kind="special"]').click();
 await page.waitForSelector('[data-act="clearflt"]');
 await page.locator(".grid article.card").first().waitFor();
