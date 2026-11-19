@@ -12,7 +12,7 @@ same tables; a local store is just a store that belongs to one region.
 | **Store** | table `store` | `name`, `kind` (`chain` or `local`), and for local stores `region`, `town`, `address`, `contact_name`, `phone`, `email`, `notes`, `active`, `last_submission_at`, `api_key_hash` (phase 2) |
 | **Department** | `listing.department` | the store's own section, e.g. Butchery, Bakery, Dairy (free text from the store) |
 | **Category** | `listing.category`, `product.category` | one of Groceries, Fresh, Health & Beauty, Liquor |
-| **Item (listing)** | table `listing` | one store's entry for an item: `name`, `size_text`, `sku` (the store's own item code), `barcode`, `department`, `category`, `url`, `source` (`scrape`, `csv`, `api`), `active`, plus how it was found (`term`, `hit_rank`) |
+| **Item (listing)** | table `listing` | one store's entry for an item: `name`, `size_text`, `sku` (the store's own item code), `barcode`, `department`, `category`, `url`, `image_url` (https picture link or our own `/api/v1/img/...`), `source` (`scrape`, `csv`, `api`), `active`, plus how it was found (`term`, `hit_rank`) |
 | **Product** (the shopper's card) | table `product` | the canonical item shoppers see: name, brand, size, category, `visibility`. Many listings, one per store, can sit on one product. |
 | **Price** (selling price) | table `price` | `price_cents`, optional `promo_cents`, `region`, `scraped_at`, `listing_id`. A new row for every collection, so history is kept. |
 | **Weekly file log** | table `store_submission` | for each file or API call from a local store: when, source, file name, rows, added, updated, hidden, skipped, and who loaded it |

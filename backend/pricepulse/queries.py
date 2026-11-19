@@ -23,6 +23,7 @@ class StorePrice:
     scraped_at: datetime
     is_sample: bool
     local: bool = False  # a local (private) store, not a national chain
+    image: str = ""  # picture link of this store's item ("" = none)
 
     @property
     def effective_cents(self) -> int:
@@ -96,6 +97,7 @@ def latest_prices(
             scraped_at=price.scraped_at,
             is_sample=price.is_sample,
             local=store.kind == "local",
+            image=listing.image_url or "",
         )
         current = next((x for x in pp.prices if x.store == store.name), None)
         if current is None:
@@ -105,6 +107,36 @@ def latest_prices(
     for pp in out.values():
         pp.prices.sort(key=lambda p: (p.effective_cents, p.store))
     return out
+
+
+def first_image(prices: list[StorePrice]) -> str:
+    """The first picture among a product's store prices; a local store's own picture comes first."""
+    for sp in sorted(prices, key=lambda x: not x.local):
+        if sp.image:
+            return sp.image
+    return ""
+
+
+def product_images(session: Session, product_ids: list[int]) -> dict[int, str]:
+    """One picture link per product (local stores first), for the catalogue list."""
+    if not product_ids:
+        return {}
+    stmt = (
+        select(Listing.product_id, Listing.image_url, Store.kind)
+        .join(Store, Store.id == Listing.store_id)
+        .where(
+            Listing.product_id.in_(product_ids),
+            Listing.image_url != "",
+            Listing.active.is_(True),
+            Store.active.is_(True),
+        )
+        .order_by(Listing.id)
+    )
+    out: dict[int, str] = {}
+    for pid, url, kind in session.execute(stmt):
+        if pid not in out or (kind == "local" and out[pid][1] != "local"):
+            out[pid] = (url, kind)
+    return {k: v[0] for k, v in out.items()}
 
 
 def regions_with_data(session: Session) -> dict[str, datetime]:

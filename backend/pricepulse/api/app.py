@@ -25,7 +25,13 @@ from ..basket import optimise
 from ..config import Settings, get_settings
 from ..db import Listing, Price, Product, Store, session_factory, utcnow
 from ..money import from_cents
-from ..queries import ProductPrices, last_success_per_store, latest_prices, regions_with_data
+from ..queries import (
+    ProductPrices,
+    first_image,
+    last_success_per_store,
+    latest_prices,
+    regions_with_data,
+)
 from ..regions import haversine_km, load_regions, valid_region
 from ..scrapers.stores import ACTIVE_SCRAPERS, ALL_SCRAPERS
 from . import schemas as S
@@ -204,6 +210,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     scraped_at=sp.scraped_at,
                     stale=now - sp.scraped_at > (local_stale_after if sp.local else stale_after),
                     local=sp.local,
+                    image=sp.image,
                     unit_price=S.UnitPrice(value=up[0], unit=up[1]) if up else None,
                 )
             )
@@ -215,6 +222,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             brand=p.brand,
             size=p.size_text,
             category=p.category,
+            image=first_image(pp.prices),
             unit_price=S.UnitPrice(value=up[0], unit=up[1]) if up else None,
             prices=prices,
             best_store=best.store if best else None,

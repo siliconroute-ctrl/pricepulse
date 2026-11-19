@@ -1,4 +1,4 @@
-item,price,size,barcode,sku,department,category,promo price
-Clover Full Cream Milk,34.50,2L,,MILK2,Dairy,Groceries,
-Boerewors,89.90,1kg,,BW1,Butchery,Fresh,79.90
-Brown Bread,16.00,700g,6001234567890,BR7,Bakery,Groceries,
+item,price,size,barcode,sku,department,category,promo price,image
+Clover Full Cream Milk,34.50,2L,,MILK2,Dairy,Groceries,,
+Boerewors,89.90,1kg,,BW1,Butchery,Fresh,79.90,
+Brown Bread,16.00,700g,6001234567890,BR7,Bakery,Groceries,,

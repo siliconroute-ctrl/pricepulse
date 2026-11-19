@@ -420,12 +420,13 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await adm.click('#dlg button:has-text("Save")');
   await adm.waitForSelector(".admtable tbody tr b");
   check(/Paarl Corner Cafe/.test(await adm.textContent(".admtable")), "a local store can be added");
-  const lsCsv = "item,price,size,sku,department,category\r\nBoerewors,89.90,1kg,BW1,Butchery,Fresh\r\nTannie Rusks,45,500g,RK1,Bakery,Groceries\r\nBad Row,0,,,,\r\n";
+  const lsCsv = "item,price,size,sku,department,category,image\r\nBoerewors,89.90,1kg,BW1,Butchery,Fresh,https://img.example.com/w.jpg\r\nTannie Rusks,45,500g,RK1,Bakery,Groceries,http://img.example.com/r.jpg\r\nBad Row,0,,,,,\r\n";
   const [chooser] = await Promise.all([adm.waitForEvent("filechooser"), adm.click('[data-adm="lsimport"]')]);
   await chooser.setFiles({ name: "week1.csv", mimeType: "text/csv", buffer: Buffer.from(lsCsv, "utf8") });
   await adm.waitForSelector("#dlg[open] #lsreplace");
   const lsPrev = await adm.textContent("#dlg");
   check(/3 rows/.test(lsPrev) && /2<\/b> new items|2 new items/.test(lsPrev.replace(/\s+/g, " ")) && /1 rows skipped|1 row/.test(lsPrev.replace(/\s+/g, " ")), "the weekly file is checked first: " + lsPrev.replace(/\s+/g, " ").slice(0, 120));
+  check(/1<\/b> picture links found|1 picture links found/.test(lsPrev.replace(/\s+/g, " ")) && /not usable/.test(lsPrev), "the preview counts picture links and bad ones");
   await adm.click('#dlg button:has-text("Load the file")');
   await adm.waitForFunction(() => /File loaded/.test(document.querySelector("#dlg").textContent));
   await adm.click('#dlg button:has-text("OK")');

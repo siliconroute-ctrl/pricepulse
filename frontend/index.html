@@ -69,6 +69,8 @@ header .search-row{margin-top:.6rem}
 .card h3{margin:0;font-size:1.12rem;line-height:1.25;font-weight:650;color:var(--item)}
 .card h3 a{text-decoration:none}.card h3 a:hover{text-decoration:underline}
 .size{color:var(--muted);font-size:.94rem}
+.pic{width:64px;height:64px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:.5rem;flex:none}
+.pic.big{width:min(100%,240px);height:auto;max-height:240px}
 .top{display:flex;justify-content:space-between;gap:.7rem;align-items:flex-start}
 .add{flex:none;min-width:3rem;min-height:3rem;border-radius:.7rem;border:2px solid var(--brand-text);background:transparent;color:var(--brand-text);font-weight:700;padding:0 .75rem}
 .add[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
@@ -326,7 +328,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 18;
+var APP_VERSION = 19;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -455,11 +457,16 @@ function api(method,path,body,timeoutMs){
 function qs(o){return Object.keys(o).filter(function(k){return o[k]!==""&&o[k]!=null}).map(function(k){return k+"="+encodeURIComponent(o[k])}).join("&")}
 
 /* ---------- Data: product = {id,name,brand,size,cat,prices:{store:{price,promo,url,at,stale,unit}}} ---------- */
+/* A product picture: only our own /api/v1/img/ files or https links; a broken picture removes itself. */
+function pic(url,big){
+  if(!url||!(url.indexOf("https://")===0||url.indexOf("/api/v1/img/")===0))return "";
+  return '<img class="pic'+(big?' big':'')+'" src="'+esc(url)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">';
+}
 function eff(p){return p.promo!=null?p.promo:p.price}
 function sortedStores(prod){return Object.keys(prod.prices).sort(function(a,b){return eff(prod.prices[a])-eff(prod.prices[b])||(a<b?-1:1)})}
 function toProduct(it){
   var prices={};it.prices.forEach(function(p){prices[p.store]={price:p.price,promo:p.promo_price,url:p.url,at:p.scraped_at,stale:p.stale,local:!!p.local,unit:p.unit_price}});
-  return {id:it.id,name:it.name,brand:it.brand,size:it.size,cat:it.category,prices:prices};
+  return {id:it.id,name:it.name,brand:it.brand,size:it.size,cat:it.category,image:it.image||"",prices:prices};
 }
 function applySession(s,fromCache){
   state.me=s.me;state.basket=s.basket;state.stamp=s.scraped_at;state.isSample=!!s.sample;
@@ -637,7 +644,7 @@ function viewFind(){
   h+=f.items.map(function(c){
     var it=findItem(c.id);
     if(it)return card(it);
-    return '<article class="card"><div class="hrow"><div class="n"><b>'+esc(c.name)+'</b><span class="size">'+esc(c.size)+' · at '+plural(c.store_count,"store")+'</span></div>'+
+    return '<article class="card"><div class="hrow">'+pic(c.image)+'<div class="n"><b>'+esc(c.name)+'</b><span class="size">'+esc(c.size)+' · at '+plural(c.store_count,"store")+'</span></div>'+
       '<button class="lookup" type="button" data-look="'+c.id+'" aria-label="Look up price of '+esc(c.name)+' '+esc(c.size)+'">Look up price</button></div></article>';
   }).join("")+'</div>';
   return h+requestCard()+disclaimer();
@@ -666,7 +673,7 @@ function sendRequest(b){
 }
 function card(it){
   var p=it.p,stores=sortedStores(p);
-  var head='<div class="top"><div style="min-width:0"><h3 id="p'+p.id+'" tabindex="-1"><a href="#product/'+p.id+'">'+esc(p.name)+'</a></h3><div class="size">'+esc(p.size)+'</div></div>'+
+  var head='<div class="top">'+pic(p.image)+'<div style="min-width:0;flex:1"><h3 id="p'+p.id+'" tabindex="-1"><a href="#product/'+p.id+'">'+esc(p.name)+'</a></h3><div class="size">'+esc(p.size)+'</div></div>'+
     '<button class="add" type="button" data-toggle="'+p.id+'" aria-pressed="'+it.on+'" aria-label="'+(it.on?'Take '+esc(p.name)+' off my list':'Put '+esc(p.name)+' on my list')+'">'+(it.on?'On list':'+ List')+'</button></div>';
   if(!stores.length)return '<article class="card">'+head+'<div class="size" style="margin-top:.5rem">No store in '+esc(regionName(state.region))+' has a price for this right now.</div></article>';
   var b=stores[0],bp=p.prices[b],others=stores.slice(1),u=priceUnit(p,bp);
@@ -705,7 +712,7 @@ function viewProduct(){
   var h='<p class="back"><a class="btn alt" href="#find">← Back to products</a></p>';
   if(!it)return h+'<div class="empty">Look up this item first to see its prices.</div>';
   var p=it.p,stores=sortedStores(p);
-  h+='<h2 class="h2">'+esc(p.name)+'</h2><p class="sub">'+esc(p.size)+(p.brand?' · '+esc(p.brand):'')+' · '+esc(regionName(state.region))+'</p>';
+  h+=(p.image?'<p style="margin:.2rem 0">'+pic(p.image,true)+'</p>':'')+'<h2 class="h2">'+esc(p.name)+'</h2><p class="sub">'+esc(p.size)+(p.brand?' · '+esc(p.brand):'')+' · '+esc(regionName(state.region))+'</p>';
   h+='<div class="card">'+(stores.length?stores.map(function(s,i){
     var r=p.prices[s],u=priceUnit(p,r);
     return '<div class="tot-row'+(i===0?' win':'')+'"><div>'+badgeLink(s,r)+(i===0?' <span class="tag">Best price</span>':'')+
@@ -1269,6 +1276,7 @@ function lsFileChosen(input){
     ask("Load this file for "+(st?st.name:"the store")+"?",'<p><b>'+r.rows+' rows</b> in <b>'+esc(file.name)+'</b>:</p><ul class="steps"><li><b>'+r.added+'</b> new items</li><li><b>'+r.updated+'</b> items already known (price refreshed)</li>'+
       '<li><b>'+r.matched_to_chains+'</b> items also sold by a big chain (one card, prices side by side)</li>'+(r.duplicates?'<li>'+r.duplicates+' repeated lines ignored</li>':'')+
       (r.out_of_stock?'<li><b>'+r.out_of_stock+'</b> items are marked out of stock and are left out</li>':'')+
+      (r.pictures||r.bad_pictures?'<li><b>'+r.pictures+'</b> picture links found'+(r.bad_pictures?', <b>'+r.bad_pictures+'</b> not usable (must start with https://; those items load without a picture)':'')+'</li>':'')+
       '<li id="lsremoved"><b>'+r.removed+'</b> of the store\u2019s current items are not in this file and will be hidden</li>'+(r.invalid_count?'<li><b>'+r.invalid_count+' rows skipped</b> because of problems:</li>':'')+'</ul>'+(bad?'<ul class="steps">'+bad+'</ul>':'')+
       (r.new_categories&&r.new_categories.length?'<p class="sub">Categories new to PricePulse (kept as the store wrote them): <b>'+r.new_categories.slice(0,6).map(esc).join(", ")+(r.new_categories.length>6?", \u2026":"")+'</b></p>':'')+
       '<label class="check"><input type="checkbox" id="lsreplace" checked><span>Replace the store\u2019s list (hide items missing from this file)</span></label>',
