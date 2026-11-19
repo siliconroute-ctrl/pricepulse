@@ -345,6 +345,36 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
 .specialtag::before{content:""}
 .pcard .moreof{display:flex;align-items:center;min-height:3rem;color:var(--accent);font-weight:700}
 :root[data-theme="dark"] .pcard .moreof{color:var(--nav-hi)}
+
+/* ---- Compact list rows and smaller headings (v23) ---- */
+.grid{display:flex;flex-direction:column;gap:.6rem;margin-top:.5rem}
+.prow{display:grid;grid-template-columns:5.6rem minmax(0,1fr);gap:.15rem .7rem;align-items:start;padding:.55rem}
+.prow .pimg{width:5.6rem;height:5.6rem;aspect-ratio:auto}
+.prow .pbody{min-width:0}
+.prow h3{margin:0;font-size:1rem;line-height:1.25;-webkit-line-clamp:2}
+.prow h3 .size{font-weight:500;color:var(--muted);font-size:1rem}
+.prow .size{font-size:1rem;margin:0}
+.prow .best{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 .5rem;margin-top:.15rem;padding:0;background:transparent}
+.prow .tag{flex:none;margin:0;font-size:.82rem}
+.prow .price{font-size:1.65rem;line-height:1.1}
+.prow .savetxt{font-weight:800;color:var(--save);font-size:1rem}
+.prow .atstore{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem;margin-top:.1rem}
+.prow .nextline{font-size:1rem;margin-top:.1rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .nextline .moreof{display:inline;min-height:0;font-weight:700}
+.prow .cardfoot{grid-column:1/-1;display:flex;flex-direction:row;gap:.5rem;margin:0;padding-top:.3rem}
+.prow .cardfoot .pillbtn{flex:1 1 0;width:auto}
+.prow .cardfoot .tupick{flex:0 0 auto;width:auto;min-height:3rem}
+.prow.small{grid-template-columns:4.3rem minmax(0,1fr) auto;align-items:center}
+.prow.small .pimg{width:4.3rem;height:4.3rem}
+.prow.small .cardfoot{grid-column:auto;padding:0}
+.prow.small .lookup{width:auto;min-width:6.2rem;padding:0 .8rem}
+.prow .specialtag{display:inline;margin:0}
+.homehead{font-size:1.55rem}
+.sect h2{font-size:1.12rem}
+.cat{min-width:3.6rem}
+.cat .lbl{max-width:4.6rem}
+.cat .circ{width:2.8rem;height:2.8rem}
+.cat .circ svg{width:1.45rem;height:1.45rem}
 </style>
 </head>
 <body class="plainhead">
@@ -404,7 +434,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 22;
+var APP_VERSION = 23;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -656,8 +686,8 @@ function runFind(now){
 function catTile(c){
   var it=findItem(c.id);
   if(it)return card(it);
-  return '<article class="card pcard">'+tileImg(c.image,c.category,0,"")+(c.special?'<span class="tag specialtag">Special</span>':'')+'<h3>'+esc(c.name)+'</h3><div class="size">'+esc(c.size)+' \u00b7 at '+plural(c.store_count,"store")+'</div>'+
-    '<div class="cardfoot"><button class="lookup" type="button" data-look="'+c.id+'" aria-label="Look up price of '+esc(c.name)+' '+esc(c.size)+'">+ Look up price</button></div></article>';
+  return '<article class="card pcard prow small">'+tileImg(c.image,c.category,0,"")+'<div class="pbody"><h3>'+esc(c.name)+' <span class="size">'+esc(c.size)+'</span></h3><div class="size">at '+plural(c.store_count,"store")+(c.special?' · <b class="specialtag">Special</b>':'')+'</div></div>'+
+    '<div class="cardfoot"><button class="lookup" type="button" data-look="'+c.id+'" aria-label="Look up price of '+esc(c.name)+' '+esc(c.size)+'">+ Look up</button></div></article>';
 }
 var TU_ICON='<svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" fill="#0b7a4b"/><g fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"><path d="M110 150h56l44 170h170l36-120H184"/></g><circle cx="232" cy="378" r="24" fill="#fff"/><circle cx="372" cy="378" r="24" fill="#fff"/><path d="M290 110l36-40 36 40" fill="none" stroke="#ff7a1a" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var CAT_ICONS={
@@ -753,24 +783,19 @@ function tileImg(url,cat,saveAmt,href){
 }
 function card(it){
   var p=it.p,stores=sortedStores(p);
-  var title='<h3 id="p'+p.id+'" tabindex="-1"><a href="#product/'+p.id+'">'+esc(p.name)+'</a></h3><div class="size">'+esc(p.size)+'</div>';
+  var title='<h3 id="p'+p.id+'" tabindex="-1"><a href="#product/'+p.id+'">'+esc(p.name)+'</a> <span class="size">'+esc(p.size)+'</span></h3>';
   var addBtn='<button class="pillbtn" type="button" data-toggle="'+p.id+'" aria-pressed="'+it.on+'" aria-label="'+(it.on?'Take '+esc(p.name)+' off my list':'Put '+esc(p.name)+' on my list')+'">'+(it.on?'✓ On list':'+ Add to list')+'</button>';
-  if(!stores.length)return '<article class="card pcard">'+tileImg(p.image,p.cat,0,'#product/'+p.id)+title+'<div class="size" style="margin-top:.4rem">No store in '+esc(regionName(state.region))+' has a price for this right now.</div><div class="cardfoot">'+addBtn+'</div></article>';
+  if(!stores.length)return '<article class="card pcard prow">'+tileImg(p.image,p.cat,0,'#product/'+p.id)+'<div class="pbody">'+title+'<div class="size">No store in '+esc(regionName(state.region))+' has a price for this right now.</div></div><div class="cardfoot">'+addBtn+'</div></article>';
   var b=stores[0],bp=p.prices[b],others=stores.slice(1),u=priceUnit(p,bp);
   var main=state.unitMode&&u?u.value:eff(bp);
-  var second=state.unitMode&&u?money(eff(bp))+' for '+esc(p.size):(u?money(u.value)+' '+esc(u.unit):'');
   var save=bp.promo!=null?bp.price-bp.promo:0;
-  var shown=others.slice(0,2);
-  return '<article class="card pcard">'+tileImg(p.image,p.cat,save,'#product/'+p.id)+title+
-    '<div class="best"><div class="tag">Best price</div><div class="price'+(bp.promo!=null?' sp':'')+'">'+priceHtml(main)+(state.unitMode&&u?' <span class="unit">'+esc(u.unit)+'</span>':'')+'</div>'+
-    (second?'<div class="unit">'+second+'</div>':'')+(bp.promo!=null?'<div class="was">Usually '+money(bp.price)+'</div>':'')+oldTag(bp)+'<div style="margin-top:.2rem">'+badgeLink(b,bp)+'</div></div>'+
-    (shown.length?'<ul class="others" aria-label="Other stores">'+shown.map(function(s){
-      var r=p.prices[s],uu=priceUnit(p,r);
-      var sh=state.unitMode&&uu?money(uu.value)+' '+esc(uu.unit):money(eff(r));
-      return '<li><span>'+esc(s)+'</span><span class="p">'+sh+'</span></li>'}).join("")+
-      (others.length>shown.length?'<li><a class="moreof" href="#product/'+p.id+'">+ '+(others.length-shown.length)+' more '+(others.length-shown.length===1?'store':'stores')+'</a></li>':'')+'</ul>':
-      '<div class="size" style="margin-top:.4rem">Only one store has this item.</div>')+
-    '<div class="cardfoot">'+addBtn+pickBtn(p.id,p.name)+'</div></article>';
+  var nx=others[0],nr=nx?p.prices[nx]:null,nu=nr?priceUnit(p,nr):null;
+  return '<article class="card pcard prow">'+tileImg(p.image,p.cat,0,'#product/'+p.id)+'<div class="pbody">'+title+
+    '<div class="best"><div class="price'+(bp.promo!=null?' sp':'')+'">'+priceHtml(main)+(state.unitMode&&u?' <span class="unit">'+esc(u.unit)+'</span>':'')+'</div>'+
+    (save>0?'<span class="savetxt">Save R'+save.toFixed(2)+'</span>':'')+'</div>'+
+    '<div class="atstore"><span class="tag">Best price</span>'+badge(b)+(bp.local?' <span class="tag localtag">Local store</span>':'')+oldTag(bp)+'</div>'+
+    (nx?'<div class="nextline">Next: <b>'+(state.unitMode&&nu?money(nu.value)+' '+esc(nu.unit):money(eff(nr)))+'</b> '+esc(nx)+'</div>':'<div class="nextline">Only one store has this item.</div>')+
+    '</div><div class="cardfoot">'+addBtn+pickBtn(p.id,p.name)+'</div></article>';
 }
 function lookUp(id){
   if(state.busy)return;state.busy=true;
