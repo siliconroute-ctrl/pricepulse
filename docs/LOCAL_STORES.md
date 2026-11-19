@@ -31,6 +31,8 @@ are required.
 | `category` | `Groceries`, `Fresh`, `Health & Beauty` or `Liquor` (blank means Groceries) | `Fresh` |
 | `promo price` | a special price, lower than `price` | `79.90` |
 
+**Pictures:** an optional **`image`** column (also `ImageUrl`, `image link`, `photo`, `picture`) holds a web address of the item\u2019s picture. It must start with `https://`, have no spaces and be under 400 characters; anything else is counted as "not usable" in the preview and the item still loads without a picture. A file with no picture keeps the picture already stored. Pictures are shown small on the item card and larger on the product page, and disappear quietly if the other website stops serving them (PricePulse does not copy them). Uploading picture files ourselves is the next step.
+
 More columns are understood when a file has them: **`brand`** (manufacturer) and **`stock`**. A row
 whose stock says "No Stock", "Out of stock", "Discontinued" or "0" is **left out**, so it is not shown to
 shoppers. Headers are matched by meaning, ignoring capitals, spaces and punctuation (`PriceInclVAT`,

@@ -221,7 +221,7 @@ def test_admin_adds_a_store_loads_its_file_and_shoppers_see_it(api):
 
     # shoppers in Paarl can find and look up the store's items; the price carries the local flag
     cat = api.get("/api/v1/catalogue", params={"q": "boerewors"}, headers=auth("alice")).json()
-    assert cat["total"] == 1
+    assert cat["total"] == 1 and cat["items"][0]["image"] == ""  # this file has no pictures
     assert add(api, cat["items"][0]["id"], "alice").status_code == 200
     prices = api.get("/api/v1/session", params={"region": "paarl"}, headers=auth("alice")).json()["items"][0][
         "product"
@@ -367,3 +367,69 @@ def test_the_separator_is_the_one_on_every_line():
     text = "item\tprice\nBolts, nuts, washers\t12\nSpanner, 10mm, steel\t30\n"
     rows, _ = localstores.parse_csv(text)
     assert [r["name"] for r in rows] == ["Bolts, nuts, washers", "Spanner, 10mm, steel"]
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("https://img.example.co.za/a/1.jpg", "https://img.example.co.za/a/1.jpg"),
+        ("  https://img.example.com/x.png ", "https://img.example.com/x.png"),
+        ("http://img.example.com/x.png", ""),  # not https: mixed content, refused
+        ("javascript:alert(1)", ""),
+        ("https://", ""),
+        ("https://img.example.com/a b.jpg", ""),  # spaces
+        ("https://img.example.com/" + "a" * 400, ""),  # too long
+        ("/api/v1/img/3/MILK2.jpg", "/api/v1/img/3/MILK2.jpg"),  # our own stored picture
+        ("", ""),
+    ],
+)
+def test_picture_links(value, expected):
+    assert localstores.clean_image_url(value) == expected
+
+
+def test_a_picture_column_is_kept_with_the_item_and_a_bad_link_does_not_stop_the_item(db, settings):
+    from pricepulse.queries import latest_prices
+
+    st = make_store(db)
+    text = (
+        "Description,PriceInclVAT,ImageUrl\n"
+        "Bolts 10mm,12,https://img.example.com/b.jpg\n"
+        "Nuts 10mm,9,http://img.example.com/n.jpg\n"
+        "Washers 10mm,5,\n"
+    )
+    rows, problems = localstores.parse_csv(text)
+    assert not problems and rows[0]["image"] == "https://img.example.com/b.jpg"
+    rep = localstores.import_for_store(db, st, rows, settings, dry_run=True)
+    assert (rep.pictures, rep.bad_pictures) == (1, 1) and rep.as_dict()["bad_pictures"] == 1
+    rep = localstores.import_for_store(db, st, rows, settings)
+    assert rep.added == 3
+    imgs = {x.name: x.image_url for x in db.scalars(select(Listing).where(Listing.store_id == st.id))}
+    assert imgs == {"Bolts 10mm": "https://img.example.com/b.jpg", "Nuts 10mm": "", "Washers 10mm": ""}
+    prices = latest_prices(db, "paarl")
+    bolts = next(p for p in prices.values() if p.product.name.startswith("Bolts"))
+    assert bolts.prices[0].image == "https://img.example.com/b.jpg"
+    # next week's file without a picture keeps the picture already stored
+    again, _ = localstores.parse_csv("item,price\nBolts 10mm,13\n")
+    localstores.import_for_store(db, st, again, settings, replace=False)
+    assert db.scalar(select(Listing.image_url).where(Listing.name == "Bolts 10mm")) == (
+        "https://img.example.com/b.jpg"
+    )
+
+
+def test_pictures_reach_the_catalogue_and_the_product_card(api, app_settings):
+    h = auth("boss")
+    sid = api.post("/api/v1/admin/localstores", json=STORE, headers=h).json()["id"]
+    csv_ = "item,price,size,image\nBoerewors,89.90,1kg,https://img.example.com/w.jpg\n"
+    pre = api.post(f"/api/v1/admin/localstores/{sid}/import", json={"csv": csv_, "dry_run": True}, headers=h)
+    assert pre.json()["pictures"] == 1 and pre.json()["bad_pictures"] == 0
+    assert (
+        api.post(f"/api/v1/admin/localstores/{sid}/import", json={"csv": csv_}, headers=h).status_code == 200
+    )
+    cat = api.get("/api/v1/catalogue", params={"q": "boerewors"}, headers=auth("alice")).json()
+    assert cat["items"][0]["image"] == "https://img.example.com/w.jpg"
+    assert add(api, cat["items"][0]["id"], "alice").status_code == 200
+    prod = api.get("/api/v1/session", params={"region": "paarl"}, headers=auth("alice")).json()["items"][0][
+        "product"
+    ]
+    assert prod["image"] == "https://img.example.com/w.jpg"
+    assert prod["prices"][0]["image"] == "https://img.example.com/w.jpg"

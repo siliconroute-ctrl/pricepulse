@@ -30,6 +30,7 @@ class PriceOut(_Model):
         description="True when older than the stale limit (48 hours; 8 days for local stores)"
     )
     local: bool = Field(default=False, description="True for a local (private) store")
+    image: str = Field(default="", description="Picture link of this store's item, empty when none")
     unit_price: UnitPrice | None = None
 
 
@@ -39,6 +40,7 @@ class ProductOut(_Model):
     brand: str
     size: str
     category: str
+    image: str = Field(default="", description="First picture found among the stores' items")
     unit_price: UnitPrice | None = None
     prices: list[PriceOut]
     best_store: str | None
@@ -187,6 +189,7 @@ class CatalogueItem(_Model):
     category: str
     store_count: int
     in_session: bool
+    image: str = ""
 
 
 class CatalogueOut(_Model):

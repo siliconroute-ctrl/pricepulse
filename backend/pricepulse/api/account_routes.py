@@ -14,7 +14,7 @@ from .. import accounts, payfast, trolleyup
 from ..auth import AuthError, Identity, make_verifier
 from ..db import AppUser, ItemRequest, Listing, Price, Product, Store, Subscription, utcnow
 from ..money import from_cents
-from ..queries import ProductPrices, latest_prices, visible_clause
+from ..queries import ProductPrices, latest_prices, product_images, visible_clause
 from . import schemas as S
 
 log = logging.getLogger("pricepulse.api")
@@ -171,6 +171,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         sess = accounts.current_session(s, user.uid)
         have = {i.product_id for i in sess.items} if sess else set()
         page = rows[offset : offset + limit]
+        pictures = product_images(s, [p.id for p, _ in page])
         note = (
             ""
             if rows
@@ -205,6 +206,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
                     category=p.category,
                     store_count=n,
                     in_session=p.id in have,
+                    image=pictures.get(p.id, ""),
                 )
                 for p, n in page
             ],

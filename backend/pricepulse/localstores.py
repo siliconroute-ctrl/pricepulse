@@ -72,6 +72,17 @@ HEADS = {
     "department": ["department", "dept", "section", "aisle", "subcategory", "sub category", "sub-category"],
     "category": ["category", "type", "class", "main category"],
     "brand": ["brand", "manufacturer", "make"],
+    "image": [
+        "image url",
+        "imageurl",
+        "image link",
+        "image",
+        "picture url",
+        "picture",
+        "photo url",
+        "photo",
+        "product image",
+    ],
     "stock": ["stock level", "stocklevel", "stock status", "in stock", "availability", "stock", "on hand"],
 }
 FIELDS = set(HEADS)
@@ -143,6 +154,8 @@ class CleanRows:
     duplicates: int = 0
     out_of_stock: int = 0  # rows the store marked as not in stock: left out, so not shown
     new_categories: list[str] = field(default_factory=list)  # categories outside our four
+    pictures: int = 0  # rows with a usable picture link
+    bad_pictures: int = 0  # rows whose picture link was not usable (the item still loads)
 
 
 def _money(value: str) -> float | None:
@@ -177,6 +190,16 @@ def store_category(text: str) -> str:
     if len(t) > 40 or not re.fullmatch(r"[\w &/,'()+-]+", t):
         raise ValueError("the category must be plain text of up to 40 characters")
     return t
+
+
+def clean_image_url(value: str) -> str:
+    """A picture link we accept: https, no spaces, up to 400 characters. Anything else gives ''."""
+    v = (value or "").strip()
+    if not v or len(v) > 400 or re.search(r"\s", v):
+        return ""
+    if v.startswith("/api/v1/img/"):  # our own stored picture (set by the picture upload)
+        return v
+    return v if re.match(r"^https://[^/\s]+\.[^/\s]+", v, re.I) else ""
 
 
 def _bad(out: CleanRows, i: int, name: str, why: str) -> None:
@@ -214,6 +237,12 @@ def check_rows(rows: list[dict]) -> CleanRows:
             continue
         if category not in CATEGORIES and category not in out.new_categories:
             out.new_categories.append(category)
+        image = clean_image_url(raw.get("image", ""))
+        if raw.get("image", "").strip():
+            if image:
+                out.pictures += 1
+            else:
+                out.bad_pictures += 1
         barcode = clean_barcode(raw.get("barcode", ""))
         sku = re.sub(r"\s+", "", raw.get("sku", ""))[:40]
         key = f"sku:{sku.lower()}" if sku else f"{name.lower()}|{raw.get('size', '').strip().lower()}"
@@ -232,6 +261,7 @@ def check_rows(rows: list[dict]) -> CleanRows:
                 "department": re.sub(r"\s+", " ", raw.get("department", "")).strip()[:60],
                 "brand": re.sub(r"\s+", " ", raw.get("brand", "")).strip()[:80],
                 "category": category,
+                "image_url": image,
                 "ident": key,
             }
         )
@@ -250,6 +280,8 @@ class ImportReport:
     matched_to_chains: int = 0
     out_of_stock: int = 0
     new_categories: list[str] = field(default_factory=list)
+    pictures: int = 0
+    bad_pictures: int = 0
 
     def as_dict(self) -> dict:
         return {
@@ -263,6 +295,8 @@ class ImportReport:
             "matched_to_chains": self.matched_to_chains,
             "out_of_stock": self.out_of_stock,
             "new_categories": self.new_categories[:20],
+            "pictures": self.pictures,
+            "bad_pictures": self.bad_pictures,
             "dry_run": self.dry_run,
         }
 
@@ -295,6 +329,8 @@ def import_for_store(
         dry_run=dry_run,
         out_of_stock=checked.out_of_stock,
         new_categories=checked.new_categories,
+        pictures=checked.pictures,
+        bad_pictures=checked.bad_pictures,
     )
     before = {lst.ident: lst for lst in s.scalars(select(Listing).where(Listing.store_id == store.id)).all()}
     items = [

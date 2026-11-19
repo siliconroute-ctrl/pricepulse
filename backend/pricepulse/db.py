@@ -66,6 +66,9 @@ class Store(Base):
     api_key_hash: Mapped[str] = mapped_column(
         String(64), default="", server_default=""
     )  # sha256 of the API key
+    store_type: Mapped[str] = mapped_column(
+        String(30), default="", server_default=""
+    )  # Supermarket, Butchery, Stationery, IT & Electronics, Other ("" = chain)
 
 
 class Product(Base):
@@ -116,6 +119,9 @@ class Listing(Base):
     )  # the search word that last found it
     sku: Mapped[str] = mapped_column(String(40), default="", server_default="")  # the store's own item code
     department: Mapped[str] = mapped_column(String(60), default="", server_default="")  # e.g. Butchery
+    image_url: Mapped[str] = mapped_column(
+        String(400), default="", server_default=""
+    )  # https picture link, or our own /api/v1/img/... path
     source: Mapped[str] = mapped_column(
         String(8), default="scrape", server_default="scrape"
     )  # scrape/csv/api
@@ -371,6 +377,16 @@ def _m8_local_stores(conn: Connection) -> None:
     Base.metadata.create_all(conn, tables=[StoreSubmission.__table__])
 
 
+def _m9_pictures(conn: Connection) -> None:
+    """Item picture links and the store type (adds columns only; fresh databases already have them)."""
+    lcols = {c["name"] for c in inspect(conn).get_columns("listing")}
+    if "image_url" not in lcols:
+        conn.execute(text("ALTER TABLE listing ADD COLUMN image_url VARCHAR(400) NOT NULL DEFAULT ''"))
+    scols = {c["name"] for c in inspect(conn).get_columns("store")}
+    if "store_type" not in scols:
+        conn.execute(text("ALTER TABLE store ADD COLUMN store_type VARCHAR(30) NOT NULL DEFAULT ''"))
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
@@ -380,6 +396,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (6, "essential items", _m6_essentials),
     (7, "search-hit rank and product visibility", _m7_visibility),
     (8, "local stores, item codes, departments and submissions", _m8_local_stores),
+    (9, "item pictures and store type", _m9_pictures),
 ]
 
 
