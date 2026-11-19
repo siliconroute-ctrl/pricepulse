@@ -418,7 +418,6 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await adm.selectOption("#lsregion", "paarl");
   await adm.fill("#lscontact", "Tannie Sanet");
   await adm.selectOption("#lstype", "Butchery");
-  await adm.uncheck("#lsvat");
   await adm.click('#dlg button:has-text("Save")');
   await adm.waitForSelector(".admtable tbody tr b");
   check(/Paarl Corner Cafe/.test(await adm.textContent(".admtable")), "a local store can be added");
@@ -428,7 +427,7 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await adm.waitForSelector("#dlg[open] #lsreplace");
   const lsPrev = await adm.textContent("#dlg");
   check(/3 rows/.test(lsPrev) && /2<\/b> new items|2 new items/.test(lsPrev.replace(/\s+/g, " ")) && /1 rows skipped|1 row/.test(lsPrev.replace(/\s+/g, " ")), "the weekly file is checked first: " + lsPrev.replace(/\s+/g, " ").slice(0, 120));
-  check(/up to <b>1000<\/b> items|up to 1000 items/.test(lsPrev.replace(/\s+/g, " ")) && /VAT added/.test(lsPrev), "the preview shows the item limit and adds VAT when the store leaves it out");
+  check(/up to <b>1000<\/b> items|up to 1000 items/.test(lsPrev.replace(/\s+/g, " ")), "the preview shows the item limit");
   check(/1<\/b> picture links found|1 picture links found/.test(lsPrev.replace(/\s+/g, " ")) && /not usable/.test(lsPrev), "the preview counts picture links and bad ones");
   await adm.click('#dlg button:has-text("Load the file")');
   await adm.waitForFunction(() => /File loaded/.test(document.querySelector("#dlg").textContent));

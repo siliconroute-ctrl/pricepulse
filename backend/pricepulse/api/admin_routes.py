@@ -50,7 +50,6 @@ class LocalStoreIn(BaseModel):
     active: bool = True
     store_type: str = Field(default="", max_length=30)
     max_items: int = Field(default=localstores.DEFAULT_MAX_ITEMS, ge=10, le=localstores.MAX_ROWS)
-    prices_incl_vat: bool = True
 
 
 class StoreImportIn(BaseModel):
@@ -343,7 +342,6 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             "active": bool(st.active),
             "store_type": st.store_type,
             "max_items": st.max_items,
-            "prices_incl_vat": bool(st.prices_incl_vat),
             "items": items,
             "submissions": subs,
             "last_submission": st.last_submission_at.isoformat() + "Z" if st.last_submission_at else None,

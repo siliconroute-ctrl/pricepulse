@@ -1128,7 +1128,7 @@ function viewAdmin(){
       '<p class="sub noprint">Shoppers see only each store\u2019s best match for each essential item. Hidden items stay in the system: tap <b>Show</b> to show one, or <b>Hide</b> to hide one.</p>'+
       '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th><th class="noprint">Card #</th><th class="noprint">Shoppers</th></tr></thead><tbody>'+admItemRows(rows,true)+'</tbody></table></div>';
   }else if(tab==="localstores"){
-    h+='<p class="sub">Local stores send us a list of the items they sell most, with their own selling prices, once a week. Their prices show next to the big chains in their own town only. Each new file <b>replaces</b> the store\u2019s list: items missing from the new file are hidden. A store\u2019s prices are marked old after 8 days.</p>'+
+    h+='<p class="sub">Local stores send us a list of the items they sell most, with the selling price the buyer pays (VAT and any other tax included), once a week. Their prices show next to the big chains in their own town only. Each new file <b>replaces</b> the store\u2019s list: items missing from the new file are hidden. A store\u2019s prices are marked old after 8 days.</p>'+
       '<div class="admbar noprint"><button class="admbtn go" type="button" data-adm="lsnew">Add a local store</button>'+
       '<button class="admbtn" type="button" data-adm="lstemplate">Download the CSV template</button>'+
       '<input id="lsfile" class="vh" type="file" accept=".csv,.txt,text/csv,text/plain" tabindex="-1" aria-hidden="true"></div>'+
@@ -1257,13 +1257,12 @@ function lsForm(st){
     f("lsnotes","Notes (only you see these)",r.notes,300,"wide")+
     '<label class="field"><span>Type of store</span><select id="lstype">'+LS_TYPES.map(function(t){return '<option value="'+esc(t)+'"'+(t===(r.store_type||"")?' selected':'')+'>'+esc(t||"(not set)")+'</option>'}).join("")+'</select></label>'+
     '<label class="field"><span>Most items this store may list (10 to 5000)</span><input id="lsmax" type="number" min="10" max="5000" value="'+esc(String(r.max_items||1000))+'"></label>'+
-    '<label class="check wide" style="grid-column:1/-1"><input type="checkbox" id="lsvat"'+(r.prices_incl_vat===false?'':' checked')+'><span>Prices in this store\u2019s files already include VAT (untick if they leave VAT out: we add 15%)</span></label>'+
     (st?'<label class="check wide" style="grid-column:1/-1"><input type="checkbox" id="lsactive"'+(r.active?' checked':'')+'><span>Store is active (shoppers can see its items)</span></label>':'')+
     '</div><p class="err" id="lserr" role="alert"></p>',[["Save","lssave:"+(st?st.id:"new"),"btn"],["Cancel","","btn alt"]]);
 }
 function lsSave(b,dlg,id){
   var v=function(x){return (document.getElementById(x)||{}).value||""};
-  var body={name:v("lsname"),region:v("lsregion"),town:v("lstown"),address:v("lsaddr"),contact_name:v("lscontact"),phone:v("lsphone"),email:v("lsemail"),notes:v("lsnotes"),store_type:v("lstype"),max_items:parseInt(v("lsmax"),10)||1000,prices_incl_vat:!!(document.getElementById("lsvat")||{}).checked,active:id==="new"?true:!!(document.getElementById("lsactive")||{}).checked};
+  var body={name:v("lsname"),region:v("lsregion"),town:v("lstown"),address:v("lsaddr"),contact_name:v("lscontact"),phone:v("lsphone"),email:v("lsemail"),notes:v("lsnotes"),store_type:v("lstype"),max_items:parseInt(v("lsmax"),10)||1000,active:id==="new"?true:!!(document.getElementById("lsactive")||{}).checked};
   b.disabled=true;
   return api("POST","/admin/localstores"+(id==="new"?"":"/"+id),body).then(function(){dlg.close();say("Store saved.");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lserr");if(el)el.textContent=e.message});
 }
@@ -1280,7 +1279,6 @@ function lsFileChosen(input){
     ask("Load this file for "+(st?st.name:"the store")+"?",'<p><b>'+r.rows+' rows</b> in <b>'+esc(file.name)+'</b>:</p><ul class="steps"><li><b>'+r.added+'</b> new items</li><li><b>'+r.updated+'</b> items already known (price refreshed)</li>'+
       '<li><b>'+r.matched_to_chains+'</b> items also sold by a big chain (one card, prices side by side)</li>'+(r.duplicates?'<li>'+r.duplicates+' repeated lines ignored</li>':'')+
       (r.out_of_stock?'<li><b>'+r.out_of_stock+'</b> items are marked out of stock and are left out</li>':'')+
-      (r.vat_added?'<li><b>'+r.vat_added+'</b> prices have VAT added (15%) because this file leaves it out</li>':'')+
       '<li>This store may list up to <b>'+r.max_items+'</b> items</li>'+
       (r.pictures||r.bad_pictures?'<li><b>'+r.pictures+'</b> picture links found'+(r.bad_pictures?', <b>'+r.bad_pictures+'</b> not usable (must start with https://; those items load without a picture)':'')+'</li>':'')+
       '<li id="lsremoved"><b>'+r.removed+'</b> of the store\u2019s current items are not in this file and will be hidden</li>'+(r.invalid_count?'<li><b>'+r.invalid_count+' rows skipped</b> because of problems:</li>':'')+'</ul>'+(bad?'<ul class="steps">'+bad+'</ul>':'')+

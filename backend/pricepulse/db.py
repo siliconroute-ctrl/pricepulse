@@ -69,9 +69,6 @@ class Store(Base):
     max_items: Mapped[int] = mapped_column(
         Integer, default=1000, server_default="1000"
     )  # most items a local store may list in one file
-    prices_incl_vat: Mapped[bool] = mapped_column(
-        Boolean, default=True, server_default="1"
-    )  # False = the store's file prices exclude VAT (we add it)
     store_type: Mapped[str] = mapped_column(
         String(30), default="", server_default=""
     )  # Supermarket, Butchery, Stationery, IT & Electronics, Other ("" = chain)
@@ -394,12 +391,10 @@ def _m9_pictures(conn: Connection) -> None:
 
 
 def _m10_store_limits(conn: Connection) -> None:
-    """Per-store item limit and the VAT setting for its file prices (adds columns only)."""
+    """Per-store item limit (adds a column only)."""
     scols = {c["name"] for c in inspect(conn).get_columns("store")}
     if "max_items" not in scols:
         conn.execute(text("ALTER TABLE store ADD COLUMN max_items INTEGER NOT NULL DEFAULT 1000"))
-    if "prices_incl_vat" not in scols:
-        conn.execute(text("ALTER TABLE store ADD COLUMN prices_incl_vat BOOLEAN NOT NULL DEFAULT 1"))
 
 
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
@@ -412,7 +407,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (7, "search-hit rank and product visibility", _m7_visibility),
     (8, "local stores, item codes, departments and submissions", _m8_local_stores),
     (9, "item pictures and store type", _m9_pictures),
-    (10, "store item limit and VAT setting", _m10_store_limits),
+    (10, "store item limit", _m10_store_limits),
 ]
 
 
