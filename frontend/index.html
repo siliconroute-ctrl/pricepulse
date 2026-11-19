@@ -345,6 +345,60 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
 .specialtag::before{content:""}
 .pcard .moreof{display:flex;align-items:center;min-height:3rem;color:var(--accent);font-weight:700}
 :root[data-theme="dark"] .pcard .moreof{color:var(--nav-hi)}
+
+/* ---- Compact list rows and smaller headings (v23) ---- */
+.grid{display:flex;flex-direction:column;gap:.6rem;margin-top:.5rem}
+.prow{display:grid;grid-template-columns:5.6rem minmax(0,1fr);gap:.15rem .7rem;align-items:start;padding:.55rem}
+.prow .pimg{width:5.6rem;height:5.6rem;aspect-ratio:auto}
+.prow .pbody{min-width:0}
+.prow h3{margin:0;font-size:1rem;line-height:1.25;-webkit-line-clamp:2}
+.prow h3 .size{font-weight:500;color:var(--muted);font-size:1rem}
+.prow .size{font-size:1rem;margin:0}
+.prow .best{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 .5rem;margin-top:.15rem;padding:0;background:transparent}
+.prow .tag{flex:none;margin:0;font-size:.82rem}
+.prow .price{font-size:1.65rem;line-height:1.1}
+.prow .savetxt{font-weight:800;color:var(--save);font-size:1rem}
+.prow .atstore{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem;margin-top:.1rem}
+.prow .nextline{font-size:1rem;margin-top:.1rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .nextline .moreof{display:inline;min-height:0;font-weight:700}
+.prow .cardfoot{grid-column:1/-1;display:flex;flex-direction:row;gap:.5rem;margin:0;padding-top:.3rem}
+.prow .cardfoot .pillbtn{flex:1 1 0;width:auto}
+.prow .cardfoot .tupick{flex:0 0 auto;width:auto;min-height:3rem}
+.prow.small{grid-template-columns:4.3rem minmax(0,1fr) auto;align-items:center}
+.prow.small .pimg{width:4.3rem;height:4.3rem}
+.prow.small .cardfoot{grid-column:auto;padding:0}
+.prow.small .lookup{width:auto;min-width:6.2rem;padding:0 .8rem}
+.prow .specialtag{display:inline;margin:0}
+.homehead{font-size:1.55rem}
+.sect h2{font-size:1.12rem}
+.cat{min-width:3.6rem}
+.cat .lbl{max-width:4.6rem}
+.cat .circ{width:2.8rem;height:2.8rem}
+.cat .circ svg{width:1.45rem;height:1.45rem}
+
+/* ---- Front screen on one page; aisles in 2 rows of 4; no placeholder pictures (v24) ---- */
+.cats8{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.35rem .2rem;padding:.3rem 0 .4rem}
+.cats8 .cat{min-width:0;padding:.1rem 0}
+.cats8 .cat .lbl{max-width:none;font-size:1rem;line-height:1.1;font-weight:600;letter-spacing:-.025em;overflow-wrap:normal}
+.cats8 .cat{font-weight:600}
+.prow.nopic{grid-template-columns:minmax(0,1fr)}
+.prow.small.nopic{grid-template-columns:minmax(0,1fr) auto}
+.homehead{font-size:.93rem;line-height:1.25}
+.homehead .hl{display:inline}
+.homecard{padding:.6rem .8rem;margin-top:.5rem}
+.homecard .homehint{margin:.3rem 0 0;font-size:1rem}
+.fronttiles{margin:.5rem 0 0}
+.sect{margin:.6rem 0 0}
+body.front{padding-bottom:4.5rem}
+body.front header .findbar{padding-bottom:.5rem}
+body.front .homecard{padding:.45rem .7rem;margin-top:.4rem}
+body.front .fronttiles{margin-top:.4rem;gap:.5rem}
+body.front .sect{margin-top:.4rem}
+body.front .sect h2{line-height:1}
+body.front .disclaimer{margin:.5rem 0 0;padding:.35rem .7rem;font-size:.94rem;line-height:1.3}
+body.front .cats8{padding:.2rem 0 .2rem;gap:.2rem .2rem}
+body.front .fronttile{min-height:3rem}
+body.front .homecard .homehint{font-size:.94rem}
 </style>
 </head>
 <body class="plainhead">
@@ -404,7 +458,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 22;
+var APP_VERSION = 24;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -589,13 +643,13 @@ function renderHead(){
   document.body.classList.toggle("plainhead",state.phase!=="app");
   /* The session count is no longer shown in the header; it is on the List and Account screens and in messages. */
 }
-function banners(){
+function banners(skipOld){
   var h="";
   if(state.offline)h+='<div class="banner warn" role="note"><b>'+(state.savedAt&&state.items.length?'Showing saved prices from '+esc(fmtDate(state.savedAt))+'.':'No connection.')+'</b>'+esc(state.error||"You are offline.")+' You can read your list, but looking up new items needs a connection.</div>';
   if(state.isSample)h+='<div class="banner warn" role="note"><b>Example prices.</b>The price server is running with test data, not real shelf prices.</div>';
   var o=oldestPrice();
   var anyOld=state.items.some(function(i){for(var s in i.p.prices){var r=i.p.prices[s];if(r.stale!==undefined?r.stale:hoursOld(r.at)>STALE_HOURS)return true}return false});
-  if(o&&anyOld)h+='<div class="banner warn" role="note"><b>Some prices are over 2 days old.</b>Marked "Old price". Check at the till.</div>';
+  if(!skipOld&&o&&anyOld)h+='<div class="banner warn" role="note"><b>Some prices are over 2 days old.</b>Marked "Old price". Check at the till.</div>';
   return h;
 }
 function disclaimer(){return '<p class="disclaimer">'+DISCLAIMER+'</p>'}
@@ -656,8 +710,9 @@ function runFind(now){
 function catTile(c){
   var it=findItem(c.id);
   if(it)return card(it);
-  return '<article class="card pcard">'+tileImg(c.image,c.category,0,"")+(c.special?'<span class="tag specialtag">Special</span>':'')+'<h3>'+esc(c.name)+'</h3><div class="size">'+esc(c.size)+' \u00b7 at '+plural(c.store_count,"store")+'</div>'+
-    '<div class="cardfoot"><button class="lookup" type="button" data-look="'+c.id+'" aria-label="Look up price of '+esc(c.name)+' '+esc(c.size)+'">+ Look up price</button></div></article>';
+  var im=tileImg(c.image,c.category,c.local,"");
+  return '<article class="card pcard prow small'+(im?'':' nopic')+'">'+im+'<div class="pbody"><h3>'+esc(c.name)+' <span class="size">'+esc(c.size)+'</span></h3><div class="size">at '+plural(c.store_count,"store")+(c.special?' · <b class="specialtag">Special</b>':'')+'</div></div>'+
+    '<div class="cardfoot"><button class="lookup" type="button" data-look="'+c.id+'" aria-label="Look up price of '+esc(c.name)+' '+esc(c.size)+'">+ Look up</button></div></article>';
 }
 var TU_ICON='<svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" fill="#0b7a4b"/><g fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"><path d="M110 150h56l44 170h170l36-120H184"/></g><circle cx="232" cy="378" r="24" fill="#fff"/><circle cx="372" cy="378" r="24" fill="#fff"/><path d="M290 110l36-40 36 40" fill="none" stroke="#ff7a1a" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var CAT_ICONS={
@@ -668,9 +723,13 @@ var CAT_ICONS={
   "Health & Beauty":'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.400-7-10a4 4 0 017-2.500A4 4 0 0119 10c0 5.600-7 10-7 10z"/><path d="M12 9.500v5M9.500 12h5"/></svg>'
 };
 var CAT_CLASS={All:"all",Groceries:"groceries",Fresh:"fresh",Liquor:"liquor","Health & Beauty":"health"};
+var ARROW_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
 function catCircles(cats){
-  return '<div class="pills cats" role="group" aria-label="Category">'+cats.map(function(c){
-    return '<button class="cat cat-'+(CAT_CLASS[c]||"all")+'" type="button" data-cat="'+esc(c)+'" aria-pressed="'+(state.cat===c)+'"><span class="circ">'+(CAT_ICONS[c]||CAT_ICONS.All)+'</span><span class="lbl">'+esc(c)+'</span></button>'}).join("")+'</div>';
+  var all=state.catsMore||cats.length<=8,shown=all?cats:cats.slice(0,7);
+  var h='<div class="cats8" role="group" aria-label="Aisles">'+shown.map(function(c){
+    return '<button class="cat cat-'+(CAT_CLASS[c]||"all")+'" type="button" data-cat="'+esc(c)+'" aria-pressed="'+(state.cat===c)+'"><span class="circ">'+(CAT_ICONS[c]||CAT_ICONS.All)+'</span><span class="lbl">'+esc(c)+'</span></button>'}).join("");
+  if(cats.length>8)h+='<button class="cat cat-all" type="button" data-act="catsmore" aria-expanded="'+!!state.catsMore+'" aria-label="'+(state.catsMore?'Show fewer aisles':'Show more aisles')+'"><span class="circ">'+ARROW_ICON+'</span><span class="lbl">'+(state.catsMore?'Less':'More')+'</span></button>';
+  return h+'</div>';
 }
 function pickedIds(){return Object.keys(state.picked).filter(function(k){var it=findItem(+k);return state.picked[k]&&it&&it.on}).map(Number)}
 function pickBtn(id,name){
@@ -701,15 +760,15 @@ function homeCard(){
     '<p class="homehint">Type what you need and see who has it, and for how much, in '+esc(regionName(state.region))+'.</p></section>';
 }
 function frontTiles(){
-  return '<div class="fronttiles"><button class="fronttile" type="button" data-act="viewall" data-kind="local"><span class="ft-ic" aria-hidden="true">'+CAT_ICONS.Groceries+'</span><span>From local stores</span></button>'+
+  return '<div class="fronttiles"><button class="fronttile" type="button" data-act="viewall" data-kind="local"><span class="ft-ic" aria-hidden="true">'+CAT_ICONS.Groceries+'</span><span>Local stores</span></button>'+
     '<button class="fronttile" type="button" data-act="viewall" data-kind="special"><span class="ft-ic" aria-hidden="true">'+CAT_ICONS["Health & Beauty"]+'</span><span>Specials</span></button></div>';
 }
 function viewFind(){
   var cats=CATS.filter(function(c){return c!=="Liquor"||(state.me&&state.me.adult)});
-  var h=banners();
   var typing=!!state.q.trim()||state.cat!=="All"||!!state.flt;
+  var h=banners(!typing);
   if(!typing){
-    return h+homeCard()+frontTiles()+'<div class="sect"><h2>Aisles</h2></div>'+catCircles(cats)+pickBar()+disclaimer();
+    return h+homeCard()+frontTiles()+'<div class="sect"><h2>Aisles</h2></div>'+catCircles(cats)+pickBar()+'<p class="disclaimer">Prices may differ in store. Always check at the till.</p>';
   }
   h+=catCircles(cats)+pickBar();
   if(state.flt)h+='<div class="banner"><b>Showing only '+(state.flt==="special"?"specials":"items from local stores")+'.</b> <button class="linkbtn" type="button" data-act="clearflt">Show everything</button></div>';
@@ -745,32 +804,30 @@ function sendRequest(b){
   });
 }
 function priceHtml(v){var p=Number(v).toFixed(2).split(".");return '<span class="vh">'+money(v)+'</span><span aria-hidden="true">R'+p[0].replace(/\B(?=(\d{3})+(?!\d))/g," ")+'<sup>.'+p[1]+'</sup></span>'}
-function tileImg(url,cat,saveAmt,href){
-  var ph='<span class="pph cat-'+(CAT_CLASS[cat]||"all")+'">'+(CAT_ICONS[cat]||CAT_ICONS.All)+'</span>';
-  var img=url&&(url.indexOf("https://")===0||url.indexOf("/api/v1/img/")===0)?'<img class="pic" src="'+esc(url)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">':'';
-  var inner=ph+img+(saveAmt>0?'<span class="save">Save R'+saveAmt.toFixed(2)+'</span>':'');
-  return href?'<a class="pimg" href="'+href+'" tabindex="-1" aria-hidden="true">'+inner+'</a>':'<div class="pimg">'+inner+'</div>';
+var STD_CATS=["Groceries","Fresh","Liquor","Health & Beauty"];
+/* Pictures only for local-store items outside the standard aisles (for example electronics). Never an icon. */
+function tileImg(url,cat,local,href){
+  if(!local||STD_CATS.indexOf(cat)>=0||!url||!(url.indexOf("https://")===0||url.indexOf("/api/v1/img/")===0))return "";
+  var img='<img class="pic" src="'+esc(url)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">';
+  return href?'<a class="pimg" href="'+href+'" tabindex="-1" aria-hidden="true">'+img+'</a>':'<div class="pimg">'+img+'</div>';
 }
 function card(it){
   var p=it.p,stores=sortedStores(p);
-  var title='<h3 id="p'+p.id+'" tabindex="-1"><a href="#product/'+p.id+'">'+esc(p.name)+'</a></h3><div class="size">'+esc(p.size)+'</div>';
+  var isLocal=stores.some(function(s){return p.prices[s].local});
+  var img=tileImg(p.image,p.cat,isLocal,'#product/'+p.id),rc='card pcard prow'+(img?'':' nopic');
+  var title='<h3 id="p'+p.id+'" tabindex="-1"><a href="#product/'+p.id+'">'+esc(p.name)+'</a> <span class="size">'+esc(p.size)+'</span></h3>';
   var addBtn='<button class="pillbtn" type="button" data-toggle="'+p.id+'" aria-pressed="'+it.on+'" aria-label="'+(it.on?'Take '+esc(p.name)+' off my list':'Put '+esc(p.name)+' on my list')+'">'+(it.on?'✓ On list':'+ Add to list')+'</button>';
-  if(!stores.length)return '<article class="card pcard">'+tileImg(p.image,p.cat,0,'#product/'+p.id)+title+'<div class="size" style="margin-top:.4rem">No store in '+esc(regionName(state.region))+' has a price for this right now.</div><div class="cardfoot">'+addBtn+'</div></article>';
+  if(!stores.length)return '<article class="'+rc+'">'+img+'<div class="pbody">'+title+'<div class="size">No store in '+esc(regionName(state.region))+' has a price for this right now.</div></div><div class="cardfoot">'+addBtn+'</div></article>';
   var b=stores[0],bp=p.prices[b],others=stores.slice(1),u=priceUnit(p,bp);
   var main=state.unitMode&&u?u.value:eff(bp);
-  var second=state.unitMode&&u?money(eff(bp))+' for '+esc(p.size):(u?money(u.value)+' '+esc(u.unit):'');
   var save=bp.promo!=null?bp.price-bp.promo:0;
-  var shown=others.slice(0,2);
-  return '<article class="card pcard">'+tileImg(p.image,p.cat,save,'#product/'+p.id)+title+
-    '<div class="best"><div class="tag">Best price</div><div class="price'+(bp.promo!=null?' sp':'')+'">'+priceHtml(main)+(state.unitMode&&u?' <span class="unit">'+esc(u.unit)+'</span>':'')+'</div>'+
-    (second?'<div class="unit">'+second+'</div>':'')+(bp.promo!=null?'<div class="was">Usually '+money(bp.price)+'</div>':'')+oldTag(bp)+'<div style="margin-top:.2rem">'+badgeLink(b,bp)+'</div></div>'+
-    (shown.length?'<ul class="others" aria-label="Other stores">'+shown.map(function(s){
-      var r=p.prices[s],uu=priceUnit(p,r);
-      var sh=state.unitMode&&uu?money(uu.value)+' '+esc(uu.unit):money(eff(r));
-      return '<li><span>'+esc(s)+'</span><span class="p">'+sh+'</span></li>'}).join("")+
-      (others.length>shown.length?'<li><a class="moreof" href="#product/'+p.id+'">+ '+(others.length-shown.length)+' more '+(others.length-shown.length===1?'store':'stores')+'</a></li>':'')+'</ul>':
-      '<div class="size" style="margin-top:.4rem">Only one store has this item.</div>')+
-    '<div class="cardfoot">'+addBtn+pickBtn(p.id,p.name)+'</div></article>';
+  var nx=others[0],nr=nx?p.prices[nx]:null,nu=nr?priceUnit(p,nr):null;
+  return '<article class="'+rc+'">'+img+'<div class="pbody">'+title+
+    '<div class="best"><div class="price'+(bp.promo!=null?' sp':'')+'">'+priceHtml(main)+(state.unitMode&&u?' <span class="unit">'+esc(u.unit)+'</span>':'')+'</div>'+
+    (save>0?'<span class="savetxt">Save R'+save.toFixed(2)+'</span>':'')+'</div>'+
+    '<div class="atstore"><span class="tag">Best price</span>'+badge(b)+(bp.local?' <span class="tag localtag">Local store</span>':'')+oldTag(bp)+'</div>'+
+    (nx?'<div class="nextline">Next: <b>'+(state.unitMode&&nu?money(nu.value)+' '+esc(nu.unit):money(eff(nr)))+'</b> '+esc(nx)+'</div>':'<div class="nextline">Only one store has this item.</div>')+
+    '</div><div class="cardfoot">'+addBtn+pickBtn(p.id,p.name)+'</div></article>';
 }
 function lookUp(id){
   if(state.busy)return;state.busy=true;
@@ -794,7 +851,7 @@ function viewProduct(){
   var h='<p class="back"><a class="btn alt" href="#find">← Back to products</a></p>';
   if(!it)return h+'<div class="empty">Look up this item first to see its prices.</div>';
   var p=it.p,stores=sortedStores(p);
-  h+=(p.image?'<p style="margin:.2rem 0">'+pic(p.image,true)+'</p>':'')+'<h2 class="h2">'+esc(p.name)+'</h2><p class="sub">'+esc(p.size)+(p.brand?' · '+esc(p.brand):'')+' · '+esc(regionName(state.region))+'</p>';
+  h+=(p.image&&STD_CATS.indexOf(p.cat)<0&&Object.keys(p.prices).some(function(s){return p.prices[s].local})?'<p style="margin:.2rem 0">'+pic(p.image,true)+'</p>':'')+'<h2 class="h2">'+esc(p.name)+'</h2><p class="sub">'+esc(p.size)+(p.brand?' · '+esc(p.brand):'')+' · '+esc(regionName(state.region))+'</p>';
   h+='<div class="card">'+(stores.length?stores.map(function(s,i){
     var r=p.prices[s],u=priceUnit(p,r);
     return '<div class="tot-row'+(i===0?' win':'')+'"><div>'+badgeLink(s,r)+(i===0?' <span class="tag">Best price</span>':'')+
@@ -1452,6 +1509,7 @@ function renderMain(){
   else if(state.phase==="idcheck")h=viewIdCheck();
   else h=state.view==="find"?viewFind():state.view==="towns"?viewTowns():state.view==="list"?viewList():state.view==="product"?viewProduct():state.view==="admin"?viewAdmin():viewAccount();
   m.innerHTML=h;
+  document.body.classList.toggle("front",state.phase==="app"&&state.view==="find"&&!(state.q.trim()||state.cat!=="All"||state.flt));
 }
 function render(){
   applyTheme();renderMain();renderHead();
@@ -1564,6 +1622,7 @@ document.addEventListener("click",function(e){
     }
     case "signout":return void Auth.out();
     case "refind":state.findErr="";return runFind(true);
+    case "catsmore":state.catsMore=!state.catsMore;return renderMain();
     case "viewall":state.flt=t.dataset.kind;state.cat="All";state.found=null;renderMain();window.scrollTo(0,0);return runFind(true);
     case "clearflt":state.flt="";state.found=null;renderMain();return runFind(true);
     case "request":return requestDialog(t.dataset.term||"");

@@ -29,7 +29,7 @@ async function signIn(page, name, id) {
   await page.fill("#devform [name=name]", name);
   await page.click("#devform button");
   await page.waitForSelector("#idform");
-  if (id) { await page.fill("#idform [name=idnum]", id); await page.check("#idform [name=terms]"); await page.click("#idform button.btn"); await page.waitForSelector(".pills"); }
+  if (id) { await page.fill("#idform [name=idnum]", id); await page.check("#idform [name=terms]"); await page.click("#idform button.btn"); await page.waitForSelector(".cats8"); }
 }
 async function lookUp(page, word) {
   await page.fill("#q", word);
@@ -83,7 +83,7 @@ check(/not valid/.test(await page.textContent(".err")), "wrong ID number is refu
 await shot(page, "2-idcheck");
 await page.fill("#idform [name=idnum]", ADULT);
 await page.click("#idform button.btn");
-await page.waitForSelector(".pills");
+await page.waitForSelector(".cats8");
 check(/3 free sessions left today/.test(await meter(page)), "meter before first lookup: " + await meter(page));
 const headH = await page.$eval("header", (h) => h.getBoundingClientRect().height);
 check(headH <= 200, "the top bar is compact (" + Math.round(headH) + "px tall)");
@@ -103,7 +103,7 @@ check(look.bodyBg === "rgb(238, 241, 245)", "the page is a light cool grey so wh
 check(look.top === "rgb(21, 34, 46)" && look.nav === "rgb(21, 34, 46)", "the title bar and the footer menu are dark navy");
 check(look.findbar === "rgb(21, 34, 46)", "the town chip and the search box sit in the navy bar");
 check(look.gap >= 8, "the search box has a gap under the town chip (" + Math.round(look.gap) + "px)");
-check(look.circ >= 58 && look.circ <= 66, "category circles are big and bright (" + Math.round(look.circ) + "px)");
+check(look.circ >= 46 && look.circ <= 50, "category circles are compact (" + Math.round(look.circ) + "px)");
 check((await page.$eval("#q", (q) => q.getBoundingClientRect().width)) >= 110, "the search box is still wide enough to type in");
 // The front screen shows no products: a short message, two tap tiles, and the Aisles.
 await page.waitForSelector(".homecard");
@@ -114,7 +114,29 @@ check((await page.locator("#main article.card").count()) === 0 && (await page.lo
 check(/^Search for a product/.test((await page.getAttribute("#q", "placeholder")) || ""), "the search box invites a search without a count");
 check(/Aisles/.test(await page.textContent("#main")) && !/Quick shops/i.test(await page.textContent("#main")), "the category row is called Aisles");
 await shot(page, "3a-home");
-check((await page.locator('button[data-act="viewall"]').count()) === 2, "there are two tiles: From local stores and Specials");
+const fitPage = async (w, h) => {
+  await page.setViewportSize({ width: w, height: h });
+  await page.waitForTimeout(250);
+  return page.evaluate(() => {
+    // Real content height: the bottom of the last block plus the room kept for the bottom tabs.
+    const last = document.querySelector("#main .disclaimer") || document.querySelector("#main").lastElementChild;
+    const tabs = document.querySelector("nav.tabs").getBoundingClientRect().height;
+    const need = Math.round(last.getBoundingClientRect().bottom + window.scrollY + tabs + 8);
+    return { doc: need, win: window.innerHeight, wide: document.documentElement.scrollWidth > window.innerWidth + 1 };
+  });
+};
+for (const [w, h] of [[360, 780], [412, 915]]) {
+  const r = await fitPage(w, h);
+  check(r.doc <= r.win && !r.wide, "the front screen fits on one page at " + w + "x" + h + " without scrolling (" + r.doc + " of " + r.win + "px)");
+  await shot(page, "3b-home-" + w);
+}
+await page.setViewportSize({ width: 412, height: 915 });
+const rows = await page.$$eval(".cats8 .cat", (els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+check(new Set(rows).size <= 2 && rows.filter((y) => y === rows[0]).length <= 4, "the aisles sit in at most 2 rows of 4 (" + rows.length + " icons)");
+const headPx = await page.$eval(".homehead", (e) => parseFloat(getComputedStyle(e).fontSize));
+check(headPx < 17, "the front headline is 40% smaller (" + headPx.toFixed(1) + "px)");
+check((await page.locator("#main .banner").count()) === 0, "the front screen has no warning cards");
+check((await page.locator('button[data-act="viewall"]').count()) === 2, "there are two tiles: Local stores and Specials");
 await page.locator('button[data-kind="special"]').click();
 await page.waitForSelector('[data-act="clearflt"]');
 await page.locator(".grid article.card").first().waitFor();
@@ -190,7 +212,7 @@ await page.click('[data-menu="colours"]');
 await page.click('[data-dlg="theme-system"]');
 await page.click('[data-menu="find"]', { force: true }).catch(() => {});
 await page.goto(base + "/#find");
-await page.waitForSelector(".pills");
+await page.waitForSelector(".cats8");
 
 // 2. Look up a price.
 await page.fill("#q", "milk");
@@ -201,7 +223,21 @@ await page.locator(".grid button.lookup").first().click();
 const cardEl = page.locator("article.card:has(.best)").first();
 await cardEl.waitFor();
 check((await cardEl.locator("h3").evaluate((h) => getComputedStyle(h).color)) === "rgb(63, 55, 56)", "item names are 15% lighter than before (rgb 63,55,56)");
-check((await cardEl.locator(".badge").count()) + (await cardEl.locator(".others li").count()) >= 3, "looked-up milk shows the best store and the next stores on the card");
+check((await cardEl.locator(".badge").count()) >= 1 && /Next:/.test(await cardEl.textContent()), "looked-up milk shows the best store and the next store on the row");
+const vp = page.viewportSize();
+const rowH = await cardEl.evaluate((e) => Math.round(e.getBoundingClientRect().height));
+const smallH = await page.locator("article.prow.small").first().evaluate((e) => Math.round(e.getBoundingClientRect().height)).catch(() => 0);
+console.log("INFO row heights at " + vp.width + "px: looked-up " + rowH + "px, not looked up " + smallH + "px");
+check(rowH <= 230 && (smallH === 0 || smallH <= 130), "product rows are compact (looked-up " + rowH + "px, not looked up " + smallH + "px)");
+check((await page.locator(".grid").evaluate((g) => getComputedStyle(g).display)) === "flex", "results are one column of rows");
+check((await page.locator(".grid .pimg, .grid .pph").count()) === 0, "listings show no picture and no picture icon for grocery items");
+await page.setViewportSize({ width: 360, height: 780 });
+await page.waitForTimeout(250);
+const rowH360 = await cardEl.evaluate((e) => Math.round(e.getBoundingClientRect().height));
+const overflow360 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+console.log("INFO row height at 360px: " + rowH360 + "px");
+check(rowH360 <= 230 && !overflow360, "on a 360px phone a looked-up row is " + rowH360 + "px tall and nothing scrolls sideways");
+await page.setViewportSize({ width: vp.width, height: vp.height });
 check((await cardEl.textContent()).includes("Best price"), "best price is labelled in text, not only colour");
 check(/Session 1 of 3 today · 1 of 45 items/.test(await meter(page)), "meter after lookup: " + await meter(page));
 await shot(page, "4-looked-up");
@@ -284,7 +320,7 @@ await shot(page, "8-account", true);
 const kidCtx = await browser.newContext({ viewport: { width: 412, height: 915 } });
 const kid = await kidCtx.newPage();
 await signIn(kid, "kid", MINOR);
-check(!(await kid.textContent(".pills")).includes("Liquor"), "under 18: no Liquor category");
+check(!(await kid.textContent(".cats8")).includes("Liquor"), "under 18: no Liquor category");
 await kid.fill("#q", "castle");
 await kid.waitForSelector(".empty");
 check(/No products match/.test(await kid.textContent(".empty")), "under 18: liquor products cannot be found");
@@ -351,7 +387,7 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   check(!(await adm.isVisible('#menupop [data-menu="admin"]')), "Admin area is hidden until the account is made an admin");
   execFileSync(process.env.PP_PYTHON || "python3", ["admin.py", "admin-role", "dev-admin", "on"], { cwd: process.env.PP_SMOKE_BACKEND, env: process.env });
   await adm.reload();
-  await adm.waitForSelector(".pills");
+  await adm.waitForSelector(".cats8");
   await adm.click("#menubtn");
   check(await adm.isVisible('#menupop [data-menu="admin"]'), "Admin area appears in the three-dot menu for an admin");
   await adm.click('#menupop [data-menu="admin"]');
