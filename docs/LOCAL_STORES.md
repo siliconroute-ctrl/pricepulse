@@ -31,9 +31,21 @@ are required.
 | `category` | `Groceries`, `Fresh`, `Health & Beauty` or `Liquor` (blank means Groceries) | `Fresh` |
 | `promo price` | a special price, lower than `price` | `79.90` |
 
+More columns are understood when a file has them: **`brand`** (manufacturer) and **`stock`**. A row
+whose stock says "No Stock", "Out of stock", "Discontinued" or "0" is **left out**, so it is not shown to
+shoppers. Headers are matched by meaning, ignoring capitals, spaces and punctuation (`PriceInclVAT`,
+`Price incl. VAT` and `price` all work). `Description` is read as the item name and `Product` as the item
+code when a file has both. Extra columns (image links, dates) are ignored.
+
+**Categories.** Our four (Groceries, Fresh, Health & Beauty, Liquor) keep their names. Any other category
+text, such as a wholesaler's own sections, is kept as the store wrote it, and the preview lists it so you
+can spot typos. **Prices must be selling prices including VAT**, as a shopper would pay: a wholesaler's
+cost or ex-VAT price list is not what shoppers should see.
+
 Download a ready-made template from **Local stores, Download the CSV template**
-(`docs/templates/local-store-template.csv` in the repository). Up to 5000 rows per file. Commas,
-semicolons or tabs all work.
+(`docs/templates/local-store-template.csv` in the repository). Up to 5000 rows per file (a 5000-row file takes
+about 15 seconds to check; split bigger lists). Commas, semicolons or tabs all work; the separator is the
+one found on every line, so commas inside descriptions do not confuse it.
 
 ## Rules
 - **Each file replaces the store's list.** Items not in the new file are hidden from shoppers (their price

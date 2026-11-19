@@ -326,7 +326,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 17;
+var APP_VERSION = 18;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -432,10 +432,10 @@ var Auth=(function(){
 })();
 
 /* ---------- Talking to the price server ---------- */
-function api(method,path,body){
+function api(method,path,body,timeoutMs){
   return Auth.token().then(function(tok){
     var ctl=typeof AbortController!=="undefined"?new AbortController():null;
-    var timer=setTimeout(function(){if(ctl)ctl.abort()},15000);
+    var timer=setTimeout(function(){if(ctl)ctl.abort()},timeoutMs||15000);
     var opts={method:method,headers:{}};
     if(ctl)opts.signal=ctl.signal;
     if(tok)opts.headers.Authorization="Bearer "+tok;
@@ -1262,12 +1262,15 @@ function lsFileChosen(input){
   if(file.size>2000000)return ask("That file is too big",'<p>Please use a file under 2 MB.</p>',[["OK","","btn"]]);
   file.text().then(function(text){
     ADM.lsPending={id:id,csv:text,filename:file.name};
-    return api("POST","/admin/localstores/"+id+"/import",{csv:text,filename:file.name,dry_run:true,replace:true});
+    ask("Checking the file",'<p>Checking <b>'+esc(file.name)+'</b>. A big file can take up to a minute. Nothing is saved yet.</p>',[]);
+    return api("POST","/admin/localstores/"+id+"/import",{csv:text,filename:file.name,dry_run:true,replace:true},120000);
   }).then(function(r){
     var bad=r.invalid.slice(0,6).map(function(x){return '<li>Row '+x.row+': '+esc(x.name||"(empty)")+' \u2013 '+esc(x.why)+'</li>'}).join("");
     ask("Load this file for "+(st?st.name:"the store")+"?",'<p><b>'+r.rows+' rows</b> in <b>'+esc(file.name)+'</b>:</p><ul class="steps"><li><b>'+r.added+'</b> new items</li><li><b>'+r.updated+'</b> items already known (price refreshed)</li>'+
       '<li><b>'+r.matched_to_chains+'</b> items also sold by a big chain (one card, prices side by side)</li>'+(r.duplicates?'<li>'+r.duplicates+' repeated lines ignored</li>':'')+
+      (r.out_of_stock?'<li><b>'+r.out_of_stock+'</b> items are marked out of stock and are left out</li>':'')+
       '<li id="lsremoved"><b>'+r.removed+'</b> of the store\u2019s current items are not in this file and will be hidden</li>'+(r.invalid_count?'<li><b>'+r.invalid_count+' rows skipped</b> because of problems:</li>':'')+'</ul>'+(bad?'<ul class="steps">'+bad+'</ul>':'')+
+      (r.new_categories&&r.new_categories.length?'<p class="sub">Categories new to PricePulse (kept as the store wrote them): <b>'+r.new_categories.slice(0,6).map(esc).join(", ")+(r.new_categories.length>6?", \u2026":"")+'</b></p>':'')+
       '<label class="check"><input type="checkbox" id="lsreplace" checked><span>Replace the store\u2019s list (hide items missing from this file)</span></label>',
       [["Load the file","lsload","btn"],["Cancel","","btn alt"]]);
   }).catch(function(e){ask("Could not read that file",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
@@ -1275,7 +1278,7 @@ function lsFileChosen(input){
 function lsDoLoad(b,dlg){
   var p=ADM.lsPending;if(!p)return dlg.close();
   var replace=!!(document.getElementById("lsreplace")||{}).checked;b.disabled=true;
-  return api("POST","/admin/localstores/"+p.id+"/import",{csv:p.csv,filename:p.filename,replace:replace,dry_run:false}).then(function(r){
+  return api("POST","/admin/localstores/"+p.id+"/import",{csv:p.csv,filename:p.filename,replace:replace,dry_run:false},120000).then(function(r){
     ADM.lsPending=null;ADM.loading=null;
     ask("File loaded",'<p><b>'+r.added+' added</b>, '+r.updated+' updated'+(replace?', '+r.removed+' hidden':'')+'.'+(r.invalid_count?' '+r.invalid_count+' rows were skipped.':'')+'</p><p class="sub">Shoppers in that region see the prices straight away.</p>',[["OK","","btn"]]);
     say("File loaded: "+r.added+" added.");admLoad();

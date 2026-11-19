@@ -41,10 +41,16 @@ def test_rows_are_checked_one_by_one_and_bad_ones_explained():
     rows, _ = localstores.parse_csv(CSV)
     chk = localstores.check_rows(rows)
     names = [r["name"] for r in chk.ok]
-    assert names == ["Clover Full Cream Milk", "Boerewors", "Brown Bread"]  # repeated SKU counted once
+    assert names == [
+        "Clover Full Cream Milk",
+        "Boerewors",
+        "Brown Bread",
+        "Sherry",
+    ]  # repeated SKU counted once
+    assert chk.new_categories == ["Electronics"]  # a store's own category is kept, and flagged in the preview
     assert chk.duplicates == 1
     why = {i["name"]: i["why"] for i in chk.invalid}
-    assert "price must be" in why["Free Cheese"] and "2 to 120" in why["X"] and "category" in why["Sherry"]
+    assert "price must be" in why["Free Cheese"] and "at least 2" in why["X"] and "Sherry" not in why
     bw = next(r for r in chk.ok if r["name"] == "Boerewors")
     assert bw["price"] == 89.9 and bw["promo_price"] == 79.9 and bw["department"] == "Butchery"
     assert next(r for r in chk.ok if r["name"] == "Clover Full Cream Milk")["price"] == 34.5  # "R 34.50"
@@ -69,10 +75,10 @@ def test_weekly_list_loads_prices_only_for_its_region_and_replaces_the_old_list(
     st = make_store(db)
     rows, _ = localstores.parse_csv(CSV)
     rep = localstores.import_for_store(db, st, rows, settings, filename="week1.csv", by="boss")
-    assert (rep.added, rep.updated, rep.removed) == (3, 0, 0) and len(rep.invalid) == 3
+    assert (rep.added, rep.updated, rep.removed) == (4, 0, 0) and len(rep.invalid) == 2
     assert st.last_submission_at is not None
     lst = db.scalars(select(Listing).where(Listing.store_id == st.id)).all()
-    assert {x.sku for x in lst} == {"MILK2", "BW1", "BR7"} and {x.source for x in lst} == {"csv"}
+    assert {x.sku for x in lst} == {"MILK2", "BW1", "BR7", "SH1"} and {x.source for x in lst} == {"csv"}
     assert all(x.active and x.hit_rank == 1 for x in lst)  # local items are always shown to shoppers
     from pricepulse.queries import latest_prices
 
@@ -82,7 +88,7 @@ def test_weekly_list_loads_prices_only_for_its_region_and_replaces_the_old_list(
     week2 = "item,price,sku\nClover Full Cream Milk,36.00,MILK2\nOats 1kg,29.00,OAT1\n"
     rows2, _ = localstores.parse_csv(week2)
     rep2 = localstores.import_for_store(db, st, rows2, settings, now=utcnow() + timedelta(days=7))
-    assert (rep2.added, rep2.updated, rep2.removed) == (1, 1, 2)
+    assert (rep2.added, rep2.updated, rep2.removed) == (1, 1, 3)
     active = {
         x.sku
         for x in db.scalars(select(Listing).where(Listing.store_id == st.id, Listing.active.is_(True))).all()
@@ -200,18 +206,18 @@ def test_admin_adds_a_store_loads_its_file_and_shoppers_see_it(api):
     preview = api.post(
         f"/api/v1/admin/localstores/{sid}/import", json={"csv": CSV, "dry_run": True}, headers=h
     ).json()
-    assert preview["added"] == 3 and preview["dry_run"] and preview["invalid_count"] == 3
+    assert preview["added"] == 4 and preview["dry_run"] and preview["invalid_count"] == 2
     assert (
         api.get("/api/v1/admin/localstores", headers=h).json()["stores"][0]["items"] == 0
     )  # preview kept nothing
     done = api.post(
         f"/api/v1/admin/localstores/{sid}/import", json={"csv": CSV, "filename": "w1.csv"}, headers=h
     ).json()
-    assert done["added"] == 3 and not done["dry_run"]
+    assert done["added"] == 4 and not done["dry_run"]
     row_ = api.get("/api/v1/admin/localstores", headers=h).json()["stores"][0]
-    assert row_["items"] == 3 and row_["submissions"] == 1 and row_["last_submission"]
+    assert row_["items"] == 4 and row_["submissions"] == 1 and row_["last_submission"]
     subs = api.get(f"/api/v1/admin/localstores/{sid}/submissions", headers=h).json()["submissions"]
-    assert subs[0]["filename"] == "w1.csv" and subs[0]["added"] == 3 and subs[0]["invalid"] == 3
+    assert subs[0]["filename"] == "w1.csv" and subs[0]["added"] == 4 and subs[0]["invalid"] == 2
 
     # shoppers in Paarl can find and look up the store's items; the price carries the local flag
     cat = api.get("/api/v1/catalogue", params={"q": "boerewors"}, headers=auth("alice")).json()
@@ -298,3 +304,66 @@ def test_old_databases_get_the_new_columns(tmp_path):
         c.execute(text("SELECT count(*) FROM store_submission"))
     assert migrate(engine) == []
     assert Product  # imported for completeness
+
+
+# A wholesaler's tab-separated price list: a "Product" code column comes first, the item name is in
+# "Description", the price includes VAT, and some items are out of stock (made-up rows, same shape).
+WHOLESALER = (
+    "Product\tCategory\tManufacturer\tSubCategory\tDescription\tPriceInclVAT\tStockLevel\tDate\tImageUrl\tDateAdded\n"
+    'AB.123.001\tDisplays and Projectors\tACME\tMonitors\tACME MONITOR V20 19.5" LED, HDMI, 3 YEAR CARRY IN\t1149\tCurrently In Stock\t11/19/2026\thttps://img.example/1.jpg\t02/10/2025\n'
+    "AB.123.002\tDesktops\tACME\tDesktop PC\t"
+    + "ACME VN2595G "
+    + "SPEC " * 60
+    + "\t17824\tCurrently In Stock\t11/19/2026\thttps://img.example/2.jpg\t29/10/2025\n"
+    "AB.123.003\tDesktops\tACME\tDesktop PC\tACME VN1502G TURNKEY\t13799\tCurrently No Stock\t11/19/2026\thttps://img.example/3.jpg\t17/02/2026\n"
+)
+
+
+def test_a_wholesaler_file_maps_by_the_best_header_and_leaves_out_what_is_not_in_stock():
+    rows, problems = localstores.parse_csv(WHOLESALER)
+    assert not problems and len(rows) == 3
+    r0 = rows[0]
+    assert (
+        r0["name"].startswith("ACME MONITOR") and r0["sku"] == "AB.123.001"
+    )  # Description, not the code column
+    assert (
+        r0["brand"] == "ACME"
+        and r0["category"] == "Displays and Projectors"
+        and r0["department"] == "Monitors"
+    )
+    assert r0["price"] == "1149" and r0["stock"] == "Currently In Stock"
+    chk = localstores.check_rows(rows)
+    assert (
+        [r["sku"] for r in chk.ok] == ["AB.123.001", "AB.123.002"]
+        and chk.out_of_stock == 1
+        and not chk.invalid
+    )
+    assert len(chk.ok[1]["name"]) <= 200 and chk.ok[1]["name"].endswith(
+        "..."
+    )  # a long description is shortened
+    assert chk.new_categories == ["Displays and Projectors", "Desktops"]
+    assert chk.ok[0]["brand"] == "ACME" and chk.ok[0]["price"] == 1149.0
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("Currently In Stock", True),
+        ("", True),
+        ("In Stock", True),
+        ("12", True),
+        ("Currently No Stock", False),
+        ("Out of stock", False),
+        ("0", False),
+        ("Discontinued", False),
+    ],
+)
+def test_stock_words(value, expected):
+    assert localstores.in_stock(value) is expected
+
+
+def test_the_separator_is_the_one_on_every_line():
+    # commas inside the descriptions must not beat the tabs that really separate the columns
+    text = "item\tprice\nBolts, nuts, washers\t12\nSpanner, 10mm, steel\t30\n"
+    rows, _ = localstores.parse_csv(text)
+    assert [r["name"] for r in rows] == ["Bolts, nuts, washers", "Spanner, 10mm, steel"]
