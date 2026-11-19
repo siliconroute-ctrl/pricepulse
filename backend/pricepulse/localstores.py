@@ -30,6 +30,17 @@ from .ingest import clean_barcode, ingest_items
 from .money import clean_price
 
 MAX_ROWS = 5000
+DEFAULT_MAX_ITEMS = 1000  # per store; the admin can raise it for a store, up to MAX_ROWS
+VAT_RATE = 0.15  # South Africa
+
+
+STORE_TYPES = ["", "Supermarket", "Butchery", "Stationery", "IT & Electronics", "Other"]
+
+
+class ImportTooBig(ValueError):
+    """The file has more usable items than this store may list."""
+
+
 MAX_PRICE = 100_000.0
 MIN_PRICE = 0.5
 
@@ -62,15 +73,19 @@ HEADS = {
         "inc vat",
         "price r",
         "selling",
-        "price excl vat",
-        "priceexclvat",
+        "sales unit price",
+        "unit price",
+        "rate",
     ],
+    # A price column that EXCLUDES VAT. Used only when there is no other price column; the prices
+    # are then raised by VAT (shoppers pay VAT-inclusive prices).
+    "price_ex": ["price excl vat", "priceexclvat", "price ex vat", "excl vat", "ex vat"],
     "promo": ["promo price", "promo", "special price", "special", "sale price", "was price"],
     "size": ["size", "pack size", "pack", "unit size", "weight", "volume"],
     "barcode": ["barcode", "ean", "upc", "gtin", "bar code"],
     "sku": ["sku", "item code", "product code", "stock code", "code", "plu", "part number", "product"],
     "department": ["department", "dept", "section", "aisle", "subcategory", "sub category", "sub-category"],
-    "category": ["category", "type", "class", "main category"],
+    "category": ["category", "type", "class", "main category", "item group", "group"],
     "brand": ["brand", "manufacturer", "make"],
     "image": [
         "image url",
@@ -83,7 +98,18 @@ HEADS = {
         "photo",
         "product image",
     ],
-    "stock": ["stock level", "stocklevel", "stock status", "in stock", "availability", "stock", "on hand"],
+    "stock": [
+        "stock level",
+        "stocklevel",
+        "stock status",
+        "in stock",
+        "availability",
+        "stock",
+        "on hand",
+        "stock on hand",
+        "quantity on hand",
+        "qty on hand",
+    ],
 }
 FIELDS = set(HEADS)
 LABEL = {"name": "item name", "price": "price"}
@@ -130,6 +156,11 @@ def parse_csv(text: str) -> tuple[list[dict], list[str]]:
             if hit is not None:
                 cols[field_name] = hit
                 break
+    ex_vat = False
+    if "price" not in cols and "price_ex" in cols:  # only a price excluding VAT: use it, and add VAT later
+        cols["price"] = cols.pop("price_ex")
+        ex_vat = True
+    cols.pop("price_ex", None)
     body = table[1:]
     problems = []
     for need in ("name", "price"):
@@ -140,6 +171,8 @@ def parse_csv(text: str) -> tuple[list[dict], list[str]]:
     rows = []
     for r in body:
         row = {k: (r[i].strip() if i < len(r) else "") for k, i in cols.items()}
+        if ex_vat:
+            row["ex_vat"] = "1"
         if any(row.values()):
             rows.append(row)
     if len(rows) > MAX_ROWS:
@@ -262,6 +295,7 @@ def check_rows(rows: list[dict]) -> CleanRows:
                 "brand": re.sub(r"\s+", " ", raw.get("brand", "")).strip()[:80],
                 "category": category,
                 "image_url": image,
+                "ex_vat": bool(raw.get("ex_vat")),
                 "ident": key,
             }
         )
@@ -282,6 +316,8 @@ class ImportReport:
     new_categories: list[str] = field(default_factory=list)
     pictures: int = 0
     bad_pictures: int = 0
+    vat_added: int = 0  # prices that were raised by VAT because the file's prices exclude it
+    max_items: int = 0
 
     def as_dict(self) -> dict:
         return {
@@ -295,6 +331,8 @@ class ImportReport:
             "matched_to_chains": self.matched_to_chains,
             "out_of_stock": self.out_of_stock,
             "new_categories": self.new_categories[:20],
+            "vat_added": self.vat_added,
+            "max_items": self.max_items,
             "pictures": self.pictures,
             "bad_pictures": self.bad_pictures,
             "dry_run": self.dry_run,
@@ -322,7 +360,22 @@ def import_for_store(
         raise ValueError("That store is not a local store.")
     now = now or utcnow()
     checked = check_rows(rows)
+    limit = min(store.max_items or DEFAULT_MAX_ITEMS, MAX_ROWS)
+    if len(checked.ok) > limit:
+        raise ImportTooBig(
+            f"This store may list up to {limit:,} items and the file has {len(checked.ok):,}. "
+            "Please send the best sellers only, or ask us to raise the limit for this store."
+        )
+    vat_added = 0
+    for r in checked.ok:  # shoppers pay VAT-inclusive prices: add VAT where the file leaves it out
+        if r.get("ex_vat") or not store.prices_incl_vat:
+            r["price"] = round(r["price"] * (1 + VAT_RATE), 2)
+            if r.get("promo_price"):
+                r["promo_price"] = round(r["promo_price"] * (1 + VAT_RATE), 2)
+            vat_added += 1
     rep = ImportReport(
+        vat_added=vat_added,
+        max_items=limit,
         rows=len(rows),
         invalid=checked.invalid,
         duplicates=checked.duplicates,

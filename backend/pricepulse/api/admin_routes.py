@@ -48,6 +48,9 @@ class LocalStoreIn(BaseModel):
     email: str = Field(default="", max_length=120)
     notes: str = Field(default="", max_length=300)
     active: bool = True
+    store_type: str = Field(default="", max_length=30)
+    max_items: int = Field(default=localstores.DEFAULT_MAX_ITEMS, ge=10, le=localstores.MAX_ROWS)
+    prices_incl_vat: bool = True
 
 
 class StoreImportIn(BaseModel):
@@ -338,6 +341,9 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             "email": st.email,
             "notes": st.notes,
             "active": bool(st.active),
+            "store_type": st.store_type,
+            "max_items": st.max_items,
+            "prices_incl_vat": bool(st.prices_incl_vat),
             "items": items,
             "submissions": subs,
             "last_submission": st.last_submission_at.isoformat() + "Z" if st.last_submission_at else None,
@@ -351,12 +357,18 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
     @app.get(base + "/localstores", tags=["admin"])
     def localstores_list(admin: AppUser = Depends(admin_dep), s: Session = Depends(ctx.db)):  # noqa: B008
         rows = s.scalars(select(Store).where(Store.kind == "local").order_by(Store.name)).all()
-        return {"stores": [store_row(r, s) for r in rows], "max_rows": localstores.MAX_ROWS}
+        return {
+            "stores": [store_row(r, s) for r in rows],
+            "max_rows": localstores.MAX_ROWS,
+            "store_types": [t for t in localstores.STORE_TYPES if t],
+        }
 
     def validate_store(body: LocalStoreIn, s: Session, current: Store | None = None) -> dict:
         data = {k: clean_text(v) if isinstance(v, str) else v for k, v in body.model_dump().items()}
         if body.region not in ctx.regions.regions:
             raise HTTPException(422, {"code": "bad_region", "message": "Choose one of the listed regions."})
+        if data["store_type"] not in localstores.STORE_TYPES:
+            raise HTTPException(422, {"code": "bad_type", "message": "Choose one of the listed store types."})
         if "@" in data["email"] and "." not in data["email"].split("@")[-1]:
             raise HTTPException(
                 422, {"code": "bad_email", "message": "That email address does not look right."}
@@ -411,16 +423,19 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             raise HTTPException(422, {"code": "bad_file", "message": " ".join(problems)})
         if not rows:
             raise HTTPException(422, {"code": "empty", "message": "The file has no items."})
-        report = localstores.import_for_store(
-            s,
-            st,
-            rows,
-            settings,
-            filename=body.filename,
-            replace=body.replace,
-            by=admin.uid,
-            dry_run=body.dry_run,
-        )
+        try:
+            report = localstores.import_for_store(
+                s,
+                st,
+                rows,
+                settings,
+                filename=body.filename,
+                replace=body.replace,
+                by=admin.uid,
+                dry_run=body.dry_run,
+            )
+        except localstores.ImportTooBig as exc:
+            raise HTTPException(422, {"code": "too_many_items", "message": str(exc)}) from exc
         if not body.dry_run:
             s.commit()
         return report.as_dict()

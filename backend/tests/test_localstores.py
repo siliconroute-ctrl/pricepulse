@@ -433,3 +433,76 @@ def test_pictures_reach_the_catalogue_and_the_product_card(api, app_settings):
     ]
     assert prod["image"] == "https://img.example.com/w.jpg"
     assert prod["prices"][0]["image"] == "https://img.example.com/w.jpg"
+
+
+def test_a_store_cannot_list_more_than_its_limit(db, settings):
+    st = make_store(db)
+    st.max_items = 10
+    db.flush()
+    text = "item,price\n" + "".join(f"Item number {i},{10 + i}\n" for i in range(11))
+    rows, _ = localstores.parse_csv(text)
+    with pytest.raises(localstores.ImportTooBig) as exc:
+        localstores.import_for_store(db, st, rows, settings)
+    assert "up to 10 items" in str(exc.value) and "11" in str(exc.value)
+    assert db.scalar(select(Listing.id).where(Listing.store_id == st.id)) is None  # nothing was loaded
+    ok, _ = localstores.parse_csv("item,price\n" + "".join(f"Item number {i},{10 + i}\n" for i in range(10)))
+    assert localstores.import_for_store(db, st, ok, settings).added == 10
+
+
+def test_prices_without_vat_are_raised_by_vat(db, settings):
+    st = make_store(db)
+    st.prices_incl_vat = False  # this shop's file leaves VAT out
+    db.flush()
+    rows, _ = localstores.parse_csv("item,price,promo price\nStapler,100,80\n")
+    rep = localstores.import_for_store(db, st, rows, settings)
+    assert rep.vat_added == 1
+    from pricepulse.db import Price
+
+    p = db.scalars(select(Price)).first()
+    assert (p.price_cents, p.promo_cents) == (11500, 9200)
+    # a column named "price excl vat" is read as such even when the store says its prices include VAT
+    st2 = make_store(db, name="Other Shop")
+    rows2, _ = localstores.parse_csv("item,Price Excl VAT\nPens,10\n")
+    assert rows2[0]["ex_vat"] == "1"
+    assert localstores.import_for_store(db, st2, rows2, settings).vat_added == 1
+    # an explicit selling price wins over the ex-VAT column
+    rows3, _ = localstores.parse_csv("item,price,price excl vat\nPens,11.50,10\n")
+    assert "ex_vat" not in rows3[0] and rows3[0]["price"] == "11.50"
+
+
+def test_accounting_export_headers_are_understood():
+    rows, problems = localstores.parse_csv(
+        "Item Code,Item Name,Rate,Stock On Hand,Item Group\nA1,Pens blue box,45.00,12,Stationery\n"
+    )
+    assert not problems
+    r = rows[0]
+    assert (r["sku"], r["name"], r["price"], r["stock"], r["category"]) == (
+        "A1",
+        "Pens blue box",
+        "45.00",
+        "12",
+        "Stationery",
+    )
+
+
+def test_store_settings_through_the_admin_api(api, app_settings):
+    h = auth("boss")
+    bad = api.post("/api/v1/admin/localstores", json={**STORE, "store_type": "Spaceship"}, headers=h)
+    assert bad.status_code == 422 and bad.json()["detail"]["code"] == "bad_type"
+    low = api.post("/api/v1/admin/localstores", json={**STORE, "max_items": 5}, headers=h)
+    assert low.status_code == 422
+    made = api.post(
+        "/api/v1/admin/localstores",
+        json={**STORE, "store_type": "Butchery", "max_items": 20, "prices_incl_vat": False},
+        headers=h,
+    ).json()
+    assert (made["store_type"], made["max_items"], made["prices_incl_vat"]) == ("Butchery", 20, False)
+    big = "item,price\n" + "".join(f"Biltong cut {i},{20 + i}\n" for i in range(21))
+    over = api.post(f"/api/v1/admin/localstores/{made['id']}/import", json={"csv": big}, headers=h)
+    assert over.status_code == 422 and over.json()["detail"]["code"] == "too_many_items"
+    prev = api.post(
+        f"/api/v1/admin/localstores/{made['id']}/import",
+        json={"csv": "item,price\nBoerewors,100\n", "dry_run": True},
+        headers=h,
+    ).json()
+    assert prev["vat_added"] == 1 and prev["max_items"] == 20

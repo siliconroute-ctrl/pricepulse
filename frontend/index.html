@@ -328,7 +328,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 19;
+var APP_VERSION = 20;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -1245,6 +1245,7 @@ function esDoImport(btn,dlg){
     say("Import finished: "+r.added+" added.");admLoad();
   }).catch(function(e){dlg.close();ask("Could not import",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
 }
+var LS_TYPES=["","Supermarket","Butchery","Stationery","IT & Electronics","Other"];
 var LS_TEMPLATE="item,price,size,barcode,sku,department,category,promo price\r\nClover Full Cream Milk,34.50,2L,,MILK2,Dairy,Groceries,\r\nBoerewors,89.90,1kg,,BW1,Butchery,Fresh,79.90\r\nBrown Bread,16.00,700g,6001234567890,BR7,Bakery,Groceries,\r\n";
 function lsStore(id){var d=ADM.data.localstores;return d&&d.stores.filter(function(x){return String(x.id)===String(id)})[0]}
 function lsForm(st){
@@ -1254,12 +1255,15 @@ function lsForm(st){
     '<label class="field"><span>Region (their shoppers see this store)</span><select id="lsregion">'+opts+'</select></label>'+f("lstown","Town or suburb",r.town,60)+
     f("lsaddr","Address",r.address,160,"wide")+f("lscontact","Contact person",r.contact_name,80)+f("lsphone","Phone",r.phone,30)+f("lsemail","Email",r.email,120,"wide")+
     f("lsnotes","Notes (only you see these)",r.notes,300,"wide")+
+    '<label class="field"><span>Type of store</span><select id="lstype">'+LS_TYPES.map(function(t){return '<option value="'+esc(t)+'"'+(t===(r.store_type||"")?' selected':'')+'>'+esc(t||"(not set)")+'</option>'}).join("")+'</select></label>'+
+    '<label class="field"><span>Most items this store may list (10 to 5000)</span><input id="lsmax" type="number" min="10" max="5000" value="'+esc(String(r.max_items||1000))+'"></label>'+
+    '<label class="check wide" style="grid-column:1/-1"><input type="checkbox" id="lsvat"'+(r.prices_incl_vat===false?'':' checked')+'><span>Prices in this store\u2019s files already include VAT (untick if they leave VAT out: we add 15%)</span></label>'+
     (st?'<label class="check wide" style="grid-column:1/-1"><input type="checkbox" id="lsactive"'+(r.active?' checked':'')+'><span>Store is active (shoppers can see its items)</span></label>':'')+
     '</div><p class="err" id="lserr" role="alert"></p>',[["Save","lssave:"+(st?st.id:"new"),"btn"],["Cancel","","btn alt"]]);
 }
 function lsSave(b,dlg,id){
   var v=function(x){return (document.getElementById(x)||{}).value||""};
-  var body={name:v("lsname"),region:v("lsregion"),town:v("lstown"),address:v("lsaddr"),contact_name:v("lscontact"),phone:v("lsphone"),email:v("lsemail"),notes:v("lsnotes"),active:id==="new"?true:!!(document.getElementById("lsactive")||{}).checked};
+  var body={name:v("lsname"),region:v("lsregion"),town:v("lstown"),address:v("lsaddr"),contact_name:v("lscontact"),phone:v("lsphone"),email:v("lsemail"),notes:v("lsnotes"),store_type:v("lstype"),max_items:parseInt(v("lsmax"),10)||1000,prices_incl_vat:!!(document.getElementById("lsvat")||{}).checked,active:id==="new"?true:!!(document.getElementById("lsactive")||{}).checked};
   b.disabled=true;
   return api("POST","/admin/localstores"+(id==="new"?"":"/"+id),body).then(function(){dlg.close();say("Store saved.");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lserr");if(el)el.textContent=e.message});
 }
@@ -1276,6 +1280,8 @@ function lsFileChosen(input){
     ask("Load this file for "+(st?st.name:"the store")+"?",'<p><b>'+r.rows+' rows</b> in <b>'+esc(file.name)+'</b>:</p><ul class="steps"><li><b>'+r.added+'</b> new items</li><li><b>'+r.updated+'</b> items already known (price refreshed)</li>'+
       '<li><b>'+r.matched_to_chains+'</b> items also sold by a big chain (one card, prices side by side)</li>'+(r.duplicates?'<li>'+r.duplicates+' repeated lines ignored</li>':'')+
       (r.out_of_stock?'<li><b>'+r.out_of_stock+'</b> items are marked out of stock and are left out</li>':'')+
+      (r.vat_added?'<li><b>'+r.vat_added+'</b> prices have VAT added (15%) because this file leaves it out</li>':'')+
+      '<li>This store may list up to <b>'+r.max_items+'</b> items</li>'+
       (r.pictures||r.bad_pictures?'<li><b>'+r.pictures+'</b> picture links found'+(r.bad_pictures?', <b>'+r.bad_pictures+'</b> not usable (must start with https://; those items load without a picture)':'')+'</li>':'')+
       '<li id="lsremoved"><b>'+r.removed+'</b> of the store\u2019s current items are not in this file and will be hidden</li>'+(r.invalid_count?'<li><b>'+r.invalid_count+' rows skipped</b> because of problems:</li>':'')+'</ul>'+(bad?'<ul class="steps">'+bad+'</ul>':'')+
       (r.new_categories&&r.new_categories.length?'<p class="sub">Categories new to PricePulse (kept as the store wrote them): <b>'+r.new_categories.slice(0,6).map(esc).join(", ")+(r.new_categories.length>6?", \u2026":"")+'</b></p>':'')+
