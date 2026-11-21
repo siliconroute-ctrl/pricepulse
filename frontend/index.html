@@ -14,9 +14,9 @@
 /* Layout: phone-first app shell. Sticky red header, scrolling content, fixed bottom nav.
    Sizes are in rem so the app follows the phone's text-size setting (1rem = 17px by default). */
 :root{
-  --bg:#d3d6da; --card:#ffffff; --ink:#1d1415; --muted:#5a4d4e; --line:#d9cecd;
+  --bg:#f7f4ee; --card:#ffffff; --ink:#000000; --muted:#4a5a63; --line:#d1d7db;
   --brand:#b00d27; --brand-ink:#ffffff; --brand-text:#b00d27; --best:#08532a; --best-bg:#e1f2e6; --warn:#7a4f00; --warn-bg:#fff3d6;
-  --item:#3f3738; --chip:#ece4e3; --chip-on:#1d1415; --chip-on-ink:#ffffff; --focus:#1d1415;
+  --item:#000000; --chip:#e4e0d8; --chip-on:#000000; --chip-on-ink:#ffffff; --focus:#000000;
   --font-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
   --font-body:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
   color-scheme:light;
@@ -124,7 +124,7 @@ pre{background:var(--card);border:1px solid var(--line);border-radius:.6rem;padd
 .legend svg{flex:none}
 .back{margin-top:.8rem}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--brand);border-top:2px solid var(--brand);
-  padding:.35rem max(8px,env(safe-area-inset-right,0px)) calc(.35rem + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+  padding:.35rem max(8px,env(safe-area-inset-right,0px)) calc(.35rem + max(env(safe-area-inset-bottom,0px),16px)) max(8px,env(safe-area-inset-left,0px))}
 nav.tabs .in{max-width:40rem;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:.25rem}
 nav.tabs button{min-height:3.4rem;border:0;background:transparent;border-radius:.6rem;font-weight:650;font-size:.88rem;color:var(--brand-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
 nav.tabs button svg{width:1.5rem;height:1.5rem;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -163,9 +163,9 @@ dialog{border:0;border-radius:1rem;padding:1.1rem;max-width:min(34rem,calc(100vw
 dialog::backdrop{background:rgba(0,0,0,.6)}
 dialog h2{margin:0 0 .5rem;font-family:var(--font-display);font-size:1.55rem}
 /* Three-dot menu (top right of every screen): a stacked drop-down list on the right of the screen */
-.menubtn{flex:none;width:3rem;height:3rem;min-width:3rem;border:0;border-radius:.6rem;background:transparent;color:var(--brand-ink);display:inline-flex;align-items:center;justify-content:center}
+.menubtn{flex:none;width:3rem;height:3rem;min-width:3rem;border:0;border-radius:.6rem;background:transparent;color:var(--nav-ink,var(--brand-ink));display:inline-flex;align-items:center;justify-content:center}
 .menubtn svg{width:1.7rem;height:1.7rem;fill:currentColor}
-.menubtn[aria-expanded="true"]{background:rgba(255,255,255,.22)}
+.menubtn[aria-expanded="true"]{background:var(--nav-tint,rgba(255,255,255,.22))}
 header .row.top{flex-wrap:nowrap}
 .menupop{position:fixed;right:max(.5rem,env(safe-area-inset-right,0px));top:4rem;z-index:40;width:min(19rem,calc(100vw - 1rem));overflow-y:auto;overscroll-behavior:contain;
   background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:.7rem;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:.15rem 0}
@@ -182,7 +182,7 @@ dialog.how:not([open]){display:none}
 .how .hhead h2{margin:0;font-size:1.35rem;flex:1}
 .how .hhead button{min-height:3rem;min-width:3rem;border:0;background:transparent;color:inherit;font-size:1.05rem;font-weight:700;border-radius:.6rem}
 .how .hhead :focus-visible{outline-color:#fff}
-.how .chat{flex:1;overflow-y:auto;padding:.8rem .7rem 1rem;background:#efeae2;color:#1d1415;display:flex;flex-direction:column;gap:.5rem}
+.how .chat{flex:1;overflow-y:auto;padding:.8rem .7rem 1rem;background:#f7f4ee;color:#1d1415;display:flex;flex-direction:column;gap:.5rem}
 .how .bub{max-width:88%;padding:.55rem .8rem;border-radius:.2rem .9rem .9rem .9rem;background:#fff;box-shadow:0 1px 1px rgba(0,0,0,.15);font-size:1.03rem;line-height:1.4}
 .how .bub.me{align-self:flex-end;background:#d9fdd3;border-radius:.9rem .2rem .9rem .9rem}
 .how .bub b{font-weight:700}
@@ -271,25 +271,26 @@ body.adm-wide nav.tabs .in{max-width:80rem}
 .li .tupick{margin-left:auto}
 
 /* ---- New look (v21): navy bars, bright white product tiles, round category circles ---- */
-:root{--bg:#eef1f5;--nav:#15222e;--nav-ink:#ffffff;--nav-hi:#7ee8ee;--accent:#08595e;--accent-ink:#ffffff;--save:#9f2813;--save-ink:#ffffff;--tile:#e9f1f2}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--nav:#0b141b;--nav-hi:#7ee8ee;--accent:#3cc4cc;--accent-ink:#04292b;--save:#ff9b82;--save-ink:#2b0a02;--tile:#2a3a3c}}
-:root[data-theme="dark"]{--nav:#0b141b;--nav-hi:#7ee8ee;--accent:#3cc4cc;--accent-ink:#04292b;--save:#ff9b82;--save-ink:#2b0a02;--tile:#2a3a3c}
+:root{--bg:#f7f4ee;--nav:#f7f4ee;--nav-ink:#000000;--nav-hi:#075e54;--nav-box:#ffffff;--nav-tint:rgba(7,94,84,.12);--nav-focus:#000000;--nav-line:#d1d7db;--cnt-ink:#ffffff;--accent:#075e54;--accent-ink:#ffffff;--save:#9f2813;--save-ink:#ffffff;--tile:#e9f1f2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--nav-box:rgba(255,255,255,.1);--nav-tint:rgba(255,255,255,.1);--nav-focus:#fff;--nav-line:transparent;--cnt-ink:#0b141b;--nav-ink:#fff;--nav:#0b141b;--nav-hi:#7ee8ee;--accent:#3cc4cc;--accent-ink:#04292b;--save:#ff9b82;--save-ink:#2b0a02;--tile:#2a3a3c}}
+:root[data-theme="dark"]{--nav-box:rgba(255,255,255,.1);--nav-tint:rgba(255,255,255,.1);--nav-focus:#fff;--nav-line:transparent;--cnt-ink:#0b141b;--nav-ink:#fff;--nav:#0b141b;--nav-hi:#7ee8ee;--accent:#3cc4cc;--accent-ink:#04292b;--save:#ff9b82;--save-ink:#2b0a02;--tile:#2a3a3c}
 header{background:var(--nav)}
 header .apptop{background:var(--nav);color:var(--nav-ink)}
 header .findbar{background:var(--nav);padding-bottom:.7rem}
-header .apptop :focus-visible,header .findbar :focus-visible{outline-color:#fff}
+header .apptop :focus-visible,header .findbar :focus-visible{outline-color:var(--nav-focus)}
+header{border-bottom:1px solid var(--nav-line)}
 .chip{position:relative;flex:1 1 auto;min-width:0;max-width:16rem;display:flex;align-items:center}
 .chip svg.pin{position:absolute;left:.75rem;width:1.2rem;height:1.2rem;stroke:var(--nav-hi);fill:none;stroke-width:2;pointer-events:none}
-.find-row .chip select{width:100%;max-width:none;padding-left:2.4rem;background:rgba(255,255,255,.1);color:var(--nav-ink);border:2px solid var(--nav-hi);border-radius:999px;font-weight:700;appearance:auto}
+.find-row .chip select{width:100%;max-width:none;padding-left:2.4rem;background:var(--nav-box);color:var(--nav-ink);border:2px solid var(--nav-hi);border-radius:999px;font-weight:700;appearance:auto}
 .find-row .chip select option{color:#1d1415;background:#fff}
-.locbtn{background:rgba(255,255,255,.1);color:var(--nav-hi);border:2px solid var(--nav-hi);border-radius:999px}
+.locbtn{background:var(--nav-box);color:var(--nav-hi);border:2px solid var(--nav-hi);border-radius:999px}
 .search input{border:2px solid #fff;border-radius:999px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2315222e' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l5 5'/%3E%3C/svg%3E") no-repeat .8rem center/1.35rem;padding-left:2.7rem;color:#1d1415}
 .search input::placeholder{color:#4a5560;opacity:1}
-nav.tabs{background:var(--nav);border-top:0;box-shadow:0 -2px 10px rgba(0,0,0,.18)}
+nav.tabs{background:var(--nav);border-top:1px solid var(--nav-line);box-shadow:none}
 nav.tabs button{color:var(--nav-ink)}
-nav.tabs button[aria-current="page"]{color:var(--nav-hi);background:rgba(255,255,255,.1);box-shadow:inset 0 3px 0 var(--nav-hi)}
-nav.tabs :focus-visible{outline-color:#fff}
-nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
+nav.tabs button[aria-current="page"]{color:var(--nav-hi);background:var(--nav-tint);box-shadow:inset 0 3px 0 var(--nav-hi)}
+nav.tabs :focus-visible{outline-color:var(--nav-focus)}
+nav.tabs .cnt{background:var(--nav-hi);color:var(--cnt-ink)}
 .cats{gap:.5rem;padding:.4rem 0 .5rem}
 .cat{min-width:4.3rem}
 .cat .lbl{max-width:5.4rem}
@@ -487,7 +488,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 31;
+var APP_VERSION = 35;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
