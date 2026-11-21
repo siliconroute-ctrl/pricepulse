@@ -23,5 +23,5 @@ window.PP_PROMO = {
   title: "Compare Prices Before You Shop",
   bullets: ["Find the best prices", "Check local stores", "Discover specials"],
   image: "promo-bag.webp",
-  heightVw: 29.4   // panel height as a share of the screen width: 2 cm on a phone whose screen is 6.8 cm wide (2 / 6.8)
+  heightPct: 25   // panel height as a percent of the page (screen) height; the panel sits right above the footer
 };

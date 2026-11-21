@@ -421,6 +421,13 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
 .promo h2{margin:0;font-family:var(--font-body);font-size:1rem;line-height:1.25;font-weight:700}
 .promo ul{display:none}
 .promo img{height:100%}
+
+/* ---- v31: the photo panel sits at the bottom of the front page, touching the footer, 25% of the page tall ---- */
+body.front{padding-bottom:var(--nav-h,4.4rem)}
+body.front main{display:flex;flex-direction:column;min-height:calc(100vh - var(--hdr-h,194px) - var(--nav-h,70px));min-height:calc(100dvh - var(--hdr-h,194px) - var(--nav-h,70px))}
+body.front .promo{margin:auto -16px 0;border-radius:0;height:25vh;height:var(--promo-h,25dvh);min-height:6rem;max-height:none;flex:none}
+body.front .promo .ptxt{padding:.6rem .8rem .6rem 1rem}
+body.front .promo h2{font-size:1.2rem}
 </style>
 </head>
 <body class="plainhead">
@@ -480,7 +487,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 30;
+var APP_VERSION = 31;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -798,7 +805,7 @@ function frontTiles(){
 }
 function promoPanel(){
   var P=window.PP_PROMO;if(!P||!P.title)return "";
-  var st=P.heightVw?' style="--promo-h:'+Number(P.heightVw)+'vw"':"";
+  var st=P.heightPct?' style="--promo-h:'+Number(P.heightPct)+'dvh"':"";
   var inner='<div class="ptxt"><h2>'+esc(P.title)+'</h2></div>'+
     (P.image?'<img src="'+esc(P.image)+'" alt="" loading="lazy" decoding="async">':'');
   if(P.href&&String(P.href).indexOf("https://")===0)return '<a class="promo"'+st+' href="'+esc(P.href)+'" target="_blank" rel="noopener sponsored noreferrer" aria-label="'+esc(P.label||P.title)+' (opens a new tab)">'+inner+'</a>';
@@ -1240,7 +1247,7 @@ document.getElementById("menupop").addEventListener("click",function(e){
   if(e.target.closest("a.mi"))menuShow(false);   /* links just open */
 });
 document.addEventListener("click",function(){if(menuOpen())menuShow(false)});
-window.addEventListener("resize",function(){if(menuOpen())menuShow(false)});
+window.addEventListener("resize",function(){if(menuOpen())menuShow(false);fitFront()});
 document.addEventListener("keydown",function(e){
   if(!menuOpen())return;
   if(e.key==="Escape"){menuShow(false);document.getElementById("menubtn").focus();return}
@@ -1551,8 +1558,15 @@ function renderMain(){
   m.innerHTML=h;
   document.body.classList.toggle("front",state.phase==="app"&&state.view==="find"&&!(state.q.trim()||state.cat!=="All"||state.flt));
 }
+/* The front screen fills the space between the header and the footer; the photo panel sits at the bottom, touching the footer.
+   The header and footer heights are measured and kept in CSS variables. */
+function fitFront(){
+  var h=document.querySelector("header"),n=document.querySelector("nav.tabs"),r=document.documentElement.style;
+  if(h)r.setProperty("--hdr-h",Math.round(h.getBoundingClientRect().height)+"px");
+  if(n&&getComputedStyle(n).display!=="none")r.setProperty("--nav-h",Math.round(n.getBoundingClientRect().height)+"px");
+}
 function render(){
-  applyTheme();renderMain();renderHead();
+  applyTheme();renderMain();renderHead();fitFront();
   if(state.phase!=="app")return;
   renderNav();
   if(state.view==="towns")loadTowns();
