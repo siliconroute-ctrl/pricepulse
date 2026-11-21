@@ -14,7 +14,7 @@
 /* Layout: phone-first app shell. Sticky red header, scrolling content, fixed bottom nav.
    Sizes are in rem so the app follows the phone's text-size setting (1rem = 17px by default). */
 :root{
-  --bg:#efeae2; --card:#ffffff; --ink:#000000; --muted:#4a5a63; --line:#d1d7db;
+  --bg:#f7f4ee; --card:#ffffff; --ink:#000000; --muted:#4a5a63; --line:#d1d7db;
   --brand:#b00d27; --brand-ink:#ffffff; --brand-text:#b00d27; --best:#08532a; --best-bg:#e1f2e6; --warn:#7a4f00; --warn-bg:#fff3d6;
   --item:#000000; --chip:#e4e0d8; --chip-on:#000000; --chip-on-ink:#ffffff; --focus:#000000;
   --font-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
@@ -182,7 +182,7 @@ dialog.how:not([open]){display:none}
 .how .hhead h2{margin:0;font-size:1.35rem;flex:1}
 .how .hhead button{min-height:3rem;min-width:3rem;border:0;background:transparent;color:inherit;font-size:1.05rem;font-weight:700;border-radius:.6rem}
 .how .hhead :focus-visible{outline-color:#fff}
-.how .chat{flex:1;overflow-y:auto;padding:.8rem .7rem 1rem;background:#efeae2;color:#1d1415;display:flex;flex-direction:column;gap:.5rem}
+.how .chat{flex:1;overflow-y:auto;padding:.8rem .7rem 1rem;background:#f7f4ee;color:#1d1415;display:flex;flex-direction:column;gap:.5rem}
 .how .bub{max-width:88%;padding:.55rem .8rem;border-radius:.2rem .9rem .9rem .9rem;background:#fff;box-shadow:0 1px 1px rgba(0,0,0,.15);font-size:1.03rem;line-height:1.4}
 .how .bub.me{align-self:flex-end;background:#d9fdd3;border-radius:.9rem .2rem .9rem .9rem}
 .how .bub b{font-weight:700}
@@ -271,7 +271,7 @@ body.adm-wide nav.tabs .in{max-width:80rem}
 .li .tupick{margin-left:auto}
 
 /* ---- New look (v21): navy bars, bright white product tiles, round category circles ---- */
-:root{--bg:#efeae2;--nav:#efeae2;--nav-ink:#000000;--nav-hi:#075e54;--nav-box:#ffffff;--nav-tint:rgba(7,94,84,.12);--nav-focus:#000000;--nav-line:#d1d7db;--cnt-ink:#ffffff;--accent:#075e54;--accent-ink:#ffffff;--save:#9f2813;--save-ink:#ffffff;--tile:#e9f1f2}
+:root{--bg:#f7f4ee;--nav:#f7f4ee;--nav-ink:#000000;--nav-hi:#075e54;--nav-box:#ffffff;--nav-tint:rgba(7,94,84,.12);--nav-focus:#000000;--nav-line:#d1d7db;--cnt-ink:#ffffff;--accent:#075e54;--accent-ink:#ffffff;--save:#9f2813;--save-ink:#ffffff;--tile:#e9f1f2}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--nav-box:rgba(255,255,255,.1);--nav-tint:rgba(255,255,255,.1);--nav-focus:#fff;--nav-line:transparent;--cnt-ink:#0b141b;--nav-ink:#fff;--nav:#0b141b;--nav-hi:#7ee8ee;--accent:#3cc4cc;--accent-ink:#04292b;--save:#ff9b82;--save-ink:#2b0a02;--tile:#2a3a3c}}
 :root[data-theme="dark"]{--nav-box:rgba(255,255,255,.1);--nav-tint:rgba(255,255,255,.1);--nav-focus:#fff;--nav-line:transparent;--cnt-ink:#0b141b;--nav-ink:#fff;--nav:#0b141b;--nav-hi:#7ee8ee;--accent:#3cc4cc;--accent-ink:#04292b;--save:#ff9b82;--save-ink:#2b0a02;--tile:#2a3a3c}
 header{background:var(--nav)}
@@ -488,7 +488,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 34;
+var APP_VERSION = 35;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;

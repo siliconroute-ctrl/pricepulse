@@ -99,9 +99,9 @@ const look = await page.evaluate(() => {
   return { bodyBg: css(document.body, "backgroundColor"), top: css(document.querySelector(".apptop"), "backgroundColor"), nav: css(document.querySelector("nav.tabs"), "backgroundColor"),
     findbar: css(document.querySelector(".findbar"), "backgroundColor"), gap: r(document.getElementById("q")).top - r(document.getElementById("base")).bottom, circ: circ.width };
 });
-check(look.bodyBg === "rgb(239, 234, 226)", "the page has a soft WhatsApp-style light background (" + look.bodyBg + ")");
-check(look.top === "rgb(239, 234, 226)" && look.nav === "rgb(239, 234, 226)", "the title bar and the footer menu have the same soft background as the page");
-check(look.findbar === "rgb(239, 234, 226)", "the town chip and the search box sit in the same soft background");
+check(look.bodyBg === "rgb(247, 244, 238)", "the page has a soft WhatsApp-style light background (" + look.bodyBg + ")");
+check(look.top === "rgb(247, 244, 238)" && look.nav === "rgb(247, 244, 238)", "the title bar and the footer menu have the same soft background as the page");
+check(look.findbar === "rgb(247, 244, 238)", "the town chip and the search box sit in the same soft background");
 check(look.gap >= 8, "the search box has a gap under the town chip (" + Math.round(look.gap) + "px)");
 check(look.circ >= 52 && look.circ <= 60, "category circles are about 56px (" + Math.round(look.circ) + "px)");
 check((await page.$eval("#q", (q) => q.getBoundingClientRect().width)) >= 110, "the search box is still wide enough to type in");
