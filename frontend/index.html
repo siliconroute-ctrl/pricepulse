@@ -268,7 +268,6 @@ body.adm-wide nav.tabs .in{max-width:80rem}
 :root[data-theme="dark"] .fronttile{color:var(--nav-hi);border-color:var(--nav-hi)}
 .homenum{font-family:var(--font-display);font-size:3.4rem;line-height:1;margin:0;font-weight:700;color:var(--brand-text);font-variant-numeric:tabular-nums}
 .homelabel{font-size:1.2rem;font-weight:650;margin:.25rem 0 0}
-.homehint{margin:.8rem 0 0;color:var(--ink)}
 .cardfoot{display:flex;justify-content:flex-end;margin-top:.5rem}
 .tupick{display:inline-flex;align-items:center;gap:.4rem;min-height:3rem;padding:.2rem .7rem .2rem .3rem;border-radius:.7rem;border:2px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;font-size:.95rem}
 .tupick svg{width:2.2rem;height:2.2rem;border-radius:.5rem;flex:none}
@@ -383,10 +382,10 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
 .cats8 .cat{font-weight:600}
 .prow.nopic{grid-template-columns:minmax(0,1fr)}
 .prow.small.nopic{grid-template-columns:minmax(0,1fr) auto}
-.homehead{font-size:.93rem;line-height:1.25}
+.homehead{font-size:.93rem;line-height:1.25;text-align:center}
+.homecard{padding:.7rem .8rem}
 .homehead .hl{display:inline}
 .homecard{padding:.6rem .8rem;margin-top:.5rem}
-.homecard .homehint{margin:.3rem 0 0;font-size:1rem}
 .fronttiles{margin:.5rem 0 0}
 .sect{margin:.6rem 0 0}
 
@@ -483,7 +482,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 26;
+var APP_VERSION = 27;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -791,8 +790,7 @@ function pruneToList(){
 function priceUnit(p,row){return row.unit||null}
 function bigNum(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g," ")}
 function homeCard(){
-  return '<section class="card homecard" aria-labelledby="homehead"><h2 class="homehead" id="homehead"><span class="hl">Local shops.</span> <span class="hl">Big-chain prices.</span> <span class="hl">One search.</span></h2>'+
-    '<p class="homehint">Type what you need and see who has it, and for how much, in '+esc(regionName(state.region))+'.</p></section>';
+  return '<section class="card homecard" aria-labelledby="homehead"><h2 class="homehead" id="homehead"><span class="hl">Local shops.</span> <span class="hl">Big-chain prices.</span> <span class="hl">One search.</span></h2></section>';
 }
 var FT_ICONS={
   all:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.500l1.500-5h15l1.500 5"/><path d="M4 9.500v10h16v-10"/><path d="M9.500 19.500v-5h5v5"/></svg>',

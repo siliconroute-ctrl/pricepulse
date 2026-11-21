@@ -108,7 +108,7 @@ check((await page.$eval("#q", (q) => q.getBoundingClientRect().width)) >= 110, "
 // Front screen: message, three shortcut buttons, SHOP BY CATEGORY, notice and the promo panel. No products.
 await page.waitForSelector(".homecard");
 const homeText = await page.textContent(".homecard");
-check(/Local shops\. Big-chain prices\. One search\./.test(homeText) && /in Paarl/.test(homeText), "the front message says local shops, big-chain prices, one search, and names the town");
+check(homeText.replace(/\s+/g, " ").trim() === "Local shops. Big-chain prices. One search." && (await page.locator(".homecard p").count()) === 0 && !/Type what you need/.test(await page.textContent("#main")), "the message bar shows only: Local shops. Big-chain prices. One search.");
 check(!/products with prices loaded|\d+ products/.test(await page.textContent("#main")), "the front screen does not show a product count");
 check((await page.locator("#main article.card").count()) === 0 && (await page.locator("#main .hscroll").count()) === 0 && (await page.locator("#main .pimg").count()) === 0, "the first screen displays no products");
 check(/^Search for a product/.test((await page.getAttribute("#q", "placeholder")) || ""), "the search box invites a search without a count");
