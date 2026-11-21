@@ -14,9 +14,9 @@
 /* Layout: phone-first app shell. Sticky red header, scrolling content, fixed bottom nav.
    Sizes are in rem so the app follows the phone's text-size setting (1rem = 17px by default). */
 :root{
-  --bg:#d3d6da; --card:#ffffff; --ink:#1d1415; --muted:#5a4d4e; --line:#d9cecd;
+  --bg:#efeae2; --card:#ffffff; --ink:#000000; --muted:#4a5a63; --line:#d1d7db;
   --brand:#b00d27; --brand-ink:#ffffff; --brand-text:#b00d27; --best:#08532a; --best-bg:#e1f2e6; --warn:#7a4f00; --warn-bg:#fff3d6;
-  --item:#3f3738; --chip:#ece4e3; --chip-on:#1d1415; --chip-on-ink:#ffffff; --focus:#1d1415;
+  --item:#000000; --chip:#e4e0d8; --chip-on:#000000; --chip-on-ink:#ffffff; --focus:#000000;
   --font-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
   --font-body:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
   color-scheme:light;
@@ -271,7 +271,7 @@ body.adm-wide nav.tabs .in{max-width:80rem}
 .li .tupick{margin-left:auto}
 
 /* ---- New look (v21): navy bars, bright white product tiles, round category circles ---- */
-:root{--bg:#eef1f5;--nav:#15222e;--nav-ink:#ffffff;--nav-hi:#7ee8ee;--accent:#08595e;--accent-ink:#ffffff;--save:#9f2813;--save-ink:#ffffff;--tile:#e9f1f2}
+:root{--bg:#efeae2;--nav:#15222e;--nav-ink:#ffffff;--nav-hi:#7ee8ee;--accent:#08595e;--accent-ink:#ffffff;--save:#9f2813;--save-ink:#ffffff;--tile:#e9f1f2}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--nav:#0b141b;--nav-hi:#7ee8ee;--accent:#3cc4cc;--accent-ink:#04292b;--save:#ff9b82;--save-ink:#2b0a02;--tile:#2a3a3c}}
 :root[data-theme="dark"]{--nav:#0b141b;--nav-hi:#7ee8ee;--accent:#3cc4cc;--accent-ink:#04292b;--save:#ff9b82;--save-ink:#2b0a02;--tile:#2a3a3c}
 header{background:var(--nav)}
@@ -487,7 +487,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 31;
+var APP_VERSION = 32;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;

@@ -99,7 +99,7 @@ const look = await page.evaluate(() => {
   return { bodyBg: css(document.body, "backgroundColor"), top: css(document.querySelector(".apptop"), "backgroundColor"), nav: css(document.querySelector("nav.tabs"), "backgroundColor"),
     findbar: css(document.querySelector(".findbar"), "backgroundColor"), gap: r(document.getElementById("q")).top - r(document.getElementById("base")).bottom, circ: circ.width };
 });
-check(look.bodyBg === "rgb(238, 241, 245)", "the page is a light cool grey so white cards stand out (" + look.bodyBg + ")");
+check(look.bodyBg === "rgb(239, 234, 226)", "the page has a soft WhatsApp-style light background (" + look.bodyBg + ")");
 check(look.top === "rgb(21, 34, 46)" && look.nav === "rgb(21, 34, 46)", "the title bar and the footer menu are dark navy");
 check(look.findbar === "rgb(21, 34, 46)", "the town chip and the search box sit in the navy bar");
 check(look.gap >= 8, "the search box has a gap under the town chip (" + Math.round(look.gap) + "px)");
@@ -280,7 +280,7 @@ await shot(page, "3-find");
 await page.locator(".grid button.lookup").first().click();
 const cardEl = page.locator("article.card:has(.best)").first();
 await cardEl.waitFor();
-check((await cardEl.locator("h3").evaluate((h) => getComputedStyle(h).color)) === "rgb(63, 55, 56)", "item names are 15% lighter than before (rgb 63,55,56)");
+check((await cardEl.locator("h3").evaluate((h) => getComputedStyle(h).color)) === "rgb(0, 0, 0)", "item names are crisp black");
 check((await cardEl.locator(".sbtn").count()) >= 2 && /Best price/.test(await cardEl.textContent()) && /Next:/.test(await cardEl.textContent()), "looked-up milk shows the best store and the next store as two store buttons on the row");
 const sb = await cardEl.locator(".sbtn").evaluateAll((els) => els.map((e) => ({ h: Math.round(e.getBoundingClientRect().height), a: e.tagName === "A", blank: e.getAttribute("target") === "_blank", safe: /noopener/.test(e.getAttribute("rel") || ""), label: e.getAttribute("aria-label") || "" })));
 check(sb.every((x) => x.h >= 48), "the store buttons are at least 48px tall (" + sb.map((x) => x.h).join(", ") + ")");
