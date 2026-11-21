@@ -184,6 +184,22 @@ await page.locator(".grid button.lookup").first().waitFor();
 check(true, "choosing a category lists its products");
 await page.locator('button.cat[data-cat="All"]').click();
 await page.waitForSelector(".homecard");
+// The Find tab and the title go to the clean front screen from a results list, a category and a filter.
+await page.fill("#q", "milk");
+await page.locator(".grid button.lookup").first().waitFor();
+await page.locator('nav.tabs button[data-view="find"]').click();
+await page.waitForSelector(".homecard");
+check((await page.inputValue("#q")) === "" && (await page.locator("#main .grid article.card").count()) === 0, "the Find tab returns from a search to the clean front screen");
+await page.locator('button.cat[data-cat="Groceries"]').click();
+await page.locator(".grid button.lookup").first().waitFor();
+await page.locator("a.homelink").click();
+await page.waitForSelector(".homecard");
+check((await page.locator('.cats8 .cat[aria-pressed="true"][data-cat="All"]').count()) === 1, "the PricePulse title returns from a category to the front screen with All selected");
+await page.locator('button[data-kind="special"]').click();
+await page.waitForSelector('[data-act="clearflt"]');
+await page.locator('nav.tabs button[data-view="find"]').click();
+await page.waitForSelector(".homecard");
+check((await page.locator('[data-act="clearflt"]').count()) === 0, "the Find tab also clears the Specials list");
 
 // Three-dot menu once signed in: every section, sharing and the version check.
 await page.click("#menubtn");
