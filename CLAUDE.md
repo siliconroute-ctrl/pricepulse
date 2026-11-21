@@ -82,6 +82,8 @@ _Last updated 2026-11-14. Claude: rewrite this section at the end of every work 
 
 **Message bar (21 Nov 2026, app version 27, branch `claude/message-bar`, built on top of the unmerged `claude/homepage-refresh` branch (v26), not merged or deployed; no database change):** owner asked for the message bar to show only **"Local shops. Big-chain prices. One search."** without the "Type what you need ... in {town}" line. Done: the second line and its CSS are gone, the headline is centred in a one-line bar (the town still shows in the header town chip). Browser test checks the bar holds exactly that sentence and no second paragraph. 445 server tests.
 
+**Pricing notice (21 Nov 2026, app version 28, branch `claude/notice-bar`, built on top of the unmerged `claude/message-bar` (v27) and `claude/homepage-refresh` (v26) branches, not merged or deployed; no database change):** owner asked for the front-screen pricing notice to read only **"Prices may differ in store."** (the words "Always check at the till." are removed from the front screen only; the full disclaimer is unchanged on other screens and in the Terms) and for the bar to be shorter: it is now one slim line (41px tall, was about 70px at 360 wide) with its info icon. Browser test checks the exact words and a height of 44px or less. 445 server tests.
+
 **Waiting on the owner**
 - Port 80 check; a Contabo snapshot of the working app; try Google sign-in and Delete my data.
 - PayFast sandbox account and test, then a live merchant account with subscriptions enabled (docs/PAYMENTS.md).

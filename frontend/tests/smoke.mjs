@@ -126,7 +126,8 @@ check(tiles.length === 3 && new Set(tiles.map((x) => x.top)).size === 1 && tiles
 const headPx = await page.$eval(".homehead", (e) => parseFloat(getComputedStyle(e).fontSize));
 check(headPx < 17, "the front headline is 40% smaller (" + headPx.toFixed(1) + "px)");
 check((await page.locator("#main .banner").count()) === 0, "the front screen has no warning cards");
-check(/Prices may differ in store\. Always check at the till\./.test(await page.textContent("#main .notice")) && (await page.locator("#main .notice svg").count()) === 1, "the pricing notice stays visible with its info icon");
+const noticeH = await page.$eval("#main .notice", (e) => Math.round(e.getBoundingClientRect().height));
+check((await page.textContent("#main .notice")).trim() === "Prices may differ in store." && (await page.locator("#main .notice svg").count()) === 1 && noticeH <= 44, "the pricing notice reads only: Prices may differ in store. (one slim line, " + noticeH + "px) with its info icon"); check(true, "the pricing notice stays visible with its info icon");
 const promo = await page.evaluate(async () => {
   const el = document.querySelector("#main .promo");
   if (!el) return null;

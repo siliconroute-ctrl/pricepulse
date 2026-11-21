@@ -413,8 +413,8 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
 .fronttile .ft-ic svg{width:1.3rem;height:1.3rem}
 .logo{width:1.6rem;height:1.6rem;stroke:var(--nav-hi);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-right:.4rem;flex:none}
 .homelink{gap:0}
-.disclaimer.notice{display:flex;align-items:center;gap:.5rem;border-left:4px solid var(--accent);margin:.5rem 0 0}
-.notice .ni svg{width:1.4rem;height:1.4rem;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;display:block}
+.disclaimer.notice{display:flex;align-items:center;gap:.5rem;border-left:4px solid var(--accent);margin:.4rem 0 0;padding:.15rem .7rem;min-height:2.4rem;line-height:1.2}
+.notice .ni svg{width:1.2rem;height:1.2rem;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;display:block}
 :root[data-theme="dark"] .notice .ni svg{stroke:var(--nav-hi)}
 .promo{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);background:linear-gradient(100deg,#0f3d33,#1f6b4a);color:#fff;border-radius:1rem;overflow:hidden;margin:.7rem 0 .2rem;text-decoration:none;min-height:9.5rem}
 .promo .ptxt{padding:.8rem .8rem .8rem 1rem}
@@ -482,7 +482,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 27;
+var APP_VERSION = 28;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -814,7 +814,7 @@ function viewFind(){
   var typing=!!state.q.trim()||state.cat!=="All"||!!state.flt;
   var h=banners(!typing);
   if(!typing){
-    return h+homeCard()+frontTiles()+'<div class="sect"><h2>Shop by category</h2></div>'+catCircles(cats)+pickBar()+'<p class="disclaimer notice"><span class="ni">'+INFO_ICON+'</span>Prices may differ in store. Always check at the till.</p>'+promoPanel();
+    return h+homeCard()+frontTiles()+'<div class="sect"><h2>Shop by category</h2></div>'+catCircles(cats)+pickBar()+'<p class="disclaimer notice"><span class="ni">'+INFO_ICON+'</span>Prices may differ in store.</p>'+promoPanel();
   }
   h+=catCircles(cats)+pickBar();
   if(state.flt)h+='<div class="banner"><b>'+(state.flt==="special"?"Showing only specials":state.flt==="local"?"Showing only items from local stores":"Showing all stores")+'.</b> <button class="linkbtn" type="button" data-act="clearflt">Show everything</button></div>';
