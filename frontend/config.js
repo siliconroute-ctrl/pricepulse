@@ -22,5 +22,6 @@ window.PRICEPULSE_CONFIG = {
 window.PP_PROMO = {
   title: "Compare Prices Before You Shop",
   bullets: ["Find the best prices", "Check local stores", "Discover specials"],
-  image: "promo-bag.webp"
+  image: "promo-bag.webp",
+  heightPct: 25   // panel height as a percent of the page (screen) height; the panel sits right above the footer
 };
