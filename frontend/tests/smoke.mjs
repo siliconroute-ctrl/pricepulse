@@ -106,9 +106,8 @@ check(look.gap >= 8, "the search box has a gap under the town chip (" + Math.rou
 check(look.circ >= 52 && look.circ <= 60, "category circles are about 56px (" + Math.round(look.circ) + "px)");
 check((await page.$eval("#q", (q) => q.getBoundingClientRect().width)) >= 110, "the search box is still wide enough to type in");
 // Front screen: message, three shortcut buttons, SHOP BY CATEGORY, notice and the promo panel. No products.
-await page.waitForSelector(".homecard");
-const homeText = await page.textContent(".homecard");
-check(homeText.replace(/\s+/g, " ").trim() === "Local shops. Big-chain prices. One search." && (await page.locator(".homecard p").count()) === 0 && !/Type what you need/.test(await page.textContent("#main")), "the message bar shows only: Local shops. Big-chain prices. One search.");
+await page.waitForSelector(".fronttiles");
+check((await page.locator(".homecard, .homehead").count()) === 0 && !/Local shops\. Big-chain prices|Type what you need/.test(await page.textContent("#main")), "there is no message bar on the front screen");
 check(!/products with prices loaded|\d+ products/.test(await page.textContent("#main")), "the front screen does not show a product count");
 check((await page.locator("#main article.card").count()) === 0 && (await page.locator("#main .hscroll").count()) === 0 && (await page.locator("#main .pimg").count()) === 0, "the first screen displays no products");
 check(/^Search for a product/.test((await page.getAttribute("#q", "placeholder")) || ""), "the search box invites a search without a count");
@@ -123,8 +122,10 @@ const circ0 = await page.$eval(".cats8 .cat .circ", (e) => Math.round(e.getBound
 check(circ0 >= 52 && circ0 <= 60, "the category circles are about 56px (" + circ0 + "px)");
 const tiles = await page.$$eval(".fronttile", (els) => els.map((e) => ({ top: Math.round(e.getBoundingClientRect().top), h: Math.round(e.getBoundingClientRect().height), t: e.textContent.trim() })));
 check(tiles.length === 3 && new Set(tiles.map((x) => x.top)).size === 1 && tiles.every((x) => x.h >= 48) && JSON.stringify(tiles.map((x) => x.t)) === JSON.stringify(["All Stores", "Local Stores", "Specials"]), "three buttons side by side in one row: " + tiles.map((x) => x.t + " " + x.h + "px").join(", "));
-const headPx = await page.$eval(".homehead", (e) => parseFloat(getComputedStyle(e).fontSize));
-check(headPx < 17, "the front headline is 40% smaller (" + headPx.toFixed(1) + "px)");
+const tb = await page.$$eval(".fronttile", (els) => els.map((e) => { const ic = e.querySelector(".ft-ic").getBoundingClientRect(), lb = e.querySelector("span:last-child"), lr = lb.getBoundingClientRect(), box = e.getBoundingClientRect(); return { iconAbove: ic.bottom <= lr.top + 1, iconTop: Math.round(ic.top - box.top), weight: getComputedStyle(lb).fontWeight, oneLine: lr.height <= parseFloat(getComputedStyle(lb).lineHeight) * 1.2, fits: lb.scrollWidth <= lb.clientWidth + 1 && e.scrollWidth <= e.clientWidth + 1 }; }));
+check(tb.length === 3 && tb.every((x) => x.iconAbove && x.iconTop <= 12 && x.weight === "400" && x.oneLine && x.fits), "each of the three buttons has the icon on top, a plain (not bold) label and the label on one line: " + JSON.stringify(tb.map((x) => [x.iconTop, x.weight, x.oneLine])));
+const promoH = await page.evaluate(() => { const e = document.querySelector("#main .promo"); return e ? { h: Math.round(e.getBoundingClientRect().height), vw: window.innerWidth } : null; });
+check(promoH && Math.abs(promoH.h - promoH.vw * 0.294) <= 3, "the photo panel is 2 cm tall on a 6.8 cm wide screen (29.4% of the width: " + (promoH ? promoH.h + "px of " + promoH.vw + "px wide" : "missing") + ")");
 check((await page.locator("#main .banner").count()) === 0, "the front screen has no warning cards");
 const noticeH = await page.$eval("#main .notice", (e) => Math.round(e.getBoundingClientRect().height));
 check((await page.textContent("#main .notice")).trim() === "Prices may differ in store." && (await page.locator("#main .notice svg").count()) === 1 && noticeH <= 44, "the pricing notice reads only: Prices may differ in store. (one slim line, " + noticeH + "px) with its info icon"); check(true, "the pricing notice stays visible with its info icon");
@@ -135,11 +136,15 @@ const promo = await page.evaluate(async () => {
   if (img && !img.complete) await new Promise((r) => { img.onload = r; img.onerror = r; setTimeout(r, 3000); });
   return { title: el.querySelector("h2").textContent.trim(), items: [...el.querySelectorAll("li")].map((l) => l.textContent.trim()), img: img ? img.naturalWidth : 0 };
 });
-check(promo && promo.title === "Compare Prices Before You Shop" && promo.items.length === 3 && promo.img > 0, "the promo panel shows its title, three points and the photo");
+check(promo && promo.title === "Compare Prices Before You Shop" && promo.items.length === 0 && promo.img > 0, "the promo panel shows its title over the photo, no tick lines");
 await shot(page, "3a-home");
 // The body scrolls; the header and the bottom tabs stay fixed.
 await page.setViewportSize({ width: 360, height: 640 });
 await page.waitForTimeout(250);
+const tiles360 = await page.$$eval(".fronttile", (els) => els.map((e) => { const lb = e.querySelector("span:last-child"); return { fits: lb.scrollWidth <= lb.clientWidth + 1 && lb.getBoundingClientRect().height < 26, w: Math.round(e.getBoundingClientRect().width) }; }));
+check(tiles360.length === 3 && tiles360.every((x) => x.fits), "on a 360px phone the three button labels still fit on one line (" + tiles360.map((x) => x.w + "px").join(", ") + " wide)");
+const promo360 = await page.$eval("#main .promo", (e) => ({ h: Math.round(e.getBoundingClientRect().height), vw: window.innerWidth }));
+check(Math.abs(promo360.h - promo360.vw * 0.294) <= 3, "the photo panel keeps 29.4% of the width on a 360px phone (" + promo360.h + "px)");
 await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 await page.waitForTimeout(250);
 const fixedRects = await page.evaluate(() => ({ head: Math.round(document.querySelector("header").getBoundingClientRect().top), nav: Math.round(document.querySelector("nav.tabs").getBoundingClientRect().bottom), win: window.innerHeight, scrolled: window.scrollY > 0, wide: document.documentElement.scrollWidth > window.innerWidth + 1 }));
@@ -153,13 +158,13 @@ await page.waitForSelector('[data-act="clearflt"]');
 await page.locator(".grid article.card").first().waitFor();
 check(/Showing only specials/.test(await page.textContent("#main")), "the Specials button opens a filtered list only when tapped");
 await page.locator('[data-act="clearflt"]').click();
-await page.waitForSelector(".homecard");
+await page.waitForSelector(".fronttiles");
 await page.locator('button[data-kind="all"]').click();
 await page.waitForSelector('[data-act="clearflt"]');
 await page.locator(".grid article.card").first().waitFor();
 check(/Showing all stores/.test(await page.textContent("#main")) && (await page.locator(".grid article.card").count()) >= 5, "All Stores lists every product (" + (await page.locator(".grid article.card").count()) + ")");
 await page.locator('[data-act="clearflt"]').click();
-await page.waitForSelector(".homecard");
+await page.waitForSelector(".fronttiles");
 check(true, "Show everything returns to the front screen");
 // Whole tile is the button: click the label text of a new category; it has no products yet, so the normal empty screen shows.
 await page.locator('.cats8 .cat[data-cat="Pets"] .lbl').click();
@@ -171,34 +176,34 @@ for (const c of ["Stationery", "Electronics"]) {
 }
 check(errors.length === 0, "the new categories open without JavaScript errors");
 await page.locator('.cats8 .cat[data-cat="All"]').click();
-await page.waitForSelector(".homecard");
+await page.waitForSelector(".fronttiles");
 check(true, "All clears the category filter");
 await page.fill("#q", "milk");
 await page.locator(".grid button.lookup").first().waitFor();
-check((await page.locator(".homecard").count()) === 0 && (await page.locator("#main .grid article.card").count()) > 0, "products appear as soon as the person types");
+check((await page.locator(".fronttiles").count()) === 0 && (await page.locator("#main .grid article.card").count()) > 0, "products appear as soon as the person types");
 await page.fill("#q", "");
-await page.waitForSelector(".homecard");
+await page.waitForSelector(".fronttiles");
 check((await page.locator("#main .grid article.card").count()) === 0, "clearing the search brings back the clean front screen");
 await page.locator('button.cat[data-cat="Groceries"]').click();
 await page.locator(".grid button.lookup").first().waitFor();
 check(true, "choosing a category lists its products");
 await page.locator('button.cat[data-cat="All"]').click();
-await page.waitForSelector(".homecard");
+await page.waitForSelector(".fronttiles");
 // The Find tab and the title go to the clean front screen from a results list, a category and a filter.
 await page.fill("#q", "milk");
 await page.locator(".grid button.lookup").first().waitFor();
 await page.locator('nav.tabs button[data-view="find"]').click();
-await page.waitForSelector(".homecard");
+await page.waitForSelector(".fronttiles");
 check((await page.inputValue("#q")) === "" && (await page.locator("#main .grid article.card").count()) === 0, "the Find tab returns from a search to the clean front screen");
 await page.locator('button.cat[data-cat="Groceries"]').click();
 await page.locator(".grid button.lookup").first().waitFor();
 await page.locator("a.homelink").click();
-await page.waitForSelector(".homecard");
+await page.waitForSelector(".fronttiles");
 check((await page.locator('.cats8 .cat[aria-pressed="true"][data-cat="All"]').count()) === 1, "the PricePulse title returns from a category to the front screen with All selected");
 await page.locator('button[data-kind="special"]').click();
 await page.waitForSelector('[data-act="clearflt"]');
 await page.locator('nav.tabs button[data-view="find"]').click();
-await page.waitForSelector(".homecard");
+await page.waitForSelector(".fronttiles");
 check((await page.locator('[data-act="clearflt"]').count()) === 0, "the Find tab also clears the Specials list");
 
 // Three-dot menu once signed in: every section, sharing and the version check.

@@ -257,17 +257,10 @@ body.adm-wide nav.tabs .in{max-width:80rem}
 .cat[aria-pressed="true"] .circ{border-color:var(--ink);background:color-mix(in srgb,var(--fc) 28%,var(--card))}
 .cat[aria-pressed="true"] .lbl{font-weight:800;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:4px}
 .cat-all{--fc:var(--f-all)}.cat-groceries{--fc:var(--f-groceries)}.cat-fresh{--fc:var(--f-fresh)}.cat-liquor{--fc:var(--f-liquor)}.cat-health{--fc:var(--f-health)}
-.homecard{text-align:center;padding:1.2rem .9rem;margin-top:.7rem}
-.homehead{font-family:var(--font-display);font-size:2.1rem;line-height:1.05;margin:0;font-weight:700;color:var(--nav)}
-:root[data-theme="dark"] .homehead{color:var(--ink)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .homehead{color:var(--ink)}}
-.homehead .hl{display:block}
 .fronttiles{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin:.7rem 0 0}
 .fronttile{min-height:3.4rem;display:flex;align-items:center;justify-content:center;gap:.5rem;border-radius:1rem;border:2px solid var(--accent);background:var(--card);color:var(--accent);font-weight:800;padding:.4rem .6rem;text-align:center}
 .fronttile .ft-ic svg{width:1.6rem;height:1.6rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 :root[data-theme="dark"] .fronttile{color:var(--nav-hi);border-color:var(--nav-hi)}
-.homenum{font-family:var(--font-display);font-size:3.4rem;line-height:1;margin:0;font-weight:700;color:var(--brand-text);font-variant-numeric:tabular-nums}
-.homelabel{font-size:1.2rem;font-weight:650;margin:.25rem 0 0}
 .cardfoot{display:flex;justify-content:flex-end;margin-top:.5rem}
 .tupick{display:inline-flex;align-items:center;gap:.4rem;min-height:3rem;padding:.2rem .7rem .2rem .3rem;border-radius:.7rem;border:2px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;font-size:.95rem}
 .tupick svg{width:2.2rem;height:2.2rem;border-radius:.5rem;flex:none}
@@ -368,7 +361,6 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
 .prow.small .cardfoot{grid-column:auto;padding:0}
 .prow.small .lookup{width:auto;min-width:6.2rem;padding:0 .8rem}
 .prow .specialtag{display:inline;margin:0}
-.homehead{font-size:1.55rem}
 .sect h2{font-size:1.12rem}
 .cat{min-width:3.6rem}
 .cat .lbl{max-width:4.6rem}
@@ -382,10 +374,6 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
 .cats8 .cat{font-weight:600}
 .prow.nopic{grid-template-columns:minmax(0,1fr)}
 .prow.small.nopic{grid-template-columns:minmax(0,1fr) auto}
-.homehead{font-size:.93rem;line-height:1.25;text-align:center}
-.homecard{padding:.7rem .8rem}
-.homehead .hl{display:inline}
-.homecard{padding:.6rem .8rem;margin-top:.5rem}
 .fronttiles{margin:.5rem 0 0}
 .sect{margin:.6rem 0 0}
 
@@ -423,6 +411,16 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
 .promo li{display:flex;gap:.4rem;align-items:flex-start;line-height:1.3;font-size:1rem}
 .promo li::before{content:"\2713";font-weight:800;color:#8cf0c2;flex:none}
 .promo img{width:100%;height:100%;object-fit:cover;object-position:left center;display:block}
+
+/* ---- v30: three buttons (icon on top, plain one-line label) and the 2 cm photo panel ---- */
+.fronttiles{margin:.6rem 0 0}
+.fronttile{justify-content:flex-start;align-items:center;gap:.15rem;padding:.4rem .15rem .35rem;min-height:3.9rem;font-weight:400;font-size:1rem;letter-spacing:-.01em;white-space:nowrap}
+.fronttile span:last-child{font-weight:400;white-space:nowrap}
+.promo{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);height:var(--promo-h,29.4vw);min-height:6rem;max-height:10rem;margin:.6rem 0 .2rem}
+.promo .ptxt{padding:.5rem .6rem .5rem .9rem;display:flex;align-items:center}
+.promo h2{margin:0;font-family:var(--font-body);font-size:1rem;line-height:1.25;font-weight:700}
+.promo ul{display:none}
+.promo img{height:100%}
 </style>
 </head>
 <body class="plainhead">
@@ -482,7 +480,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 29;
+var APP_VERSION = 30;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -789,9 +787,6 @@ function pruneToList(){
 }
 function priceUnit(p,row){return row.unit||null}
 function bigNum(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g," ")}
-function homeCard(){
-  return '<section class="card homecard" aria-labelledby="homehead"><h2 class="homehead" id="homehead"><span class="hl">Local shops.</span> <span class="hl">Big-chain prices.</span> <span class="hl">One search.</span></h2></section>';
-}
 var FT_ICONS={
   all:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.500l1.500-5h15l1.500 5"/><path d="M4 9.500v10h16v-10"/><path d="M9.500 19.500v-5h5v5"/></svg>',
   local:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.500-6-6.500-11a6.500 6.500 0 0113 0c0 5-6.500 11-6.500 11z"/><circle cx="12" cy="10" r="2.400"/></svg>',
@@ -803,10 +798,11 @@ function frontTiles(){
 }
 function promoPanel(){
   var P=window.PP_PROMO;if(!P||!P.title)return "";
-  var inner='<div class="ptxt"><h2>'+esc(P.title)+'</h2><ul>'+(P.bullets||[]).map(function(b){return '<li>'+esc(b)+'</li>'}).join("")+'</ul></div>'+
+  var st=P.heightVw?' style="--promo-h:'+Number(P.heightVw)+'vw"':"";
+  var inner='<div class="ptxt"><h2>'+esc(P.title)+'</h2></div>'+
     (P.image?'<img src="'+esc(P.image)+'" alt="" loading="lazy" decoding="async">':'');
-  if(P.href&&String(P.href).indexOf("https://")===0)return '<a class="promo" href="'+esc(P.href)+'" target="_blank" rel="noopener sponsored noreferrer" aria-label="'+esc(P.label||P.title)+' (opens a new tab)">'+inner+'</a>';
-  return '<section class="promo" aria-label="'+esc(P.title)+'">'+inner+'</section>';
+  if(P.href&&String(P.href).indexOf("https://")===0)return '<a class="promo"'+st+' href="'+esc(P.href)+'" target="_blank" rel="noopener sponsored noreferrer" aria-label="'+esc(P.label||P.title)+' (opens a new tab)">'+inner+'</a>';
+  return '<section class="promo"'+st+' aria-label="'+esc(P.title)+'">'+inner+'</section>';
 }
 const INFO_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.500M12 7.800v.2"/></svg>';
 function viewFind(){
@@ -814,7 +810,7 @@ function viewFind(){
   var typing=!!state.q.trim()||state.cat!=="All"||!!state.flt;
   var h=banners(!typing);
   if(!typing){
-    return h+homeCard()+frontTiles()+'<div class="sect"><h2>Shop by category</h2></div>'+catCircles(cats)+pickBar()+'<p class="disclaimer notice"><span class="ni">'+INFO_ICON+'</span>Prices may differ in store.</p>'+promoPanel();
+    return h+frontTiles()+'<div class="sect"><h2>Shop by category</h2></div>'+catCircles(cats)+pickBar()+'<p class="disclaimer notice"><span class="ni">'+INFO_ICON+'</span>Prices may differ in store.</p>'+promoPanel();
   }
   h+=catCircles(cats)+pickBar();
   if(state.flt)h+='<div class="banner"><b>'+(state.flt==="special"?"Showing only specials":state.flt==="local"?"Showing only items from local stores":"Showing all stores")+'.</b> <button class="linkbtn" type="button" data-act="clearflt">Show everything</button></div>';
