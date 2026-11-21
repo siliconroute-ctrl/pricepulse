@@ -16,3 +16,11 @@ window.PRICEPULSE_CONFIG = {
     appId: "1:822425894527:web:2832bcbb8e9cdb5aefc94a"
   }
 };
+
+/* The promotional panel under the categories on the home screen. It can later carry a paid advertisement:
+   add href (https only) and label to make the whole panel a link. Remove this block to hide the panel. */
+window.PP_PROMO = {
+  title: "Compare Prices Before You Shop",
+  bullets: ["Find the best prices", "Check local stores", "Discover specials"],
+  image: "promo-bag.webp"
+};

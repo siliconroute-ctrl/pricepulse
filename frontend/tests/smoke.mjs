@@ -103,47 +103,76 @@ check(look.bodyBg === "rgb(238, 241, 245)", "the page is a light cool grey so wh
 check(look.top === "rgb(21, 34, 46)" && look.nav === "rgb(21, 34, 46)", "the title bar and the footer menu are dark navy");
 check(look.findbar === "rgb(21, 34, 46)", "the town chip and the search box sit in the navy bar");
 check(look.gap >= 8, "the search box has a gap under the town chip (" + Math.round(look.gap) + "px)");
-check(look.circ >= 46 && look.circ <= 50, "category circles are compact (" + Math.round(look.circ) + "px)");
+check(look.circ >= 52 && look.circ <= 60, "category circles are about 56px (" + Math.round(look.circ) + "px)");
 check((await page.$eval("#q", (q) => q.getBoundingClientRect().width)) >= 110, "the search box is still wide enough to type in");
-// The front screen shows no products: a short message, two tap tiles, and the Aisles.
+// Front screen: message, three shortcut buttons, SHOP BY CATEGORY, notice and the promo panel. No products.
 await page.waitForSelector(".homecard");
 const homeText = await page.textContent(".homecard");
-check(/Local shops\. Big-chain prices\. One search\./.test(homeText) && /in Paarl/.test(homeText), "the front message says local shops, big-chain prices, one search, and names the town");
+check(homeText.replace(/\s+/g, " ").trim() === "Local shops. Big-chain prices. One search." && (await page.locator(".homecard p").count()) === 0 && !/Type what you need/.test(await page.textContent("#main")), "the message bar shows only: Local shops. Big-chain prices. One search.");
 check(!/products with prices loaded|\d+ products/.test(await page.textContent("#main")), "the front screen does not show a product count");
 check((await page.locator("#main article.card").count()) === 0 && (await page.locator("#main .hscroll").count()) === 0 && (await page.locator("#main .pimg").count()) === 0, "the first screen displays no products");
 check(/^Search for a product/.test((await page.getAttribute("#q", "placeholder")) || ""), "the search box invites a search without a count");
-check(/Aisles/.test(await page.textContent("#main")) && !/Quick shops/i.test(await page.textContent("#main")), "the category row is called Aisles");
-await shot(page, "3a-home");
-const fitPage = async (w, h) => {
-  await page.setViewportSize({ width: w, height: h });
-  await page.waitForTimeout(250);
-  return page.evaluate(() => {
-    // Real content height: the bottom of the last block plus the room kept for the bottom tabs.
-    const last = document.querySelector("#main .disclaimer") || document.querySelector("#main").lastElementChild;
-    const tabs = document.querySelector("nav.tabs").getBoundingClientRect().height;
-    const need = Math.round(last.getBoundingClientRect().bottom + window.scrollY + tabs + 8);
-    return { doc: need, win: window.innerHeight, wide: document.documentElement.scrollWidth > window.innerWidth + 1 };
-  });
-};
-for (const [w, h] of [[360, 780], [412, 915]]) {
-  const r = await fitPage(w, h);
-  check(r.doc <= r.win && !r.wide, "the front screen fits on one page at " + w + "x" + h + " without scrolling (" + r.doc + " of " + r.win + "px)");
-  await shot(page, "3b-home-" + w);
-}
-await page.setViewportSize({ width: 412, height: 915 });
-const rows = await page.$$eval(".cats8 .cat", (els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
-check(new Set(rows).size <= 2 && rows.filter((y) => y === rows[0]).length <= 4, "the aisles sit in at most 2 rows of 4 (" + rows.length + " icons)");
+const heading = await page.$eval("#main .sect h2", (h) => ({ text: h.textContent.trim(), tt: getComputedStyle(h).textTransform }));
+check(/^shop by category$/i.test(heading.text) && heading.tt === "uppercase" && !/Aisles|Quick shops/i.test(await page.textContent("#main")), "the category section is headed SHOP BY CATEGORY");
+const labels = await page.$$eval(".cats8 .cat .lbl", (els) => els.map((e) => e.textContent.trim()));
+check(JSON.stringify(labels) === JSON.stringify(["All", "Groceries", "Fresh", "Liquor", "Health & Beauty", "Pets", "Stationery", "Electronics"]), "eight categories in the required order: " + labels.join(", "));
+const catTops = await page.$$eval(".cats8 .cat", (els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+check(new Set(catTops).size === 2 && catTops.filter((y) => y === catTops[0]).length === 4, "the categories sit in 2 rows of 4");
+check((await page.locator(".cats8 .cat .circ svg").count()) === 8 && (await page.locator(".cats8 .cat[data-cat] .circ").count()) === 8, "every category has its own outline icon in a coloured circle");
+const circ0 = await page.$eval(".cats8 .cat .circ", (e) => Math.round(e.getBoundingClientRect().width));
+check(circ0 >= 52 && circ0 <= 60, "the category circles are about 56px (" + circ0 + "px)");
+const tiles = await page.$$eval(".fronttile", (els) => els.map((e) => ({ top: Math.round(e.getBoundingClientRect().top), h: Math.round(e.getBoundingClientRect().height), t: e.textContent.trim() })));
+check(tiles.length === 3 && new Set(tiles.map((x) => x.top)).size === 1 && tiles.every((x) => x.h >= 48) && JSON.stringify(tiles.map((x) => x.t)) === JSON.stringify(["All Stores", "Local Stores", "Specials"]), "three buttons side by side in one row: " + tiles.map((x) => x.t + " " + x.h + "px").join(", "));
 const headPx = await page.$eval(".homehead", (e) => parseFloat(getComputedStyle(e).fontSize));
 check(headPx < 17, "the front headline is 40% smaller (" + headPx.toFixed(1) + "px)");
 check((await page.locator("#main .banner").count()) === 0, "the front screen has no warning cards");
-check((await page.locator('button[data-act="viewall"]').count()) === 2, "there are two tiles: Local stores and Specials");
+const noticeH = await page.$eval("#main .notice", (e) => Math.round(e.getBoundingClientRect().height));
+check((await page.textContent("#main .notice")).trim() === "Prices may differ in store." && (await page.locator("#main .notice svg").count()) === 1 && noticeH <= 44, "the pricing notice reads only: Prices may differ in store. (one slim line, " + noticeH + "px) with its info icon"); check(true, "the pricing notice stays visible with its info icon");
+const promo = await page.evaluate(async () => {
+  const el = document.querySelector("#main .promo");
+  if (!el) return null;
+  const img = el.querySelector("img");
+  if (img && !img.complete) await new Promise((r) => { img.onload = r; img.onerror = r; setTimeout(r, 3000); });
+  return { title: el.querySelector("h2").textContent.trim(), items: [...el.querySelectorAll("li")].map((l) => l.textContent.trim()), img: img ? img.naturalWidth : 0 };
+});
+check(promo && promo.title === "Compare Prices Before You Shop" && promo.items.length === 3 && promo.img > 0, "the promo panel shows its title, three points and the photo");
+await shot(page, "3a-home");
+// The body scrolls; the header and the bottom tabs stay fixed.
+await page.setViewportSize({ width: 360, height: 640 });
+await page.waitForTimeout(250);
+await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+await page.waitForTimeout(250);
+const fixedRects = await page.evaluate(() => ({ head: Math.round(document.querySelector("header").getBoundingClientRect().top), nav: Math.round(document.querySelector("nav.tabs").getBoundingClientRect().bottom), win: window.innerHeight, scrolled: window.scrollY > 0, wide: document.documentElement.scrollWidth > window.innerWidth + 1 }));
+check(fixedRects.scrolled && fixedRects.head >= -1 && fixedRects.head <= 1 && fixedRects.nav === fixedRects.win && !fixedRects.wide, "the body scrolls while the header and the bottom tabs stay in place (header top " + fixedRects.head + ", tabs bottom " + fixedRects.nav + " of " + fixedRects.win + ")");
+await shot(page, "3b-home-scrolled");
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.setViewportSize({ width: 412, height: 915 });
+await page.waitForTimeout(200);
 await page.locator('button[data-kind="special"]').click();
 await page.waitForSelector('[data-act="clearflt"]');
 await page.locator(".grid article.card").first().waitFor();
-check(/Showing only specials/.test(await page.textContent("#main")), "the Specials tile opens a filtered list only when tapped");
+check(/Showing only specials/.test(await page.textContent("#main")), "the Specials button opens a filtered list only when tapped");
+await page.locator('[data-act="clearflt"]').click();
+await page.waitForSelector(".homecard");
+await page.locator('button[data-kind="all"]').click();
+await page.waitForSelector('[data-act="clearflt"]');
+await page.locator(".grid article.card").first().waitFor();
+check(/Showing all stores/.test(await page.textContent("#main")) && (await page.locator(".grid article.card").count()) >= 5, "All Stores lists every product (" + (await page.locator(".grid article.card").count()) + ")");
 await page.locator('[data-act="clearflt"]').click();
 await page.waitForSelector(".homecard");
 check(true, "Show everything returns to the front screen");
+// Whole tile is the button: click the label text of a new category; it has no products yet, so the normal empty screen shows.
+await page.locator('.cats8 .cat[data-cat="Pets"] .lbl').click();
+await page.waitForSelector("#main .empty");
+check(/No products match/.test(await page.textContent("#main")) && (await page.locator('.cats8 .cat[data-cat="Pets"][aria-pressed="true"]').count()) === 1, "Pets opens the normal empty screen (no products carry that category yet) and shows as selected");
+for (const c of ["Stationery", "Electronics"]) {
+  await page.locator('.cats8 .cat[data-cat="' + c + '"]').click();
+  await page.waitForSelector('.cats8 .cat[data-cat="' + c + '"][aria-pressed="true"]');
+}
+check(errors.length === 0, "the new categories open without JavaScript errors");
+await page.locator('.cats8 .cat[data-cat="All"]').click();
+await page.waitForSelector(".homecard");
+check(true, "All clears the category filter");
 await page.fill("#q", "milk");
 await page.locator(".grid button.lookup").first().waitFor();
 check((await page.locator(".homecard").count()) === 0 && (await page.locator("#main .grid article.card").count()) > 0, "products appear as soon as the person types");

@@ -28,7 +28,9 @@ def main() -> int:
     web = Path(tempfile.mkdtemp(prefix="pp-web-")) / "frontend"
     shutil.copytree(ROOT / "frontend", web, ignore=shutil.ignore_patterns("tests"))
     # Test sign-in: the real server (PP_AUTH_DEV off) refuses these sign-ins.
-    (web / "config.js").write_text('window.PRICEPULSE_CONFIG = { apiBase: "", authMode: "dev" };\n')
+    real = (ROOT / "frontend" / "config.js").read_text()
+    promo = real[real.index("window.PP_PROMO"):] if "window.PP_PROMO" in real else ""  # the real promo panel settings
+    (web / "config.js").write_text('window.PRICEPULSE_CONFIG = { apiBase: "", authMode: "dev" };\n' + promo)
     port = free_port()
     base = f"http://127.0.0.1:{port}"
     env = {
