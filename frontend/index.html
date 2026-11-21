@@ -423,11 +423,23 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--nav)}
 .promo img{height:100%}
 
 /* ---- v31: the photo panel sits at the bottom of the front page, touching the footer, 25% of the page tall ---- */
-body.front{padding-bottom:var(--nav-h,4.4rem)}
-body.front main{display:flex;flex-direction:column;min-height:calc(100vh - var(--hdr-h,194px) - var(--nav-h,70px));min-height:calc(100dvh - var(--hdr-h,194px) - var(--nav-h,70px))}
-body.front .promo{margin:auto -16px 0;border-radius:0;height:25vh;height:var(--promo-h,25dvh);min-height:6rem;max-height:none;flex:none}
-body.front .promo .ptxt{padding:.6rem .8rem .6rem 1rem}
-body.front .promo h2{font-size:1.2rem}
+
+/* ---- v32: ad panel = second fixed footer (front screen only); one joined bar of three buttons; smaller heading ---- */
+#adbar{display:none}
+body.front #adbar{display:block;position:fixed;left:0;right:0;bottom:var(--nav-h,70px);z-index:12;height:20vh;height:var(--promo-h,20dvh);min-height:6rem}
+#adbar .promo{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);height:100%;min-height:0;max-height:none;margin:0 auto;max-width:40rem;border-radius:0}
+#adbar .promo .ptxt{padding:.6rem .8rem .6rem 1rem;display:flex;align-items:center}
+#adbar .promo h2{margin:0;font-family:var(--font-body);font-size:1.2rem;line-height:1.25;font-weight:700}
+body.front{padding-bottom:calc(var(--nav-h,4.4rem) + var(--ad-h,0px) + .5rem)}
+.fronttiles{display:flex;gap:0;margin:.6rem 0 0;border:2px solid var(--accent);border-radius:999px;overflow:hidden;background:var(--card)}
+.fronttile{flex:1 1 auto;flex-direction:row;justify-content:center;align-items:center;gap:.3rem;min-height:3rem;padding:0 .35rem;border:0;border-radius:0;background:transparent;font-weight:400;font-size:1rem;letter-spacing:0;white-space:nowrap}
+.fronttile+.fronttile{border-left:1px solid var(--accent)}
+.fronttile .ft-ic{display:inline-flex}
+.fronttile .ft-ic svg{width:1.15rem;height:1.15rem}
+:root[data-theme="dark"] .fronttiles{border-color:var(--nav-hi)}
+:root[data-theme="dark"] .fronttile+.fronttile{border-left-color:var(--nav-hi)}
+@media (max-width:340px){.fronttile .ft-ic{display:none}}
+.sect h2{font-size:.88rem}
 </style>
 </head>
 <body class="plainhead">
@@ -455,6 +467,7 @@ body.front .promo h2{font-size:1.2rem}
 </header>
 <div id="status" class="vh" role="status" aria-live="polite"></div>
 <main id="main" tabindex="-1"><p class="empty">Opening PricePulse&hellip;</p></main>
+<aside id="adbar" aria-label="Advertisement"></aside>
 </div>
 <nav class="tabs" aria-label="Main"><div class="in" id="nav"></div></nav>
 <div class="menupop" id="menupop" role="menu" aria-label="PricePulse menu" hidden>
@@ -487,7 +500,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 31;
+var APP_VERSION = 32;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -805,19 +818,25 @@ function frontTiles(){
 }
 function promoPanel(){
   var P=window.PP_PROMO;if(!P||!P.title)return "";
-  var st=P.heightPct?' style="--promo-h:'+Number(P.heightPct)+'dvh"':"";
   var inner='<div class="ptxt"><h2>'+esc(P.title)+'</h2></div>'+
     (P.image?'<img src="'+esc(P.image)+'" alt="" loading="lazy" decoding="async">':'');
-  if(P.href&&String(P.href).indexOf("https://")===0)return '<a class="promo"'+st+' href="'+esc(P.href)+'" target="_blank" rel="noopener sponsored noreferrer" aria-label="'+esc(P.label||P.title)+' (opens a new tab)">'+inner+'</a>';
-  return '<section class="promo"'+st+' aria-label="'+esc(P.title)+'">'+inner+'</section>';
+  if(P.href&&String(P.href).indexOf("https://")===0)return '<a class="promo" href="'+esc(P.href)+'" target="_blank" rel="noopener sponsored noreferrer" aria-label="'+esc(P.label||P.title)+' (opens a new tab)">'+inner+'</a>';
+  return '<section class="promo" aria-label="'+esc(P.title)+'">'+inner+'</section>';
 }
 const INFO_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.500M12 7.800v.2"/></svg>';
+/* The advertising panel is a second, fixed footer above the tab bar, shown on the front screen only. */
+function renderAd(front){
+  var a=document.getElementById("adbar");if(!a)return;
+  var P=window.PP_PROMO;
+  a.style.setProperty("--promo-h",(P&&P.heightPct?Number(P.heightPct):20)+"dvh");
+  a.innerHTML=front?promoPanel():"";
+}
 function viewFind(){
   var cats=CATS.filter(function(c){return c!=="Liquor"||(state.me&&state.me.adult)});
   var typing=!!state.q.trim()||state.cat!=="All"||!!state.flt;
   var h=banners(!typing);
   if(!typing){
-    return h+frontTiles()+'<div class="sect"><h2>Shop by category</h2></div>'+catCircles(cats)+pickBar()+'<p class="disclaimer notice"><span class="ni">'+INFO_ICON+'</span>Prices may differ in store.</p>'+promoPanel();
+    return h+frontTiles()+'<div class="sect"><h2>Shop by category</h2></div>'+catCircles(cats)+pickBar()+'<p class="disclaimer notice"><span class="ni">'+INFO_ICON+'</span>Prices may differ in store.</p>';
   }
   h+=catCircles(cats)+pickBar();
   if(state.flt)h+='<div class="banner"><b>'+(state.flt==="special"?"Showing only specials":state.flt==="local"?"Showing only items from local stores":"Showing all stores")+'.</b> <button class="linkbtn" type="button" data-act="clearflt">Show everything</button></div>';
@@ -1556,7 +1575,9 @@ function renderMain(){
   else if(state.phase==="idcheck")h=viewIdCheck();
   else h=state.view==="find"?viewFind():state.view==="towns"?viewTowns():state.view==="list"?viewList():state.view==="product"?viewProduct():state.view==="admin"?viewAdmin():viewAccount();
   m.innerHTML=h;
-  document.body.classList.toggle("front",state.phase==="app"&&state.view==="find"&&!(state.q.trim()||state.cat!=="All"||state.flt));
+  var front=state.phase==="app"&&state.view==="find"&&!(state.q.trim()||state.cat!=="All"||state.flt);
+  document.body.classList.toggle("front",front);
+  renderAd(front);fitFront();
 }
 /* The front screen fills the space between the header and the footer; the photo panel sits at the bottom, touching the footer.
    The header and footer heights are measured and kept in CSS variables. */
@@ -1564,6 +1585,8 @@ function fitFront(){
   var h=document.querySelector("header"),n=document.querySelector("nav.tabs"),r=document.documentElement.style;
   if(h)r.setProperty("--hdr-h",Math.round(h.getBoundingClientRect().height)+"px");
   if(n&&getComputedStyle(n).display!=="none")r.setProperty("--nav-h",Math.round(n.getBoundingClientRect().height)+"px");
+  var a=document.getElementById("adbar");
+  r.setProperty("--ad-h",a&&document.body.classList.contains("front")?Math.round(a.getBoundingClientRect().height)+"px":"0px");
 }
 function render(){
   applyTheme();renderMain();renderHead();fitFront();

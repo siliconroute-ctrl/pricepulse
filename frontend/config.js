@@ -23,5 +23,5 @@ window.PP_PROMO = {
   title: "Compare Prices Before You Shop",
   bullets: ["Find the best prices", "Check local stores", "Discover specials"],
   image: "promo-bag.webp",
-  heightPct: 25   // panel height as a percent of the page (screen) height; the panel sits right above the footer
+  heightPct: 20   // height of the advertising panel (a fixed second footer on the front screen) as a percent of the screen height
 };
