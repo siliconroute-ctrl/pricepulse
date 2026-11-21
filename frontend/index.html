@@ -482,7 +482,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 28;
+var APP_VERSION = 29;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -1564,6 +1564,14 @@ function render(){
   if(state.view==="admin")admLoad();
   if(state.view==="find"&&!state.found&&!state.finding&&!state.findErr)runFind(true);
 }
+/* The Find tab and the PricePulse title go to the clean front screen: typed text, category and the
+   Specials / Local Stores / All Stores list are cleared. (Other links to #find, such as "Back to products", keep the results.) */
+function goHome(){
+  clearTimeout(findTimer);
+  state.q="";state.cat="All";state.flt="";state.found=null;state.findErr="";
+  var q=document.getElementById("q");if(q)q.value="";
+  go("find");
+}
 function go(v,focus){
   if(state.phase!=="app")return;
   if(typeof ADM!=="undefined"&&ADM.preview){ADM.preview=false}
@@ -1636,10 +1644,10 @@ function enterApp(){
 document.addEventListener("click",function(e){
   if(e.target.closest("dialog"))return;
   var a=e.target.closest("a[href^='#']");
-  if(a){e.preventDefault();go(a.getAttribute("href").slice(1));return}
+  if(a){e.preventDefault();if(a.classList.contains("homelink"))return goHome();go(a.getAttribute("href").slice(1));return}
   var t=e.target.closest("button");if(!t)return;
   var d=t.dataset;
-  if(d.view)return go(d.view);
+  if(d.view)return d.view==="find"?goHome():go(d.view);
   if(d.cat){state.cat=d.cat;state.flt="";state.found=null;renderMain();return runFind(true)}
   if(d.unit){state.unitMode=d.unit==="1";savePrefs();return renderMain()}
   if(d.radius){state.radius=+d.radius;return render()}
