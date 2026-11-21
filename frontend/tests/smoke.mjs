@@ -128,8 +128,7 @@ const promoH = await page.evaluate(() => { const e = document.querySelector("#ma
 check(promoH && Math.abs(promoH.h - promoH.vh * 0.25) <= 3, "the photo panel takes 25% of the page height (" + (promoH ? promoH.h + "px of " + promoH.vh + "px" : "missing") + ")");
 check(promoH && Math.abs(promoH.gap) <= 1, "the photo panel starts right at the footer, with no empty space under it (gap " + (promoH ? promoH.gap : "?") + "px)");
 check((await page.locator("#main .banner").count()) === 0, "the front screen has no warning cards");
-const noticeH = await page.$eval("#main .notice", (e) => Math.round(e.getBoundingClientRect().height));
-check((await page.textContent("#main .notice")).trim() === "Prices may differ in store." && (await page.locator("#main .notice svg").count()) === 1 && noticeH <= 44, "the pricing notice reads only: Prices may differ in store. (one slim line, " + noticeH + "px) with its info icon"); check(true, "the pricing notice stays visible with its info icon");
+check((await page.locator("#main .notice").count()) === 0 && !/Prices may differ in store/.test(await page.textContent("#main")), "the front screen has no pricing notice bar");
 const promo = await page.evaluate(async () => {
   const el = document.querySelector("#main .promo");
   if (!el) return null;

@@ -488,7 +488,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 35;
+var APP_VERSION = 36;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -818,7 +818,7 @@ function viewFind(){
   var typing=!!state.q.trim()||state.cat!=="All"||!!state.flt;
   var h=banners(!typing);
   if(!typing){
-    return h+frontTiles()+'<div class="sect"><h2>Shop by category</h2></div>'+catCircles(cats)+pickBar()+'<p class="disclaimer notice"><span class="ni">'+INFO_ICON+'</span>Prices may differ in store.</p>'+promoPanel();
+    return h+frontTiles()+'<div class="sect"><h2>Shop by category</h2></div>'+catCircles(cats)+pickBar()+promoPanel();
   }
   h+=catCircles(cats)+pickBar();
   if(state.flt)h+='<div class="banner"><b>'+(state.flt==="special"?"Showing only specials":state.flt==="local"?"Showing only items from local stores":"Showing all stores")+'.</b> <button class="linkbtn" type="button" data-act="clearflt">Show everything</button></div>';
