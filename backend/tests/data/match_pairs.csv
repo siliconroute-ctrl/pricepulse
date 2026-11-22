@@ -93,3 +93,9 @@ match,Brown Mushrooms Punnet 250g,,Mushrooms Brown 250g,,punnet is packaging
 nomatch,Button Mushrooms 250g,,Brown Mushrooms 250g,,different kinds
 nomatch,Brown Mushrooms 250g,,Brown Mushrooms 500g,,different sizes
 nomatch,PnP Baby Onions 1kg,,Onions 1kg,,baby onions are not onions
+match,Green Beans 350g,,Green Beans 350 g,,size spelling
+match,PnP Green Beans 350g,,Green Beans 350g,,house brand label is not part of the item
+match,Woolworths Green Beans 350g,,Green Beans 350 g,,store label is not part of the item
+match,Sliced Green Beans 500 g,,Green Beans Sliced 500g,,word order
+nomatch,Green Beans 350g,,Green Beans 500g,,different sizes
+nomatch,Koo Green Beans 410g,,Rhodes Green Beans 410g,,named brands of tinned beans stay separate
