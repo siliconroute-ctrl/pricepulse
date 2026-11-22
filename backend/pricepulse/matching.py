@@ -365,6 +365,12 @@ GENERIC_WORDS = {
     "squash",
     "marrow",
     "baby",
+    # green beans and peas: plain fresh or frozen veg is the same item at every store
+    "bean",
+    "beans",
+    "green",
+    "peas",
+    "pea",
 }
 GENERIC_STOP = {
     "large",
@@ -378,6 +384,7 @@ GENERIC_STOP = {
     "button",
     "punnet",
     "sliced",
+    "fine",
 }
 # Extra words that describe the product type without changing it. "Castle Lite" and
 # "Castle Lite Beer" are the same; "Coca-Cola" and "Coca-Cola No Sugar" are not.
@@ -423,6 +430,10 @@ WINE_COLOURS = {"white", "red", "rose"}
 # Store house-brand labels (in brand-key form). On plain fresh produce they say who packed it, not
 # what it is, so a shared card for "Brown Mushrooms" must not carry "PnP" in its name.
 HOUSE_BRANDS = {"pnp", "checkers housebrand", "simple truth"}
+# Words that also describe branded tins and packs ("Koo Green Beans"): they only count as plain
+# produce when the brand is empty or a store's own label.
+BRANDLESS_ONLY = {"bean", "pea", "green"}
+STORE_LABELS = HOUSE_BRANDS | {"woolworths", "checkers", "spar", "shoprite"}
 _HOUSE_PREFIX = re.compile(r"^(?:pnp|pick n pay|checkers housebrand|simple truth)\b[\s:\-]*", re.I)
 
 
@@ -530,7 +541,10 @@ def normalise(name: str, size_text: str | None = None, brand_hint: str | None = 
     size = parse_size(size_text)
     brand = detect_brand(name, brand_hint)
     norm = normalise_name(name, brand)
-    return Normalised(brand=brand, name=norm, size=size, generic=is_generic(norm))
+    generic = is_generic(norm)
+    if generic and brand and brand not in STORE_LABELS and BRANDLESS_ONLY & set(norm.split()):
+        generic = False  # a named brand of tinned beans is not plain produce
+    return Normalised(brand=brand, name=norm, size=size, generic=generic)
 
 
 @dataclass

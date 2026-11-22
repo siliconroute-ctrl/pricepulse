@@ -191,9 +191,15 @@ await page.waitForSelector(".cats8");
 check((await page.locator('.cats8 .cat[aria-pressed="true"][data-cat="All"]').count()) === 1, "the PricePulse title returns from a category to the front screen with All selected");
 
 // Three-dot menu once signed in: every section, sharing and the version check.
+await page.setViewportSize({ width: 360, height: 695 });
+await page.click("#menubtn");
+const fitAdmin = await page.evaluate(() => { const p = document.getElementById("menupop"), had = p.getAttribute("data-admin"); p.setAttribute("data-admin", "1"); const r = { sh: p.scrollHeight, ch: p.clientHeight }; if (had === null) p.removeAttribute("data-admin"); else p.setAttribute("data-admin", had); return r; });
+check(fitAdmin.sh <= fitAdmin.ch + 1, "the whole three-dot menu (admin row included) fits on a 360x695 phone without scrolling (" + fitAdmin.sh + " of " + fitAdmin.ch + "px)");
+await page.click("#menubtn");
+await page.setViewportSize({ width: 412, height: 915 });
 await page.click("#menubtn");
 await shot(page, "menu-open");
-for (const [key, label] of [["find", "Find prices"], ["towns", "Town by town"], ["list", "My picked Items List"], ["account", "My account"], ["signout", "Sign out"]])
+for (const [key, label] of [["how", "How it works"], ["colours", "Colours"], ["signout", "Sign out"], ["update", "App update"]])
   check(await page.isVisible(`[data-menu="${key}"]`), "menu has " + label + " when signed in");
 const heights = await page.$$eval("#menupop .mi", (els) => els.filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect().height));
 check(heights.every((h) => h >= 48), "every menu row is at least 48px tall (smallest " + Math.min(...heights) + ")");
@@ -209,7 +215,7 @@ check(lastOk, "the last menu row (App update) is not hidden behind the bottom ta
 check(fit.scroll <= fit.shown && fit.bottom <= fit.win, "menu fits a 360x780 phone with no scrolling (" + fit.scroll + "px of " + fit.win + "px)");
 check(fit.gap <= 8, "no extra space between menu rows (largest gap " + fit.gap + "px)");
 await shot(page, "menu-stacked");
-await page.setViewportSize({ width: 360, height: 600 });
+await page.setViewportSize({ width: 360, height: 400 });
 await page.waitForTimeout(150);
 check(!(await page.isVisible("#menupop")), "turning the phone (resize) closes the menu");
 await page.click("#menubtn");
@@ -228,9 +234,10 @@ await shot(page, "how-it-works");
 await page.click('#howdlg [data-how="close"]');
 check(!(await page.isVisible("#howdlg")), "How it works closes with its back button");
 await page.click("#menubtn");
-await page.click('[data-menu="list"]');
-await page.waitForFunction(() => document.querySelector("nav.tabs [aria-current=page]").textContent.includes("List"));
-check(!(await page.isVisible("#menupop")), "choosing a menu item goes there and closes the menu");
+await page.click('[data-menu="how"]');
+await page.waitForSelector("#howdlg", { state: "visible" });
+check(!(await page.isVisible("#menupop")), "choosing a menu item opens it and closes the menu");
+await page.click('#howdlg [data-how="close"]');
 await page.click("#menubtn");
 await page.click('[data-menu="update"]');
 await page.click('[data-dlg="doupdate"]');

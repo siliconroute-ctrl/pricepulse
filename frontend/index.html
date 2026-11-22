@@ -450,10 +450,6 @@ body.front .promo h2{font-size:1.2rem}
 </div>
 <nav class="tabs" aria-label="Main"><div class="in" id="nav"></div></nav>
 <div class="menupop" id="menupop" role="menu" aria-label="PricePulse menu" hidden>
-  <button class="mi" type="button" role="menuitem" data-menu="find" data-needs="user">Find prices</button>
-  <button class="mi" type="button" role="menuitem" data-menu="towns" data-needs="user">Town by town</button>
-  <button class="mi" type="button" role="menuitem" data-menu="list" data-needs="user">My picked Items List</button>
-  <button class="mi" type="button" role="menuitem" data-menu="account" data-needs="user">My account and plan</button>
   <button class="mi" type="button" role="menuitem" data-menu="admin" data-needs="admin">Admin area</button>
   <hr data-needs="user">
   <button class="mi" type="button" role="menuitem" data-menu="how">How it works</button>
@@ -479,7 +475,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 37;
+var APP_VERSION = 38;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;

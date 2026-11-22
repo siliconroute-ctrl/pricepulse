@@ -1,7 +1,7 @@
 /* Service worker: keeps the app shell available offline.
    Prices are NOT cached here; the app saves the last prices itself and shows
    "Showing saved prices from ..." when offline. Bump VERSION (and APP_VERSION in index.html, same number) on each release. */
-var VERSION = "pp-shell-v37";
+var VERSION = "pp-shell-v38";
 var SHELL = ["./", "index.html", "config.js", "manifest.webmanifest", "icons/icon.svg",
              "icons/icon-192.png", "icons/icon-512.png", "icons/icon-180.png", "promo-bag.webp", "terms.html", "privacy.html"];
 
