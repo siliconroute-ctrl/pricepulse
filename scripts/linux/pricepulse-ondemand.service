@@ -1,0 +1,10 @@
+[Unit]
+Description=PricePulse new-item searches (look for items shoppers asked for)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/pricepulse/scripts/linux/ondemand.sh
+TimeoutStartSec=90min
+Nice=10

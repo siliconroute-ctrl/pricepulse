@@ -299,6 +299,7 @@ const badges = await page.evaluate(() => ({
 }));
 check(/<a class="badge blink" href="https:\/\/www\.checkers\.co\.za\/p\/1"/.test(badges.withUrl) && /opens a new tab/.test(badges.withUrl) && /noopener/.test(badges.withUrl), "store label links to the store's product page");
 check(/^<span class="badge"/.test(badges.without), "store label is plain text when there is no product link");
+check((await page.locator('[data-act="newsearch"]').count()) === 0, "a free account is offered Request an item, not the paid new-item search");
 await page.getByRole("button", { name: "Request an item" }).first().click();
 await page.fill("#reqterm", "white mushrooms 250g");
 await page.getByRole("button", { name: "Send request" }).click();
@@ -444,6 +445,20 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   check(!(await adm.isVisible('#menupop [data-menu="admin"]')), "Admin area is hidden until the account is made an admin");
   execFileSync(process.env.PP_PYTHON || "python3", ["admin.py", "admin-role", "dev-admin", "on"], { cwd: process.env.PP_SMOKE_BACKEND, env: process.env });
   await adm.reload();
+  await adm.waitForSelector(".cats8");
+  // New-item search: a tester (paid) account sees the search button when nothing matches.
+  execFileSync(process.env.PP_PYTHON || "python3", ["admin.py", "plan", "dev-admin", "tester"], { cwd: process.env.PP_SMOKE_BACKEND, env: process.env });
+  await adm.reload();
+  await adm.waitForSelector(".cats8");
+  await adm.fill("#q", "pedigree dog food 8kg");
+  await adm.waitForSelector('[data-act="newsearch"]');
+  check(/Not in our list yet/.test(await adm.textContent("#main")), "a paid account is offered a search of the stores when nothing matches");
+  await shot(adm, "new-item-offer");
+  await adm.locator('[data-act="newsearch"]').click();
+  await adm.waitForSelector('[data-act="checksearch"]');
+  check(/Searching the stores for .pedigree dog food 8kg./.test(await adm.textContent("#main")), "the search is queued and the shopper is told it takes a few minutes");
+  await shot(adm, "new-item-waiting");
+  await adm.fill("#q", "");
   await adm.waitForSelector(".cats8");
   await adm.click("#menubtn");
   check(await adm.isVisible('#menupop [data-menu="admin"]'), "Admin area appears in the three-dot menu for an admin");

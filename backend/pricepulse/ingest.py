@@ -187,7 +187,9 @@ def display_name(name: str, size_text: str) -> str:
     return " ".join(name.split())
 
 
-def _new_product(session: Session, name: str, size_text: str, category: str, norm: Normalised) -> Product:
+def _new_product(
+    session: Session, name: str, size_text: str, category: str, norm: Normalised, via_search: bool = False
+) -> Product:
     display = display_name(name, size_text)
     house_produce = norm.generic and norm.brand in HOUSE_BRANDS
     if house_produce:
@@ -206,6 +208,7 @@ def _new_product(session: Session, name: str, size_text: str, category: str, nor
         category=category or "Groceries",
         norm_name=norm.name,
         is_generic=norm.generic,
+        via_search=via_search,
     )
     session.add(p)
     session.flush()
@@ -301,7 +304,9 @@ def ingest_items(
                     product.name = display
             else:
                 # Unmatched and review items still get their own product so the price shows.
-                product = _new_product(session, name, size_text, category, norm)
+                product = _new_product(
+                    session, name, size_text, category, norm, via_search=bool(row.get("new"))
+                )
                 listing.product_id = product.id
                 report.new_products += 1
                 if result.status == "needs_review":

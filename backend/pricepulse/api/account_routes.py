@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from urllib.parse import parse_qsl
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
@@ -10,9 +11,9 @@ from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
-from .. import accounts, payfast, trolleyup
+from .. import accounts, discovery, payfast, trolleyup
 from ..auth import AuthError, Identity, make_verifier
-from ..db import AppUser, ItemRequest, Listing, Price, Product, Store, Subscription, utcnow
+from ..db import AppUser, ItemRequest, Listing, Price, Product, SearchJob, Store, Subscription, utcnow
 from ..money import from_cents
 from ..queries import ProductPrices, latest_prices, product_images, visible_clause
 from . import schemas as S
@@ -202,6 +203,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             .where(Price.region == region, Listing.active.is_(True), Store.active.is_(True))
         )
         newest = s.scalar(select(func.max(Price.scraped_at)).where(Price.region == region))
+        new_since = utcnow() - timedelta(days=discovery.NEW_DAYS)
         return S.CatalogueOut(
             region=region,
             stores=store_count or 0,
@@ -222,6 +224,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
                     image=pictures.get(p.id, ""),
                     special=bool(sp),
                     local=bool(lc),
+                    new=bool(p.via_search and p.created_at and p.created_at > new_since),
                 )
                 for p, n, sp, lc in page
             ],
@@ -284,6 +287,33 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             raise fail(exc) from None
         s.commit()
         return my_requests(user, s)
+
+    def search_out(j: SearchJob) -> S.SearchOut:
+        return S.SearchOut(
+            id=j.id, term=j.term, category=j.category, status=j.status, found=j.found, note=j.note
+        )
+
+    @app.get(v1 + "/searches", response_model=S.SearchesOut, tags=["lookup"])
+    def my_searches(user: AppUser = Depends(user_dep), s: Session = Depends(ctx.db)):  # noqa: B008
+        rows = s.scalars(
+            select(SearchJob).where(SearchJob.uid == user.uid).order_by(SearchJob.id.desc()).limit(10)
+        ).all()
+        return S.SearchesOut(searches=[search_out(j) for j in rows])
+
+    @app.post(v1 + "/searches", response_model=S.SearchOut, tags=["lookup"])
+    def start_search(
+        body: S.SearchIn, user: AppUser = Depends(user_dep), s: Session = Depends(ctx.db)  # noqa: B008
+    ):
+        """Paid and tester accounts: look for an item that is not listed. The scraper machine searches
+        the stores within minutes and the item then appears marked New."""
+        user = s.merge(user)
+        try:
+            job, _created = discovery.start_search(s, user, body.term)
+        except accounts.RuleError as exc:
+            s.rollback()
+            raise fail(exc) from None
+        s.commit()
+        return search_out(job)
 
     @app.post(v1 + "/session/clear", response_model=S.SessionOut, tags=["lookup"])
     def clear(

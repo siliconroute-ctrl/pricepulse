@@ -1,0 +1,10 @@
+[Unit]
+Description=Check for new-item searches every 5 minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitInactiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

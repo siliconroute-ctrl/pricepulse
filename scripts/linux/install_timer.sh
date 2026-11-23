@@ -8,8 +8,11 @@ if [ "$REPO" != "$HOME/pricepulse" ]; then
   exit 1
 fi
 mkdir -p "$HOME/.config/systemd/user"
-cp "$REPO/scripts/linux/pricepulse-nightly.service" "$REPO/scripts/linux/pricepulse-nightly.timer" "$HOME/.config/systemd/user/"
+cp "$REPO/scripts/linux/pricepulse-nightly.service" "$REPO/scripts/linux/pricepulse-nightly.timer" \
+   "$REPO/scripts/linux/pricepulse-ondemand.service" "$REPO/scripts/linux/pricepulse-ondemand.timer" \
+   "$HOME/.config/systemd/user/"
 systemctl --user daemon-reload
 systemctl --user enable --now pricepulse-nightly.timer
+systemctl --user enable --now pricepulse-ondemand.timer
 echo "Installed. Next run:"
-systemctl --user list-timers pricepulse-nightly.timer --no-pager
+systemctl --user list-timers pricepulse-nightly.timer pricepulse-ondemand.timer --no-pager

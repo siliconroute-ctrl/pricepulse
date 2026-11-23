@@ -16,6 +16,11 @@ if ! flock -n 9; then
   exit 0
 fi
 
+# Let a running new-item search finish first (up to 40 minutes), then hold the same lock so none
+# starts during the night run. Not fatal: after the wait the night run goes on regardless.
+exec 8>"$LOGDIR/.ondemand.lock"
+flock -w 2400 8 || echo "(a new-item search was still running; carrying on)"
+
 # Optional settings (alert mailbox etc.), readable only by you. Never put them in the repository.
 # shellcheck disable=SC1090
 [ -f "$HOME/.config/pricepulse/env" ] && . "$HOME/.config/pricepulse/env"
