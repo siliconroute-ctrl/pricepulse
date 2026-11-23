@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, quote
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse, Response
@@ -26,21 +26,24 @@ from ..db import (
     Subscription,
     utcnow,
 )
+from ..hours import open_status
 from ..money import from_cents
 from ..phones import normalise_phone, pretty_phone
 from ..queries import ProductPrices, latest_prices, product_images, store_live, visible_clause
 from . import schemas as S
+from .store_routes import photo_urls
 
 log = logging.getLogger("pricepulse.api")
 
 
-def local_extras(s: Session, product_ids: list[int], region: str, store_id: int | None) -> dict[int, tuple]:
-    """For each product, (sub-category, condition, store id, store name) from a live local store's item
-    in this town (the chosen store's item when ``store_id`` is given)."""
+def local_extras(s: Session, product_ids: list[int], region: str, store_id: int | None) -> dict[int, dict]:
+    """For each product, the details of one live local store's item in this town (the chosen store's
+    item when ``store_id`` is given): sub-category, condition, store, price (local prices show openly),
+    spec text and description."""
     if not product_ids:
         return {}
     stmt = (
-        select(Listing.product_id, Listing.department, Listing.condition, Store.id, Store.name)
+        select(Listing, Store)
         .join(Store, Store.id == Listing.store_id)
         .join(Price, Price.listing_id == Listing.id)
         .where(
@@ -54,10 +57,45 @@ def local_extras(s: Session, product_ids: list[int], region: str, store_id: int 
     )
     if store_id:
         stmt = stmt.where(Store.id == store_id)
-    out: dict[int, tuple] = {}
-    for pid, dept, cond, sid, sname in s.execute(stmt):
-        out.setdefault(pid, (dept or "", cond or "", sid, sname))
+    chosen: dict[int, tuple[Listing, Store]] = {}
+    for lst, st in s.execute(stmt):
+        chosen.setdefault(lst.product_id, (lst, st))
+    ids = [lst.id for lst, _ in chosen.values()]
+    prices: dict[int, Price] = {}
+    if ids:
+        newest = (
+            select(Price.listing_id, func.max(Price.scraped_at).label("at"))
+            .where(Price.region == region, Price.listing_id.in_(ids))
+            .group_by(Price.listing_id)
+            .subquery()
+        )
+        for pr in s.scalars(
+            select(Price).join(
+                newest, (newest.c.listing_id == Price.listing_id) & (newest.c.at == Price.scraped_at)
+            )
+        ):
+            prices[pr.listing_id] = pr
+    out: dict[int, dict] = {}
+    for pid, (lst, st) in chosen.items():
+        pr = prices.get(lst.id)
+        out[pid] = {
+            "sub": lst.department or "",
+            "condition": lst.condition or "",
+            "store_id": st.id,
+            "store_name": st.name,
+            "price": from_cents(pr.price_cents) if pr else None,
+            "promo": from_cents(pr.promo_cents) if pr and pr.promo_cents is not None else None,
+            "detail": lst.size_text or "",
+            "image": lst.image_url or "",
+            "sku": lst.sku or "",
+        }
     return out
+
+
+def directions_link(st: Store) -> str:
+    """A Google Maps search for the store's address (no key needed); empty without an address."""
+    place = ", ".join(x for x in (st.address, st.town) if x)
+    return "https://www.google.com/maps/search/?api=1&query=" + quote(place) if st.address else ""
 
 
 def sub_counts(s: Session, region: str, category: str | None, store_id: int | None) -> list[S.SubCount]:
@@ -322,10 +360,13 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
                     special=bool(sp),
                     local=bool(lc),
                     new=bool(p.via_search and p.created_at and p.created_at > new_since),
-                    sub=extras.get(p.id, ("", "", 0, ""))[0],
-                    condition=extras.get(p.id, ("", "", 0, ""))[1],
-                    store_id=extras.get(p.id, ("", "", 0, ""))[2],
-                    store_name=extras.get(p.id, ("", "", 0, ""))[3],
+                    sub=extras.get(p.id, {}).get("sub", ""),
+                    condition=extras.get(p.id, {}).get("condition", ""),
+                    store_id=extras.get(p.id, {}).get("store_id", 0),
+                    store_name=extras.get(p.id, {}).get("store_name", ""),
+                    price=extras.get(p.id, {}).get("price"),
+                    promo=extras.get(p.id, {}).get("promo"),
+                    detail=extras.get(p.id, {}).get("detail", ""),
                 )
                 for p, n, sp, lc in page
             ],
@@ -362,7 +403,57 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             category=st.category,
             items=items or 0,
             subs=sub_counts(s, region, st.category or None, st.id),
+            hours=open_status(st.hours, st.hours_note),
+            photos=photo_urls(st),
+            directions=directions_link(st),
         )
+
+    @app.get(v1 + "/local-items/{product_id}", tags=["lookup"])
+    def local_item(
+        product_id: int,
+        region: str = Query("paarl"),
+        user: AppUser = Depends(user_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """The expanded view of an item sold by a live local store in this town. Local prices show
+        openly and this does not use a lookup. A chain's product, or a hidden or other-town item: 404."""
+        ctx.check_region(region)
+        extras = local_extras(s, [product_id], region, None)
+        info = extras.get(product_id)
+        prod = s.get(Product, product_id)
+        adult = accounts.is_adult(user, accounts.sa_today())
+        if info is None or prod is None or (prod.category == accounts.LIQUOR and not adult):
+            raise HTTPException(404, {"code": "not_found", "message": "That item is not available."})
+        st = s.get(Store, info["store_id"])
+        lst = s.scalar(
+            select(Listing).where(
+                Listing.product_id == product_id, Listing.store_id == st.id, Listing.active.is_(True)
+            )
+        )
+        return {
+            "id": prod.id,
+            "name": lst.name if lst else prod.name,
+            "category": prod.category,
+            "sub": info["sub"],
+            "condition": info["condition"],
+            "detail": info["detail"],
+            "description": lst.description if lst else "",
+            "sku": info["sku"],
+            "price": info["price"],
+            "promo": info["promo"],
+            "image": info["image"],
+            "store": {
+                "id": st.id,
+                "name": st.name,
+                "town": st.town,
+                "address": st.address,
+                "phone": pretty_phone(normalise_phone(st.phone) or st.phone),
+                "whatsapp": normalise_phone(st.whatsapp or st.phone),
+                "hours": open_status(st.hours, st.hours_note),
+                "photos": photo_urls(st),
+                "directions": directions_link(st),
+            },
+        }
 
     # --- Lookup session -----------------------------------------------------------
 

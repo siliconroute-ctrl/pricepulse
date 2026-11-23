@@ -68,7 +68,7 @@ class Settings:
     session_items_max: int = field(default_factory=lambda: int(_float("PP_SESSION_ITEMS", 45)))
     free_sessions_per_day: int = field(default_factory=lambda: int(_float("PP_FREE_SESSIONS", 3)))
     price_cents: int = field(default_factory=lambda: int(_float("PP_PRICE_CENTS", 9900)))
-    terms_version: int = 4
+    terms_version: int = 5
     public_url: str = field(
         default_factory=lambda: os.environ.get("PP_PUBLIC_URL", "http://localhost:8000").rstrip("/")
     )

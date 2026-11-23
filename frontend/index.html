@@ -424,6 +424,50 @@ body.front main{display:flex;flex-direction:column;min-height:calc(100vh - var(-
 body.front .promo{margin:auto -16px 0;border-radius:0;height:25vh;height:var(--promo-h,25dvh);min-height:6rem;max-height:none;flex:none}
 body.front .promo .ptxt{padding:.6rem .8rem .6rem 1rem}
 body.front .promo h2{font-size:1.2rem}
+
+/* Step 16: Electronics icon screen, local rows, View page, store page */
+.cats8.sub3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cats8 .cat .cnt2{font-size:1rem;color:var(--muted);font-weight:500}
+.crumb{display:flex;flex-wrap:wrap;gap:.2rem .5rem;align-items:center;margin:.3rem 0;font-size:1.05rem}
+.crumb button{min-height:3rem;background:none;border:0;color:var(--accent);font-weight:800;text-decoration:underline;padding:0 .2rem}
+.lrow{display:grid;grid-template-columns:5.6rem minmax(0,1fr);gap:.2rem .75rem;padding:.6rem;align-items:start}
+.lrow .lpic{width:5.6rem;height:5.6rem;border-radius:.7rem;background:var(--tile);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.lrow .lpic img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
+.lrow .lpic svg{width:46%;height:46%;fill:none;stroke:var(--muted);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.lrow h3{margin:0;font-size:1.05rem;line-height:1.25}
+.lrow .ldet{margin:.1rem 0 0;font-size:1.05rem;color:var(--muted)}
+.lrow .lprice{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .6rem;margin:.25rem 0}
+.lrow .lprice s{color:var(--muted);font-size:1.05rem}
+.lrow .lfoot{grid-column:1/-1;display:flex;gap:.5rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.lrow .viewbtn{min-height:3rem;min-width:6rem;border-radius:.7rem;border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:800;padding:0 1rem;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.condpill{display:inline-block;border:2px solid var(--ink);border-radius:999px;padding:.05rem .6rem;font-weight:800;font-size:1.05rem}
+.lbigpic{width:100%;aspect-ratio:4/3;border-radius:.8rem;background:var(--tile);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;margin:.4rem 0}
+.lbigpic img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
+.lbigpic svg{width:30%;height:30%;fill:none;stroke:var(--muted);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:.35rem .9rem;margin:.4rem 0}
+.facts dt{font-weight:700}.facts dd{margin:0;overflow-wrap:anywhere}
+.place .photos{display:grid;grid-template-columns:2fr 1fr;gap:.4rem;margin:.4rem 0}
+.place .photos.one{grid-template-columns:1fr}
+.place .photos .ph{aspect-ratio:4/3;border-radius:.8rem;background:var(--tile);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
+.place .photos .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.place .photos .ph svg{width:30%;height:30%;fill:none;stroke:var(--muted);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.place h2{margin:.3rem 0}
+.openline{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.1rem;margin:.3rem 0}
+.openline svg{width:1.4rem;height:1.4rem;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.openline.closed{color:#8a1c1c}.openline.open,.openline.closing{color:#0a5c2e}
+:root[data-theme="dark"] .openline.closed{color:#ff9d9d}:root[data-theme="dark"] .openline.open,:root[data-theme="dark"] .openline.closing{color:#7be3a0}
+.weekhrs{margin:.2rem 0 .5rem}.weekhrs summary{min-height:3rem;display:flex;align-items:center;cursor:pointer;font-weight:700}
+.weekhrs table{border-collapse:collapse;width:100%}.weekhrs td{padding:.3rem .2rem;border-top:1px solid var(--line)}
+.weekhrs tr.today td{font-weight:800}
+.bigenter{width:100%;min-height:3.4rem;font-size:1.15rem;margin-top:.4rem}
+.hrsedit{display:grid;gap:.4rem}
+.hrsedit .hr{display:grid;grid-template-columns:3.2rem 1fr 1fr;gap:.4rem;align-items:center}
+.hrsedit .hr label.cl{grid-column:1/-1;display:flex;gap:.5rem;align-items:center;min-height:2.4rem}
+.hrsedit input[type=text]{min-height:3rem}
+.photoslot{display:flex;gap:.7rem;align-items:center;margin:.4rem 0;flex-wrap:wrap}
+.photoslot .thumb{width:8rem;aspect-ratio:4/3;border-radius:.6rem;background:var(--tile);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.photoslot .thumb img{width:100%;height:100%;object-fit:cover}
+@media (max-width:400px){.lrow{grid-template-columns:4.6rem minmax(0,1fr)}.lrow .lpic{width:4.6rem;height:4.6rem}}
 </style>
 </head>
 <body class="plainhead">
@@ -480,7 +524,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 40;
+var APP_VERSION = 41;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -802,7 +846,10 @@ function viewFind(){
   if(!typing){
     return h+'<div class="sect"><h2>Shop by category</h2></div>'+catCircles(cats)+pickBar()+promoPanel();
   }
-  h+=catCircles(cats)+subChips()+pickBar();
+  var elec=state.cat==="Electronics"&&!state.flt;
+  if(elec&&!state.q.trim()&&!state.sub)return h+electronicsFront()+pickBar();
+  if(elec&&state.sub&&!state.q.trim())return h+electronicsList()+pickBar();
+  h+=catCircles(cats)+(elec?condSwitch("data-fcond",state.cond):"")+pickBar();
   if(state.flt)h+='<div class="banner"><b>'+(state.flt==="special"?"Showing only specials":state.flt==="local"?"Showing only items from local stores":"Showing all stores")+'.</b> <button class="linkbtn" type="button" data-act="clearflt">Show everything</button></div>';
   h+='<div class="seg" role="group" aria-label="Show prices as"><button type="button" data-unit="0" aria-pressed="'+!state.unitMode+'">Pack price</button><button type="button" data-unit="1" aria-pressed="'+state.unitMode+'">Per 100g / 100ml</button></div>';
   if(state.findErr)return h+'<div class="empty">'+esc(state.findErr)+' <button class="linkbtn" type="button" data-act="refind">Try again</button></div>'+disclaimer();
@@ -810,10 +857,103 @@ function viewFind(){
   if(!f)return h+'<p class="sub" aria-busy="true">Loading products…</p>'+disclaimer();
   if(!f.items.length)return h+'<div class="empty">'+esc(f.note||"No products match.")+'</div>'+searchCard()+disclaimer();
   h+='<p class="sub">'+plural(f.total,"product")+(f.total>f.items.length?' (showing the first '+f.items.length+'; type more of the name to narrow it down)':'')+'. Tap <b>Look up price</b> to compare stores.</p><div class="grid">';
-  h+=f.items.map(catTile  ).join("")+'</div>';
+  h+=f.items.map(elec?localRow:catTile).join("")+'</div>';
   return h+requestCard()+disclaimer();
 }
-/* Sub-category chips (for example Electronics: Laptops, Desktops, ...) and the New / Refurbished switch. */
+
+/* ---------- Electronics: sub-category icon screen, rows and the View page ---------- */
+var SUB_UI={
+  "Laptops":{label:"Laptops",cls:"electronics",icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="10" rx="1.5"/><path d="M3 18.500h18l-1.300-3.500H4.300z"/></svg>'},
+  "Desktops":{label:"Desktops",cls:"all",icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.500" y="4" width="12.500" height="9" rx="1.500"/><path d="M8.700 13v3M5.500 16.500h6.500"/><rect x="17" y="6.500" width="4.500" height="11" rx="1.200"/><path d="M19.250 15.200h.01"/></svg>'},
+  "Screens":{label:"Screens",cls:"stationery",icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>'},
+  "Peripherals":{label:"Peripherals",cls:"pets",icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="11" width="13.500" height="8" rx="1.500"/><path d="M5 14h.01M8 14h.01M11 14h.01M5 16.500h7"/><rect x="17.500" y="5.500" width="4.500" height="9.500" rx="2.250"/><path d="M19.750 5.500v3.500"/></svg>'},
+  "Mobile phones (Samsung / Android)":{label:"Mobile phones",full:"Mobile phones (Samsung / Android)",cls:"fresh",icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.500" width="10" height="19" rx="2"/><circle cx="12" cy="5.200" r=".6"/><path d="M10.500 18.500h3"/></svg>'},
+  "iPhones":{label:"iPhones",cls:"health",icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.500" width="10" height="19" rx="2.300"/><path d="M10 5.200h4M10.500 19h3"/></svg>'}
+};
+var ELEC_SUBS=["Laptops","Desktops","Screens","Peripherals","Mobile phones (Samsung / Android)","iPhones"];
+var SHOP_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.500l1.200-5h13.600l1.200 5"/><path d="M4 9.500c0 1.500 1.100 2.500 2.500 2.500S9 11 9 9.500c0 1.500 1.100 2.500 2.500 2.500h1c1.400 0 2.500-1 2.500-2.500 0 1.500 1.100 2.500 2.500 2.500S20 11 20 9.500"/><path d="M5.500 12v8h13v-8M10 20v-4.500h4V20"/></svg>';
+function subLabel(n){var u=SUB_UI[n];return u?u.label:n}
+function subFull(n){var u=SUB_UI[n];return u?(u.full||u.label):n}
+function subCount(n){var c=(state.subs||[]).filter(function(x){return x.name===n})[0];return c?c.count:null}
+/* Same grid, circles and labels as the front page, three to a row. */
+function subIcons(counts,attr,list){
+  return '<div class="cats8 sub3" role="group" aria-label="Types of item">'+list.map(function(n){
+    var u=SUB_UI[n]||{label:n,cls:"all",icon:CAT_ICONS.All},c=counts(n);
+    return '<button class="cat cat-'+u.cls+'" type="button" '+attr+'="'+esc(n)+'" aria-label="'+esc(subFull(n))+(c!=null?', '+plural(c,"item"):'')+'"><span class="circ">'+u.icon+'</span><span class="lbl">'+esc(u.label)+'</span>'+(c!=null?'<span class="cnt2">'+c+'</span>':'')+'</button>'}).join("")+'</div>';
+}
+function condSwitch(attr,val){
+  return '<div class="seg" role="group" aria-label="New or refurbished">'+[["","All"],["New","New"],["Refurbished","Refurbished"]].map(function(c){return '<button type="button" '+attr+'="'+c[0]+'" aria-pressed="'+(val===c[0])+'">'+c[1]+'</button>'}).join("")+'</div>';
+}
+function electronicsFront(){
+  var h='<p class="back"><button class="btn alt" type="button" data-act="clearcat">← All categories</button></p><div class="sect"><h2>Electronics</h2></div>';
+  if(state.findErr)return h+'<div class="empty">'+esc(state.findErr)+' <button class="linkbtn" type="button" data-act="refind">Try again</button></div>';
+  return h+subIcons(function(n){return state.found?(subCount(n)||0):null},"data-fsub",ELEC_SUBS)+(state.found?'':'<p class="sub" aria-busy="true">Loading…</p>');
+}
+function electronicsList(){
+  var h='<nav class="crumb" aria-label="You are here"><button type="button" data-fsub="">Electronics</button><span aria-hidden="true">›</span><b>'+esc(subFull(state.sub))+'</b></nav>'+condSwitch("data-fcond",state.cond);
+  if(state.findErr)return h+'<div class="empty">'+esc(state.findErr)+' <button class="linkbtn" type="button" data-act="refind">Try again</button></div>';
+  var f=state.found;
+  if(!f)return h+'<p class="sub" aria-busy="true">Loading products…</p>';
+  if(!f.items.length)return h+'<div class="empty">No items of this kind are listed yet. Try another type, or <button class="linkbtn" type="button" data-fsub="">go back to Electronics</button>.</div>';
+  return h+'<p class="sub" role="status">'+plural(f.total,"item")+'.</p><div class="grid">'+f.items.map(localRow).join("")+'</div>';
+}
+function localPic(c,big){
+  var ok=c.image&&(c.image.indexOf("https://")===0||c.image.indexOf("/api/v1/img/")===0);
+  var u=SUB_UI[c.sub]||{icon:SHOP_ICON};
+  return (ok?'<img src="'+esc(c.image)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">':'')+u.icon;
+}
+function localPrice(price,promo){
+  if(price==null)return "";
+  var on=promo!=null&&promo<price;
+  return '<div class="lprice"><span class="price'+(on?' sp':'')+'">'+priceHtml(on?promo:price)+'</span>'+(on?'<s><span class="vh">Was </span>'+money(price)+'</s>':'')+'</div>';
+}
+function localRow(c){
+  if(c.price==null)return catTile(c);
+  var name=esc(c.name)+(c.size?' <span class="size">'+esc(c.size)+'</span>':'');
+  return '<article class="card lrow"><div class="lpic" aria-hidden="true">'+localPic(c)+'</div><div class="lbody"><h3><a href="#item/'+c.id+'">'+name+'</a></h3>'+
+    (c.detail?'<p class="ldet">'+esc(c.detail)+'</p>':'')+localPrice(c.price,c.promo)+
+    '<div>'+(c.condition?'<span class="condpill">'+esc(c.condition)+'</span> ':'')+(c.new?'<span class="tag newtag">New find</span> ':'')+(c.store_id?'<a class="storelnk" href="#shop/'+c.store_id+'">'+esc(c.store_name||"Store")+'</a>':'')+'</div></div>'+
+    '<div class="lfoot"><span></span><a class="viewbtn" href="#item/'+c.id+'" aria-label="View '+esc(c.name)+'">View</a></div></article>';
+}
+/* The expanded item page, for items sold by a local store. Prices are open; no lookup is used. */
+var ITEM={id:0,data:null,err:"",loading:false};
+function loadItem(){
+  var id=state.itemId;
+  if(ITEM.id===id&&(ITEM.data||ITEM.err))return;
+  if(ITEM.loading)return;
+  if(ITEM.id!==id){ITEM.id=id;ITEM.data=null;ITEM.err=""}
+  ITEM.loading=true;
+  api("GET","/local-items/"+id+"?"+qs({region:state.region})).then(function(d){ITEM.data=d;ITEM.loading=false;if(state.view==="item")renderMain()}).catch(function(e){
+    ITEM.loading=false;if(handleAuthError(e))return;
+    ITEM.err=e.status===404?"That item is not available right now.":e.message;if(state.view==="item")renderMain();
+  });
+}
+function openLine(hs){
+  if(!hs||!hs.text)return "";
+  var ic=hs.state==="closed"?'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 8l8 8"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  return '<div class="openline '+esc(hs.state||"unknown")+'">'+ic+'<span>'+esc(hs.text)+'</span></div>';
+}
+function enquireItem(d){
+  var st=d.store;if(!st||!st.whatsapp)return "";
+  var txt="Hi, I saw "+d.name+(d.condition?" ("+d.condition+")":"")+" for "+money(d.promo!=null?d.promo:d.price)+" on PricePulse ZA. Is it still available?";
+  return '<a class="btn" href="https://wa.me/'+esc(st.whatsapp)+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener noreferrer">Enquire about this item<span class="vh"> (opens WhatsApp)</span></a>';
+}
+function viewItem(){
+  var h='<p class="back"><button class="btn alt" type="button" data-act="back">← Back</button></p>',d=ITEM.data;
+  if(ITEM.err)return h+'<div class="empty">'+esc(ITEM.err)+'</div>';
+  if(!d)return h+'<p class="sub" aria-busy="true">Loading the item…</p>';
+  var st=d.store,facts=[["Type",d.sub?subFull(d.sub):""],["Condition",d.condition],["Details",d.detail],["Item code",d.sku]].filter(function(x){return x[1]});
+  h+='<article class="card"><div class="lbigpic" aria-hidden="true">'+localPic(d)+'</div><h2 class="h2" style="margin:.2rem 0">'+esc(d.name)+'</h2>'+
+    (d.condition?'<span class="condpill">'+esc(d.condition)+'</span>':'')+localPrice(d.price,d.promo)+
+    (d.description?'<p>'+esc(d.description)+'</p>':'')+'<dl class="facts">'+facts.map(function(x){return '<dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd>'}).join("")+'</dl></article>'+
+    '<section class="card place" aria-label="The store"><h3 style="margin:0"><a href="#shop/'+st.id+'">'+esc(st.name)+'</a> <span class="tag localtag">Local store</span></h3>'+openLine(st.hours)+
+    '<p style="margin:.2rem 0">'+esc([st.town,st.address].filter(Boolean).join(" · "))+'</p><div class="btns" style="margin:.5rem 0 0">'+enquireItem(d)+contactButtons(st,true)+'</div>'+
+    '<a class="btn bigenter" href="#shop/'+st.id+'">Enter Store</a></section>'+
+    '<p class="sub">Prices include VAT. You deal directly with the store: PricePulse does not sell or deliver this item.</p>';
+  return h+disclaimer();
+}
+
+/* Sub-category chips (kept for other uses). */
 function subChips(){
   if(!state.subs.length&&!state.sub&&!state.cond)return "";
   var all=state.cat==="All"?"All":"All "+state.cat;
@@ -1293,6 +1433,11 @@ document.getElementById("menupop").addEventListener("click",function(e){
 });
 document.addEventListener("click",function(){if(menuOpen())menuShow(false)});
 window.addEventListener("resize",function(){if(menuOpen())menuShow(false);fitFront()});
+/* Typing an opening or closing time clears that day's "closed all day" tick. */
+document.addEventListener("input",function(e){
+  var m=/^soh[oc]-(\w+)$/.exec(e.target.id||"");
+  if(m&&e.target.value.trim()){var x=document.getElementById("sohx-"+m[1]);if(x)x.checked=false}
+});
 document.addEventListener("keydown",function(e){
   if(!menuOpen())return;
   if(e.key==="Escape"){menuShow(false);document.getElementById("menubtn").focus();return}
@@ -1364,7 +1509,7 @@ function viewMyStore(){
     var f=function(id,label,val,max,hint){return '<label class="field wide"><span>'+label+'</span><input id="'+id+'" type="text" maxlength="'+max+'" value="'+esc(val||"")+'" autocomplete="off"'+(hint?' placeholder="'+esc(hint)+'"':'')+'></label>'};
     h+='<div class="card"><p style="margin:0"><b>What shoppers see about your store</b></p><p class="sub" style="margin:.3rem 0 .6rem">Shoppers tap your store name on an item to see this, and can call you or message you on WhatsApp.</p><div class="admform">'+
       f("sodaddr","Address",m.address,160)+f("sodphone","Phone",m.phone,30,"082 123 4567")+f("sodwa","WhatsApp number (leave blank to use your phone)",m.whatsapp,30,"082 123 4567")+f("sodemail","Email (only PricePulse sees this)",m.email,120)+f("sodcontact","Contact person (only PricePulse sees this)",m.contact_name,80)+
-      '</div><p class="err" id="soderr" role="alert"></p><div class="btns" style="margin-bottom:0"><button class="btn" type="button" data-so="savedetails">Save</button></div></div>';
+      '</div><p class="err" id="soderr" role="alert"></p><div class="btns" style="margin-bottom:0"><button class="btn" type="button" data-so="savedetails">Save</button></div></div>'+soHoursCard(m)+soPhotosCard(m);
   }else if(SO.tab==="history"){
     var hs=SO.hist;
     h+=!hs?'<p class="sub" aria-busy="true">Loading…</p>':'<div class="admwrap"><table class="admtable"><thead><tr><th>When</th><th>How</th><th>File</th><th class="num">Rows</th><th class="num">New</th><th class="num">Updated</th><th class="num">Hidden</th><th class="num">Skipped</th></tr></thead><tbody>'+
@@ -1379,6 +1524,7 @@ function soItemForm(it){
     (m.subcategories.length?sel("sosub","Type of item",m.subcategories,r.sub):"")+(m.conditions.length?sel("socond","New or Refurbished",m.conditions,r.condition):"")+
     f("soprice","Selling price in rand, VAT included",r.price!=null?String(r.price):"",12,"",' inputmode="decimal"')+f("sopromo","Special price (optional, lower than the price)",r.promo!=null?String(r.promo):"",12,"",' inputmode="decimal"')+
     f("sosize","Size or specification (for example i5 16GB 512GB SSD)",r.size,40,"wide")+
+    '<label class="field wide"><span>Description (optional, shown on the item page, up to 500 characters)</span><textarea id="sodesc" rows="3" maxlength="500">'+esc(r.description||"")+'</textarea></label>'+
     f("sosku","Item code",r.sku,40,"",it?' readonly':'')+f("sobarcode","Barcode (optional)",r.barcode,20)+f("soimage","Picture link (optional, https://)",r.image,400,"wide")+
     '<label class="check wide" style="grid-column:1/-1"><input type="checkbox" id="soinstock"'+(!it||r.active?' checked':'')+'><span>In stock (shoppers can see it)</span></label></div><p class="err" id="soerr" role="alert"></p>',
     [["Save the item","sosave:"+(it?it.id:"new"),"btn"],["Cancel","","btn alt"]]);
@@ -1386,7 +1532,7 @@ function soItemForm(it){
 }
 function soSave(b,dlg,id){
   var v=function(x){var e=document.getElementById(x);return e?e.value:""};
-  var body={name:v("soname"),price:v("soprice"),promo:v("sopromo"),size:v("sosize"),sku:v("sosku"),barcode:v("sobarcode"),department:v("sosub"),condition:v("socond"),image:v("soimage"),in_stock:!!(document.getElementById("soinstock")||{}).checked};
+  var body={name:v("soname"),price:v("soprice"),promo:v("sopromo"),size:v("sosize"),sku:v("sosku"),barcode:v("sobarcode"),department:v("sosub"),condition:v("socond"),image:v("soimage"),description:v("sodesc"),in_stock:!!(document.getElementById("soinstock")||{}).checked};
   b.disabled=true;
   return api("POST","/store/items"+(id==="new"?"":"/"+id),body).then(function(){dlg.close();say("Item saved.");soReload()}).catch(function(e){b.disabled=false;var el=document.getElementById("soerr");if(el)el.textContent=e.message})
 }
@@ -1420,6 +1566,62 @@ function soDoLoad(b,dlg){
     say("File loaded: "+r.added+" added.");SO.tab="items";soReload();
   }).catch(function(e){dlg.close();ask("Could not load the file",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
 }
+
+var SO_DAYS=[["mon","Monday"],["tue","Tuesday"],["wed","Wednesday"],["thu","Thursday"],["fri","Friday"],["sat","Saturday"],["sun","Sunday"]];
+function soHoursCard(m){
+  var hr=m.hours||{};
+  var rows=SO_DAYS.map(function(d){
+    var v=hr[d[0]],closed=!v;
+    return '<div class="hr"><b>'+d[1].slice(0,3)+'</b><label class="vh" for="soho-'+d[0]+'">'+d[1]+' opens</label><input id="soho-'+d[0]+'" type="text" inputmode="numeric" maxlength="5" placeholder="08:00" value="'+esc(v?v[0]:"")+'" autocomplete="off">'+
+      '<label class="vh" for="sohc-'+d[0]+'">'+d[1]+' closes</label><input id="sohc-'+d[0]+'" type="text" inputmode="numeric" maxlength="5" placeholder="17:00" value="'+esc(v?v[1]:"")+'" autocomplete="off">'+
+      '<label class="cl"><input type="checkbox" id="sohx-'+d[0]+'"'+(closed?' checked':'')+'><span>'+d[1]+': closed all day</span></label></div>'}).join("");
+  return '<div class="card"><p style="margin:0"><b>Opening hours</b></p><p class="sub" style="margin:.3rem 0 .6rem">24-hour clock, South African time, for example 08:00 and 17:00. Shoppers see “Open now” or “Closed” from these.</p>'+
+    '<div class="hrsedit">'+rows+'</div><label class="field wide"><span>Note (optional, for example: closed on public holidays)</span><input id="sohnote" type="text" maxlength="200" value="'+esc(m.hours_note||"")+'" autocomplete="off"></label>'+
+    '<p class="sub" id="sohprev" role="status">'+esc((m.hours_status||{}).text||"")+'</p><p class="err" id="soherr" role="alert"></p>'+
+    '<div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-so="copymon">Copy Monday to Tuesday–Friday</button><button class="btn" type="button" data-so="savehours">Save opening hours</button></div></div>';
+}
+function soPhotosCard(m){
+  var ph={};(m.photos||[]).forEach(function(x){ph[x.slot]=x.url});
+  return '<div class="card"><p style="margin:0"><b>Shop photos</b></p><p class="sub" style="margin:.3rem 0 .6rem">Use a clear photo of the front of your shop. Photo 2 is optional. Only upload photos you have the right to publish.</p>'+
+    [1,2].map(function(n){return '<div class="photoslot"><div class="thumb">'+(ph[n]?'<img src="'+esc(ph[n])+'" alt="Photo '+n+' of my shop">':'<span class="sub" style="margin:0">No photo</span>')+'</div>'+
+      '<div><button class="btn alt" type="button" data-so="photo" data-slot="'+n+'">'+(ph[n]?'Change photo '+n:'Choose photo '+n)+'</button>'+(ph[n]?' <button class="btn alt" type="button" data-so="photodel" data-slot="'+n+'">Remove photo '+n+'</button>':'')+'</div></div>'}).join("")+
+    '<input id="sophoto" class="vh" type="file" accept="image/*" tabindex="-1" aria-hidden="true"><p class="err" id="sopherr" role="alert"></p></div>';
+}
+function soReadHours(){
+  var days={};
+  SO_DAYS.forEach(function(d){
+    var x=document.getElementById("sohx-"+d[0]),a=document.getElementById("soho-"+d[0]).value.trim(),b=document.getElementById("sohc-"+d[0]).value.trim();
+    days[d[0]]=(x&&x.checked)||(!a&&!b)?null:[a,b];
+  });
+  return days;
+}
+/* Shrink the photo in the browser to a JPEG (longest side 1200px). This also drops any location data. */
+function soShrink(file,maxSide){
+  return new Promise(function(ok,bad){
+    var url=URL.createObjectURL(file),img=new Image();
+    img.onload=function(){
+      var w=img.naturalWidth,h=img.naturalHeight,k=Math.min(1,maxSide/Math.max(w,h)),c=document.createElement("canvas");
+      c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+      var g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      if(!c.toBlob)return bad(new Error("This browser cannot shrink photos. Please use a smaller photo."));
+      c.toBlob(function(b){b?ok(b):bad(new Error("This browser cannot shrink photos. Please use a smaller photo."))},"image/jpeg",0.82);
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);bad(new Error("That file is not a photo this browser can read."))};
+    img.src=url;
+  });
+}
+function soUploadPhoto(slot,file){
+  var el=document.getElementById("sopherr");if(el)el.textContent="";
+  return soShrink(file,1200).then(function(blob){
+    return Auth.token().then(function(tok){
+      return fetch(API+"/store/photos/"+slot,{method:"POST",headers:{"Authorization":"Bearer "+tok,"Content-Type":"image/jpeg"},body:blob});
+    });
+  }).then(function(r){
+    if(r.ok)return;
+    return r.json().catch(function(){return {}}).then(function(b){var d=b.detail;throw new Error((d&&d.message)||"The photo was not accepted (error "+r.status+").")});
+  }).then(function(){say("Photo saved.");soReload()}).catch(function(e){var el2=document.getElementById("sopherr");if(el2)el2.textContent=e.message});
+}
 function soClick(t){
   var d=t.dataset,m=SO.me;
   if(d.so==="tab"||d.so==="gotab"){SO.tab=d.tab;SO.err="";renderMain();return (SO.tab==="items"||SO.tab==="history"||SO.tab==="overview")?soReload():undefined}
@@ -1431,6 +1633,13 @@ function soClick(t){
   if(d.so==="download"){var rows=((SO.items||{}).items||[]);return admSaveFile("my-store-items.csv","item,price,sub-category,condition,size,sku,barcode,promo price,image\r\n"+rows.map(function(r){return [r.name,r.price==null?"":r.price,r.sub,r.condition,r.size,r.sku,r.barcode,r.promo==null?"":r.promo,r.image].map(csvCell).join(",")}).join("\r\n")+"\r\n")}
   if(d.so==="confirm"){t.disabled=true;return api("POST","/store/confirm-prices").then(function(r){t.disabled=false;say(r.confirmed+" prices confirmed for today.");soReload()}).catch(function(e){t.disabled=false;ask("Could not confirm",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])})}
   if(d.so==="seemine"&&m){state.region=m.region;savePrefs();state.found=null;return go("shop/"+m.id)}
+  if(d.so==="copymon"){var a=document.getElementById("soho-mon").value,b=document.getElementById("sohc-mon").value;["tue","wed","thu","fri"].forEach(function(k){document.getElementById("soho-"+k).value=a;document.getElementById("sohc-"+k).value=b;document.getElementById("sohx-"+k).checked=false});return}
+  if(d.so==="savehours"){
+    t.disabled=true;
+    return api("POST","/store/hours",{days:soReadHours(),note:(document.getElementById("sohnote")||{}).value||""}).then(function(r){t.disabled=false;say("Opening hours saved.");var e=document.getElementById("sohprev");if(e)e.textContent=(r.status||{}).text||"";soReload()}).catch(function(e){t.disabled=false;var el=document.getElementById("soherr");if(el)el.textContent=e.message});
+  }
+  if(d.so==="photo"){var pf=document.getElementById("sophoto");if(pf){pf.dataset.slot=d.slot;pf.value="";pf.click()}return}
+  if(d.so==="photodel")return api("DELETE","/store/photos/"+d.slot).then(function(){say("Photo removed.");soReload()}).catch(function(e){var el=document.getElementById("sopherr");if(el)el.textContent=e.message});
   if(d.so==="savedetails"){
     var v=function(x){return (document.getElementById(x)||{}).value||""};
     t.disabled=true;
@@ -1472,16 +1681,33 @@ function viewShop(){
   var h='<p class="back"><a class="btn alt" href="#find">← Back to products</a></p>',i=SHOP.info;
   if(SHOP.err)return h+'<div class="empty">'+esc(SHOP.err)+'</div>';
   if(!i)return h+'<p class="sub" aria-busy="true">Loading the store…</p>';
-  h+='<h2 class="h2">'+esc(i.name)+' <span class="tag localtag">Local store</span></h2><div class="card"><p style="margin:0">'+esc([i.town,i.address].filter(Boolean).join(" · "))+'</p>'+
-    '<div class="btns" style="margin:.6rem 0 0">'+contactButtons(i,true)+'</div></div>';
-  if(i.subs.length)h+='<div class="seg" role="group" aria-label="Type of item"><button type="button" data-shop="sub" data-sub="" aria-pressed="'+(!SHOP.sub)+'">All ('+i.items+')</button>'+i.subs.map(function(s){return '<button type="button" data-shop="sub" data-sub="'+esc(s.name)+'" aria-pressed="'+(SHOP.sub===s.name)+'">'+esc(s.name)+' ('+s.count+')</button>'}).join("")+'</div>';
-  h+='<div class="seg" role="group" aria-label="New or refurbished">'+[["","All"],["New","New"],["Refurbished","Refurbished"]].map(function(c){return '<button type="button" data-shop="cond" data-cond="'+c[0]+'" aria-pressed="'+(SHOP.cond===c[0])+'">'+c[1]+'</button>'}).join("")+'</div>';
-  h+='<p class="sub" role="status">'+plural(SHOP.total,"item")+(SHOP.total>SHOP.items.length?' (first '+SHOP.items.length+' shown)':'')+'. Tap <b>Look up</b> to see the price.</p><div class="grid">'+SHOP.items.map(catTile).join("")+'</div>';
+  if(state.shopItems)return viewShopItems(i);
+  var ph=(i.photos||[]).slice(0,2),hs=i.hours||{},week=(hs.week||[]);
+  h+='<section class="card place" aria-label="'+esc(i.name)+'"><div class="photos'+(ph.length<2?' one':'')+'">'+
+    (ph.length?ph.map(function(u,n){return '<div class="ph"'+(n?' class="ph"':'')+'><img src="'+esc(u)+'" alt="'+(n?'Inside or outside of ':'Front of ')+esc(i.name)+'" loading="'+(n?'lazy':'eager')+'" decoding="async" width="800" height="600" onerror="this.remove()"></div>'}).join(""):'<div class="ph" aria-hidden="true">'+SHOP_ICON+'</div>')+'</div>'+
+    '<h2>'+esc(i.name)+' <span class="tag localtag">Local store</span></h2>'+openLine(hs)+
+    (week.length?'<details class="weekhrs"><summary>See all hours</summary><table><tbody>'+week.map(function(w){return '<tr><td>'+esc(w[0])+'</td><td>'+esc(w[1])+'</td></tr>'}).join("")+'</tbody></table>'+(hs.note?'<p class="sub">'+esc(hs.note)+'</p>':'')+'</details>':(hs.note?'<p class="sub">'+esc(hs.note)+'</p>':''))+
+    '<p style="margin:.3rem 0">'+esc([i.address,i.town].filter(Boolean).join(", "))+'</p>'+
+    '<div class="btns" style="margin:.4rem 0 0">'+(i.directions?'<a class="btn alt" href="'+esc(i.directions)+'" target="_blank" rel="noopener noreferrer">Directions<span class="vh"> (opens a map in a new tab)</span></a>':'')+contactButtons(i,true)+'</div>'+
+    '<a class="btn bigenter" href="#shop/'+i.id+'/items">Enter Store ('+plural(i.items,"item")+')</a></section>';
+  return h+disclaimer();
+}
+function viewShopItems(i){
+  var h='<p class="back"><a class="btn alt" href="#shop/'+i.id+'">← '+esc(i.name)+'</a></p><h2 class="h2">'+esc(i.name)+'</h2>';
+  var subs=(i.subs||[]);
+  if(subs.length&&!SHOP.sub&&!SHOP.all)h+=subIcons(function(n){var c=subs.filter(function(x){return x.name===n})[0];return c?c.count:0},'data-shop="sub" data-sub',subs.map(function(x){return x.name}))+'<div class="sect" style="margin-top:.2rem"><button class="linkbtn" type="button" data-shop="sub" data-sub="*">Show all '+plural(i.items,"item")+'</button></div>';
+  else if(SHOP.sub||SHOP.all)h+='<nav class="crumb" aria-label="You are here"><button type="button" data-shop="sub" data-sub="">All types</button>'+(SHOP.sub?'<span aria-hidden="true">›</span><b>'+esc(subFull(SHOP.sub))+'</b>':'')+'</nav>';
+  if(!subs.length||SHOP.sub||SHOP.all){
+    h+=condSwitch('data-shop="cond" data-cond',SHOP.cond);
+    h+=SHOP.loading&&!SHOP.items.length?'<p class="sub" aria-busy="true">Loading…</p>':'<p class="sub" role="status">'+plural(SHOP.total,"item")+(SHOP.total>SHOP.items.length?' (first '+SHOP.items.length+' shown)':'')+'.</p><div class="grid">'+SHOP.items.map(localRow).join("")+'</div>';
+  }
   return h+disclaimer();
 }
 function shopClick(t){
   var d=t.dataset;
-  if(d.shop==="sub"){SHOP.sub=d.sub;SHOP.reload=true;SHOP.items=[];renderMain();return loadShop()}
+  if(d.shop==="enter"){state.shopItems=true;SHOP.sub="";SHOP.all=false;SHOP.cond="";SHOP.reload=true;SHOP.items=[];window.scrollTo(0,0);renderMain();return loadShop()}
+  if(d.shop==="leave"){state.shopItems=false;window.scrollTo(0,0);return renderMain()}
+  if(d.shop==="sub"){SHOP.sub=d.sub==="*"?"":d.sub;SHOP.all=d.sub==="*";SHOP.reload=true;SHOP.items=[];renderMain();return loadShop()}
   if(d.shop==="cond"){SHOP.cond=d.cond;SHOP.reload=true;SHOP.items=[];renderMain();return loadShop()}
 }
 
@@ -1761,6 +1987,7 @@ document.getElementById("main").addEventListener("change",function(e){
   if(e.target.id==="esfile")return esFileChosen(e.target.files&&e.target.files[0]);
   if(e.target.id==="lsfile")return lsFileChosen(e.target);
   if(e.target.id==="sofile")return soFileChosen(e.target);
+  if(e.target.id==="sophoto"){var pf=e.target.files&&e.target.files[0];if(pf)soUploadPhoto(+e.target.dataset.slot||1,pf);return}
   if(e.target.dataset&&e.target.dataset.admf)admField(e.target)});
 document.getElementById("main").addEventListener("input",function(e){if(e.target.dataset&&e.target.dataset.admf==="q")admField(e.target)});
 
@@ -1773,7 +2000,7 @@ var ICONS={
 };
 var LABELS={find:"Find",list:"List",towns:"Towns",account:"Account"};
 function renderNav(){
-  var cur=state.view==="product"?"find":state.view;
+  var cur=(state.view==="product"||state.view==="item"||state.view==="shop")?"find":state.view;
   document.getElementById("nav").innerHTML=Object.keys(LABELS).map(function(k){
     var n=k==="list"?listCount():0;
     return '<button type="button" data-view="'+k+'"'+(cur===k?' aria-current="page"':'')+'>'+ICONS[k]+'<span>'+LABELS[k]+(n?'<span class="cnt" aria-label=", '+n+' items">'+n+'</span>':'')+'</span></button>'}).join("");
@@ -1784,7 +2011,7 @@ function renderMain(){
   if(state.phase==="boot")h='<p class="empty">Opening PricePulse…</p>';
   else if(state.phase==="signin")h=viewSignin();
   else if(state.phase==="idcheck")h=viewIdCheck();
-  else h=state.view==="find"?viewFind():state.view==="towns"?viewTowns():state.view==="list"?viewList():state.view==="product"?viewProduct():state.view==="admin"?viewAdmin():state.view==="store"?viewMyStore():state.view==="shop"?viewShop():viewAccount();
+  else h=state.view==="find"?viewFind():state.view==="towns"?viewTowns():state.view==="list"?viewList():state.view==="product"?viewProduct():state.view==="admin"?viewAdmin():state.view==="store"?viewMyStore():state.view==="shop"?viewShop():state.view==="item"?viewItem():viewAccount();
   m.innerHTML=h;
   document.body.classList.toggle("front",state.phase==="app"&&state.view==="find"&&!(state.q.trim()||state.cat!=="All"||state.flt));
 }
@@ -1804,6 +2031,7 @@ function render(){
   if(state.view==="admin")admLoad();
   if(state.view==="store"&&!SO.me)soLoad();
   if(state.view==="shop")loadShop();
+  if(state.view==="item")loadItem();
   if(state.view==="find"&&!state.found&&!state.finding&&!state.findErr)runFind(true);
 }
 /* The Find tab and the PricePulse title go to the clean front screen: typed text, category and the
@@ -1822,10 +2050,11 @@ function go(v,focus){
   else if(v.indexOf("account")===0){state.view="account";if(v==="account/paid")afterPayment();if(v==="account/cancelled")say("Payment was cancelled. Nothing was charged.");v="account"}
   else if(v==="admin"&&state.me&&state.me.is_admin)state.view="admin";
   else if(v==="store"&&state.me&&state.me.store_owner){state.view="store";SO.me=null;SO.items=null;SO.hist=null}
-  else if(v.indexOf("shop/")===0){state.view="shop";state.shopId=+v.slice(5)||0}
+  else if(v.indexOf("item/")===0){state.view="item";state.itemId=+v.slice(5)||0}
+  else if(v.indexOf("shop/")===0){var sp=v.slice(5).split("/");state.view="shop";state.shopId=+sp[0]||0;state.shopItems=sp[1]==="items";if(SHOP.id!==state.shopId){SHOP.sub="";SHOP.all=false;SHOP.cond=""}}
   else state.view=LABELS[v]?v:"find";
   render();window.scrollTo(0,0);
-  var target="#"+(state.view==="product"?"product/"+state.productId:state.view==="shop"?"shop/"+state.shopId:state.view);
+  var target="#"+(state.view==="product"?"product/"+state.productId:state.view==="item"?"item/"+state.itemId:state.view==="shop"?"shop/"+state.shopId+(state.shopItems?"/items":""):state.view);
   if(location.hash!==target){try{history.pushState(null,"",target)}catch(e){location.hash=target}}
   if(focus!==false)document.getElementById("main").focus({preventScroll:true});
 }
@@ -1924,6 +2153,8 @@ document.addEventListener("click",function(e){
     case "refind":state.findErr="";return runFind(true);
     case "catsmore":state.catsMore=!state.catsMore;return renderMain();
     case "viewall":state.flt=t.dataset.kind;state.cat="All";state.found=null;renderMain();window.scrollTo(0,0);return runFind(true);
+    case "clearcat":return goHome();
+    case "back":if(history.length>1)return history.back();return go("find");
     case "clearflt":state.flt="";state.found=null;renderMain();return runFind(true);
     case "request":return requestDialog(t.dataset.term||"");
     case "newsearch":return startSearch(t.dataset.term||"",t);

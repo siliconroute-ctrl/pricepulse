@@ -250,6 +250,7 @@ def ingest_items(
         sku = str(row.get("sku") or "").strip()[:40]
         department = str(row.get("department") or "").strip()[:60]
         condition = str(row.get("condition") or "").strip()[:12]
+        description = str(row.get("description") or "").strip()[:500]
         image_url = str(row.get("image_url") or "").strip()[:400]
         source = str(row.get("source") or "scrape")[:8]
 
@@ -288,6 +289,7 @@ def ingest_items(
                 sku=sku,
                 department=department,
                 condition=condition,
+                description=description,
                 image_url=image_url,
                 source=source,
                 active=True,
@@ -329,6 +331,8 @@ def ingest_items(
                 listing.department = department
             if condition:
                 listing.condition = condition
+            if description:
+                listing.description = description
             if image_url:
                 listing.image_url = image_url
             if hit_rank:

@@ -81,6 +81,12 @@ class Store(Base):
     whatsapp: Mapped[str] = mapped_column(
         String(30), default="", server_default=""
     )  # number for the WhatsApp button (blank = use phone)
+    hours: Mapped[str] = mapped_column(
+        Text, default="", server_default=""
+    )  # opening hours as JSON: {"mon": ["08:00", "17:00"], "sun": null}; "" = not given
+    hours_note: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    photo1: Mapped[str] = mapped_column(String(64), default="", server_default="")  # shop photo file name
+    photo2: Mapped[str] = mapped_column(String(64), default="", server_default="")
 
 
 class Product(Base):
@@ -139,6 +145,9 @@ class Listing(Base):
     condition: Mapped[str] = mapped_column(
         String(12), default="", server_default=""
     )  # New / Refurbished ("" = not stated)
+    description: Mapped[str] = mapped_column(
+        String(500), default="", server_default=""
+    )  # a longer description for the item's View page
     image_url: Mapped[str] = mapped_column(
         String(400), default="", server_default=""
     )  # https picture link, or our own /api/v1/img/... path
@@ -466,6 +475,22 @@ def _m12_store_portal(conn: Connection) -> None:
         conn.execute(text("ALTER TABLE listing ADD COLUMN condition VARCHAR(12) NOT NULL DEFAULT ''"))
 
 
+def _m13_store_pages(conn: Connection) -> None:
+    """Opening hours, shop photos and item descriptions (adds columns only)."""
+    scols = {c["name"] for c in inspect(conn).get_columns("store")}
+    for name, ddl in (
+        ("hours", "TEXT NOT NULL DEFAULT ''"),
+        ("hours_note", "VARCHAR(200) NOT NULL DEFAULT ''"),
+        ("photo1", "VARCHAR(64) NOT NULL DEFAULT ''"),
+        ("photo2", "VARCHAR(64) NOT NULL DEFAULT ''"),
+    ):
+        if name not in scols:
+            conn.execute(text(f"ALTER TABLE store ADD COLUMN {name} {ddl}"))
+    lcols = {c["name"] for c in inspect(conn).get_columns("listing")}
+    if "description" not in lcols:
+        conn.execute(text("ALTER TABLE listing ADD COLUMN description VARCHAR(500) NOT NULL DEFAULT ''"))
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
@@ -479,6 +504,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (10, "store item limit", _m10_store_limits),
     (11, "new-item searches", _m11_new_item_search),
     (12, "store-owner portal", _m12_store_portal),
+    (13, "store pages: hours, photos, item descriptions", _m13_store_pages),
 ]
 
 

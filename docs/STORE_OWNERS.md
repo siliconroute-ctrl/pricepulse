@@ -47,3 +47,11 @@ described truthfully (including new or refurbished); the store, not PricePulse, 
 > sign in with the same Google or email sign-in you used. 2) Tap the three dots, then **My store**.
 > 3) Add your items one by one, or upload a CSV file (template attached). Remember: every price must be
 > the price the buyer pays, VAT included. Questions: admin@trolleyup.com.
+
+## Opening hours and shop photos (app v41)
+In **My store → Store details** the owner now sets:
+- **Opening hours** for each day (24-hour clock, South African time, for example 08:00 to 17:00), a "closed all day" tick, and an optional note such as "Closed on public holidays". Shoppers see "Open now · closes at 17:00", "Closed · opens tomorrow at 08:00" and the whole week under "See all hours".
+- **Shop photos** (one or two): a clear photo of the front of the shop. The browser shrinks it before sending (JPEG only reaches the server, 600 KB at most). Only upload photos you have the right to publish.
+- A **Description** on each item (up to 500 characters), shown on the item's View page.
+
+Shoppers reach the store page by tapping the store name on an item, and the **Enter Store** button lists that store's items by type. Photos live in `/data/uploads/stores/<store id>/` and are included in the backup (`pricepulse-uploads-DATE.tar.gz`, see docs/DEPLOY.md).

@@ -84,6 +84,7 @@ HEADS = {
     "department": ["department", "dept", "section", "aisle", "subcategory", "sub category", "sub-category"],
     "category": ["category", "type", "class", "main category", "item group", "group"],
     "brand": ["brand", "manufacturer", "make"],
+    "description": ["long description", "details", "item details", "more info", "about this item"],
     "condition": ["condition", "grade", "item condition", "state", "new refurbished", "new or refurbished"],
     "image": [
         "image url",
@@ -275,6 +276,10 @@ def check_rows(rows: list[dict], category: str = "") -> CleanRows:
             continue
         if item_category not in CATEGORIES and item_category not in out.new_categories:
             out.new_categories.append(item_category)
+        description = re.sub(r"\s+", " ", raw.get("description", "")).strip()[:500]
+        if re.search(r"https?:|www\.", description, re.I):
+            _bad(out, i, name, "the description must not contain a web address")
+            continue
         condition = clean_condition(raw.get("condition", ""))
         if category and item_category in SUBCATEGORIES and not condition:
             _bad(out, i, name, "say whether the item is New or Refurbished")
@@ -307,6 +312,7 @@ def check_rows(rows: list[dict], category: str = "") -> CleanRows:
                 "sku": sku,
                 "department": department,
                 "condition": condition,
+                "description": description,
                 "brand": re.sub(r"\s+", " ", raw.get("brand", "")).strip()[:80],
                 "category": item_category,
                 "image_url": image,
@@ -533,6 +539,7 @@ def save_item(
         "brand": str(fields.get("brand") or ""),
         "image": str(fields.get("image") or ""),
         "condition": str(fields.get("condition") or ""),
+        "description": str(fields.get("description") or ""),
         "stock": "" if fields.get("in_stock", True) else "no stock",
     }
     checked = check_rows([raw], store.category)
@@ -650,6 +657,7 @@ def store_items(
                 "size": lst.size_text,
                 "sub": lst.department,
                 "condition": lst.condition,
+                "description": lst.description,
                 "price": (last.price_cents / 100) if last else None,
                 "promo": (last.promo_cents / 100) if last and last.promo_cents is not None else None,
                 "image": lst.image_url,

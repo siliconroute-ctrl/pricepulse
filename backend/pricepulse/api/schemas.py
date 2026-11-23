@@ -206,6 +206,9 @@ class CatalogueItem(_Model):
     condition: str = ""  # New / Refurbished at a local store
     store_id: int = 0  # the local store this row's sub-category and condition come from
     store_name: str = ""
+    price: float | None = None  # a local store's price shows openly (no lookup needed); chains: null
+    promo: float | None = None
+    detail: str = ""  # the local store's spec text for the item
 
 
 class SubCount(_Model):
@@ -236,6 +239,9 @@ class StoreOut(_Model):
     category: str
     items: int
     subs: list[SubCount]
+    hours: dict = {}  # open_status(): state, text, today, week, note
+    photos: list[str] = []
+    directions: str = ""
 
 
 class SessionItemOut(_Model):
