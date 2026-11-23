@@ -102,6 +102,8 @@ _Last updated 2026-11-14. Claude: rewrite this section at the end of every work 
 
 **Tester accounts: unlimited new-item searches (23 Nov 2026, branch `claude/tester-unlimited-search`, branched from `main` after pull request 39 was MERGED, not merged or deployed; no database change, no app version change):** the owner's tester account hit the 5-a-day limit while trying v39. Accounts on the `tester` plan now have no daily limit on new-item searches (`discovery.start_search`); `paid` accounts keep 5 a day. The same word within 7 days is still reused. 1 new test.
 
+**Water is Groceries (23 Nov 2026, branch `claude/water-is-groceries`, branched from `main` after pull request 40 was MERGED, not merged or deployed; no database change, no app version change):** owner saw "aQuellé Watermelon Flavoured Sparkling Water" listed under Fresh (it was found by the search word "watermelon", which is searched under Fresh, and an item takes its search word's category). Rule: bottled, sparkling and flavoured water is Groceries. New `pricepulse/categories.py` (`adjust_category`: an item whose name has the word "water" that would be filed under Fresh is filed under Groceries; "Watermelon" alone stays Fresh); applied when prices are loaded and by `rematch` to products and listings already loaded (so the nightly auto-rematch, or `pp rematch`, corrects the old ones). New-item search: "sparkling" alone is no longer taken as liquor ("sparkling wine" still is) and any search with "water" in it is Groceries. 3 new tests.
+
 **Waiting on the owner**
 - Port 80 check; a Contabo snapshot of the working app; try Google sign-in and Delete my data.
 - PayFast sandbox account and test, then a live merchant account with subscriptions enabled (docs/PAYMENTS.md).

@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session, selectinload
 
+from .categories import adjust_category
 from .config import Settings
 from .db import Listing, Price, Product, ScrapeRun, SessionItem, get_or_create_store, slot_for, utcnow
 from .matching import HOUSE_BRANDS, Candidate, Normalised, compatible, match, neutral_name, normalise, score
@@ -244,6 +245,7 @@ def ingest_items(
             _, size_text = split_size(name)
         url = str(row.get("url") or "").strip()[:400]
         category = str(row.get("category") or "").strip()
+        category = adjust_category(name, category)
         ident = str(row.get("ident") or url or f"{name}|{size_text}").lower()[:400]
         sku = str(row.get("sku") or "").strip()[:40]
         department = str(row.get("department") or "").strip()[:60]
@@ -426,6 +428,13 @@ def rematch(session: Session, settings: Settings) -> RematchReport:
         if words != (p.brand_key, p.norm_name, p.is_generic):
             p.brand_key, p.norm_name, p.is_generic = words
             rep.refreshed += 1
+        # Category fixes (for example flavoured water found by a fruit search): products and listings.
+        fixed = adjust_category(first.name, p.category)
+        if fixed != p.category:
+            p.category = fixed
+            rep.refreshed += 1
+        for lst in p.listings:
+            lst.category = adjust_category(lst.name, lst.category)
     session.flush()
     # 2. Join lonely products to other stores' products.
     for p in session.scalars(select(Product).order_by(Product.id)).all():
