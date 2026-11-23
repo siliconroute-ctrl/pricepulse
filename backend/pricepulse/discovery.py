@@ -15,7 +15,7 @@ from datetime import timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .accounts import RuleError, clean_request, is_adult, is_paid
+from .accounts import TESTER, RuleError, clean_request, is_adult, is_paid
 from .db import AppUser, SearchJob, utcnow
 
 DAILY_LIMIT = 5  # searches one person may start per day
@@ -472,7 +472,7 @@ def start_search(s: Session, user: AppUser, term: str, today=None) -> tuple[Sear
         .select_from(SearchJob)
         .where(SearchJob.uid == user.uid, SearchJob.created_at > now - timedelta(hours=24))
     )
-    if (today_count or 0) >= DAILY_LIMIT:
+    if user.plan_override != TESTER and (today_count or 0) >= DAILY_LIMIT:  # testers: no daily limit
         raise RuleError(
             "daily_limit",
             f"You have used your {DAILY_LIMIT} new-item searches for today. Try again tomorrow.",
