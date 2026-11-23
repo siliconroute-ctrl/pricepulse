@@ -77,6 +77,7 @@ header .search-row{margin-top:.6rem}
 .best{margin-top:.6rem;display:flex;align-items:center;gap:.6rem;background:var(--best-bg);border-radius:.6rem;padding:.6rem .7rem;flex-wrap:wrap}
 .price{font-family:var(--font-display);font-weight:700;font-size:2.1rem;line-height:1;font-variant-numeric:tabular-nums}
 .tag{font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--best)}
+.newtag{color:var(--accent,var(--best));font-weight:800;text-transform:uppercase;letter-spacing:.05em;font-size:.82rem}
 .tag::before{content:"\2713\00a0"}
 .unit{font-size:.94rem;color:var(--ink);font-weight:600}
 .was{font-size:.94rem;color:var(--muted);text-decoration:line-through}
@@ -475,7 +476,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 38;
+var APP_VERSION = 39;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -497,7 +498,7 @@ var state = {
   view:"find", productId:null, cat:"All", q:"", region:"paarl", regions:FALLBACK_REGIONS.slice(),
   me:null, items:[], basket:null, stamp:null, isSample:false, savedAt:null, offline:false, error:"",
   found:null, finding:false, findErr:"", unitMode:false, radius:50, towns:null, detail:null, theme:"system",
-  signMode:"in", authErr:"", busy:false, picked:{}
+  signMode:"in", authErr:"", busy:false, picked:{}, searches:[], searchesLoaded:false, seenDone:{}
 };
 try{state.picked=JSON.parse(localStorage.getItem("pp_picks")||"{}")||{}}catch(e){state.picked={}}
 
@@ -620,7 +621,7 @@ function eff(p){return p.promo!=null?p.promo:p.price}
 function sortedStores(prod){return Object.keys(prod.prices).sort(function(a,b){return eff(prod.prices[a])-eff(prod.prices[b])||(a<b?-1:1)})}
 function toProduct(it){
   var prices={};it.prices.forEach(function(p){prices[p.store]={price:p.price,promo:p.promo_price,url:p.url,at:p.scraped_at,stale:p.stale,local:!!p.local,unit:p.unit_price}});
-  return {id:it.id,name:it.name,brand:it.brand,size:it.size,cat:it.category,image:it.image||"",prices:prices};
+  return {id:it.id,name:it.name,brand:it.brand,size:it.size,cat:it.category,image:it.image||"",isNew:!!it.new,prices:prices};
 }
 function applySession(s,fromCache){
   state.me=s.me;state.basket=s.basket;state.stamp=s.scraped_at;state.isSample=!!s.sample;
@@ -732,7 +733,7 @@ function catTile(c){
   var it=findItem(c.id);
   if(it)return card(it);
   var im=tileImg(c.image,c.category,c.local,"");
-  return '<article class="card pcard prow small'+(im?'':' nopic')+'">'+im+'<div class="pbody"><h3>'+esc(c.name)+' <span class="size">'+esc(c.size)+'</span></h3><div class="size">at '+plural(c.store_count,"store")+(c.special?' · <b class="specialtag">Special</b>':'')+'</div></div>'+
+  return '<article class="card pcard prow small'+(im?'':' nopic')+'">'+im+'<div class="pbody"><h3>'+esc(c.name)+' <span class="size">'+esc(c.size)+'</span></h3><div class="size">at '+plural(c.store_count,"store")+(c.special?' · <b class="specialtag">Special</b>':'')+(c.new?' · <b class="newtag">New</b>':'')+'</div></div>'+
     '<div class="cardfoot"><button class="lookup" type="button" data-look="'+c.id+'" aria-label="Look up price of '+esc(c.name)+' '+esc(c.size)+'">+ Look up</button></div></article>';
 }
 var TU_ICON='<svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" fill="#0b7a4b"/><g fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"><path d="M110 150h56l44 170h170l36-120H184"/></g><circle cx="232" cy="378" r="24" fill="#fff"/><circle cx="372" cy="378" r="24" fill="#fff"/><path d="M290 110l36-40 36 40" fill="none" stroke="#ff7a1a" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -801,7 +802,7 @@ function viewFind(){
   if(state.findErr)return h+'<div class="empty">'+esc(state.findErr)+' <button class="linkbtn" type="button" data-act="refind">Try again</button></div>'+disclaimer();
   var f=state.found;
   if(!f)return h+'<p class="sub" aria-busy="true">Loading products…</p>'+disclaimer();
-  if(!f.items.length)return h+'<div class="empty">'+esc(f.note||"No products match.")+'</div>'+requestCard()+disclaimer();
+  if(!f.items.length)return h+'<div class="empty">'+esc(f.note||"No products match.")+'</div>'+searchCard()+disclaimer();
   h+='<p class="sub">'+plural(f.total,"product")+(f.total>f.items.length?' (showing the first '+f.items.length+'; type more of the name to narrow it down)':'')+'. Tap <b>Look up price</b> to compare stores.</p><div class="grid">';
   h+=f.items.map(catTile  ).join("")+'</div>';
   return h+requestCard()+disclaimer();
@@ -810,6 +811,55 @@ function requestCard(){
   var q=(state.q||"").trim();
   return '<div class="card" style="margin-top:.85rem"><p style="margin:0"><b>Can\u2019t find an item?</b></p><p class="sub" style="margin:.3rem 0 0">Tell us what you were looking for. We read every request and add items to the price search.</p>'+
     '<div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-act="request" data-term="'+esc(q)+'">Request an item</button></div></div>';
+}
+/* New-item search: paid and tester accounts. The scraper machine looks in the stores within minutes. */
+var searchTimer=null;
+function paidUser(){return !!(state.me&&state.me.plan==="paid")}
+function mySearch(term){
+  var k=String(term||"").trim().toLowerCase().replace(/\s+/g," ");
+  for(var i=0;i<state.searches.length;i++)if(String(state.searches[i].term).toLowerCase()===k)return state.searches[i];
+  return null;
+}
+function searchCard(){
+  var q=(state.q||"").trim();
+  if(!paidUser()||q.length<2)return requestCard();
+  if(!state.searchesLoaded){state.searchesLoaded=true;pollSearches()}
+  var j=mySearch(q),sp=' style="margin-top:.85rem"';
+  if(j&&(j.status==="pending"||j.status==="running"))
+    return '<div class="card"'+sp+' role="status"><p style="margin:0"><b>Searching the stores for \u201c'+esc(j.term)+'\u201d.</b></p><p class="sub" style="margin:.3rem 0 0">Checkers, Pick n Pay, Woolworths and Dis-Chem. This takes a few minutes. You can leave this screen and come back.</p><div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-act="checksearch">Check now</button></div></div>';
+  if(j&&j.status==="done")
+    return '<div class="card"'+sp+'><p style="margin:0"><b>No store listed \u201c'+esc(j.term)+'\u201d.</b></p><p class="sub" style="margin:.3rem 0 0">We looked in the four stores. Try other words, or request it below.</p></div>'+requestCard();
+  var again=j&&j.status==="failed";
+  return '<div class="card"'+sp+'><p style="margin:0"><b>'+(again?'That search did not work.':'Not in our list yet.')+'</b></p><p class="sub" style="margin:.3rem 0 0">'+(again?'Please try again.':'We can look for it in Checkers, Pick n Pay, Woolworths and Dis-Chem now. The item then appears marked <b>New</b>.')+'</p>'+
+    '<div class="btns" style="margin-bottom:0"><button class="btn" type="button" data-act="newsearch" data-term="'+esc(q)+'">Search the stores for \u201c'+esc(q)+'\u201d</button></div></div>';
+}
+function pollSearches(){
+  clearTimeout(searchTimer);
+  return api("GET","/searches").then(function(r){
+    state.searches=r.searches||[];
+    var refind=false,active=false;
+    state.searches.forEach(function(j){
+      if(j.status==="pending"||j.status==="running")active=true;
+      if(j.status==="done"&&j.found>0&&!state.seenDone[j.id]){state.seenDone[j.id]=1;refind=true}
+      if(j.status==="done"&&!state.seenDone[j.id])state.seenDone[j.id]=1;
+    });
+    if(refind&&state.view==="find"){say("New items found");runFind(true)}
+    else if(state.view==="find")renderMain();
+    if(active)searchTimer=setTimeout(pollSearches,20000);
+  }).catch(function(e){handleAuthError(e)});
+}
+function startSearch(term,b){
+  b.disabled=true;
+  api("POST","/searches",{term:term}).then(function(j){
+    state.searches=[j].concat(state.searches.filter(function(x){return x.id!==j.id}));
+    say("Searching the stores");
+    renderMain();
+    searchTimer=setTimeout(pollSearches,20000);
+  }).catch(function(e){
+    if(handleAuthError(e))return;
+    b.disabled=false;
+    ask("Search for a new item",'<p>'+esc(e.message||"Could not start the search. Please try again.")+'</p>',[["OK","","btn"]]);
+  });
 }
 function requestDialog(term){
   ask("Request an item",'<p>What were you looking for? Include the brand and size if you can, for example <b>white mushrooms 250g</b>.</p>'+
@@ -849,7 +899,7 @@ function card(it){
   var nx=others[0],nr=nx?p.prices[nx]:null,nu=nr?priceUnit(p,nr):null;
   return '<article class="'+rc+'">'+img+'<div class="pbody">'+title+
     '<div class="best"><div class="price'+(bp.promo!=null?' sp':'')+'">'+priceHtml(main)+(state.unitMode&&u?' <span class="unit">'+esc(u.unit)+'</span>':'')+'</div>'+
-    (save>0?'<span class="savetxt">Save R'+save.toFixed(2)+'</span>':'')+(bp.local?' <span class="tag localtag">Local store</span>':'')+oldTag(bp)+'</div>'+
+    (save>0?'<span class="savetxt">Save R'+save.toFixed(2)+'</span>':'')+(bp.local?' <span class="tag localtag">Local store</span>':'')+(p.isNew?' <span class="tag newtag">New</span>':'')+oldTag(bp)+'</div>'+
     '</div><div class="storelinks'+(nx?'':' one')+'">'+storeBtn(b,bp,'\u2713 Best price',true)+(nx?storeBtn(nx,nr,'Next: '+(state.unitMode&&nu?money(nu.value)+' '+esc(nu.unit):money(eff(nr))),false):'')+'</div><div class="cardfoot">'+addBtn+pickBtn(p.id,p.name)+'</div></article>';
 }
 function lookUp(id){
@@ -1664,6 +1714,8 @@ document.addEventListener("click",function(e){
     case "viewall":state.flt=t.dataset.kind;state.cat="All";state.found=null;renderMain();window.scrollTo(0,0);return runFind(true);
     case "clearflt":state.flt="";state.found=null;renderMain();return runFind(true);
     case "request":return requestDialog(t.dataset.term||"");
+    case "newsearch":return startSearch(t.dataset.term||"",t);
+    case "checksearch":return pollSearches();
     case "share":return shareList();
     case "export":return exportDialog();
     case "clear":return clearSession();

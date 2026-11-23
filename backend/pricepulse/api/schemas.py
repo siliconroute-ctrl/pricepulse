@@ -41,6 +41,7 @@ class ProductOut(_Model):
     size: str
     category: str
     image: str = Field(default="", description="First picture found among the stores' items")
+    new: bool = False  # found by a shopper's new-item search in the last two weeks
     unit_price: UnitPrice | None = None
     prices: list[PriceOut]
     best_store: str | None
@@ -192,6 +193,7 @@ class CatalogueItem(_Model):
     image: str = ""
     special: bool = False
     local: bool = False
+    new: bool = False  # found by a shopper's new-item search in the last two weeks
 
 
 class CatalogueOut(_Model):
@@ -252,3 +254,20 @@ class RequestOut(_Model):
 
 class RequestsOut(_Model):
     requests: list[RequestOut]
+
+
+class SearchIn(_Model):
+    term: str = Field(max_length=200, description="The item to look for in the stores")
+
+
+class SearchOut(_Model):
+    id: int
+    term: str
+    category: str
+    status: str  # pending / running / done / failed
+    found: int = 0
+    note: str = ""
+
+
+class SearchesOut(_Model):
+    searches: list[SearchOut]

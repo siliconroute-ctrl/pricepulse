@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .. import discovery
 from ..basket import optimise
 from ..config import Settings, get_settings
 from ..db import Listing, Price, Product, Store, session_factory, utcnow
@@ -223,6 +224,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             size=p.size_text,
             category=p.category,
             image=first_image(pp.prices),
+            new=bool(
+                p.via_search and p.created_at and p.created_at > now - timedelta(days=discovery.NEW_DAYS)
+            ),
             unit_price=S.UnitPrice(value=up[0], unit=up[1]) if up else None,
             prices=prices,
             best_store=best.store if best else None,

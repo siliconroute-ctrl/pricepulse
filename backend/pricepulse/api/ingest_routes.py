@@ -22,7 +22,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
-from .. import essentials
+from .. import discovery, essentials
 from ..db import utcnow
 from ..ingest import ingest_items, parse_scraped_at, read_scraper_json, record_runs, rematch
 from ..regions import valid_region
@@ -37,6 +37,11 @@ BAD_WINDOW = 600  # ... in this many seconds
 
 def _digest(text: str) -> bytes:
     return hashlib.sha256(text.encode("utf-8")).digest()
+
+
+class SearchDoneIn(BaseModel):
+    found: int = Field(default=0, ge=0, le=100000)
+    error: str = Field(default="", max_length=200)
 
 
 class TermsIn(BaseModel):
@@ -76,6 +81,23 @@ def register_ingest_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001
 
         rows = s.scalars(select(EssentialItem).order_by(EssentialItem.category, EssentialItem.term)).all()
         return {"terms": [{"term": r.term, "category": r.category} for r in rows]}
+
+    @app.get("/api/v1/ingest/searches", include_in_schema=False, dependencies=[Depends(check_token)])
+    def ingest_searches(limit: int = 3, s: Session = Depends(ctx.db)):  # noqa: B008
+        """Shoppers' new-item searches waiting for the scraper machine (it marks them running)."""
+        jobs = discovery.claim_jobs(s, max(1, min(limit, 5)))
+        s.commit()
+        return {"searches": [{"id": j.id, "term": j.term, "category": j.category} for j in jobs]}
+
+    @app.post(
+        "/api/v1/ingest/searches/{job_id}", include_in_schema=False, dependencies=[Depends(check_token)]
+    )
+    def ingest_search_done(job_id: int, body: SearchDoneIn, s: Session = Depends(ctx.db)):  # noqa: B008
+        job = discovery.finish_job(s, job_id, body.found, body.error)
+        if job is None:
+            raise HTTPException(404, "No such search.")
+        s.commit()
+        return {"id": job.id, "status": job.status, "found": job.found}
 
     @app.post("/api/v1/ingest/terms", include_in_schema=False, dependencies=[Depends(check_token)])
     def ingest_terms_add(body: TermsIn, s: Session = Depends(ctx.db)):  # noqa: B008

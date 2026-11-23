@@ -223,7 +223,7 @@ class Woolworths(BaseScraper):
 
     name = "Woolworths"
     slug = "woolworths"
-    categories = ("Groceries", "Fresh", "Health & Beauty")  # liquor is not searched here
+    categories = ("Groceries", "Fresh", "Health & Beauty", "Pets")  # liquor is not searched here
     base_url = "https://www.woolworths.co.za"
     search_url = "https://www.woolworths.co.za/cat?Ntt={q}&Dy=1"
     json_first = True
@@ -352,7 +352,7 @@ class DisChem(BaseScraper):
 
     name = "Dis-Chem"
     slug = "dis-chem"
-    categories = ("Health & Beauty",)
+    categories = ("Health & Beauty", "Pets")
     base_url = "https://www.dischem.co.za"
     search_url = "https://www.dischem.co.za/catalogsearch/result/?q={q}"
     selectors = {

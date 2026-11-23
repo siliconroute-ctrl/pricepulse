@@ -120,3 +120,23 @@ only copies CSV files from it. The sign-in is stored on the desktop in `~/.confi
 
 It prints one line per file, such as `essentials.csv: 120 added, 3 already there, 2 skipped`.
 Skipped rows are named with the reason. New items get prices after the next night run.
+
+## New-item searches (paid and tester accounts)
+A paid shopper who searches for something we do not list can tap "Search the stores for ...". The
+server puts the word in a queue (after checking it fits Groceries, Fresh, Liquor, Health & Beauty or
+pet food, adults only for liquor, 5 searches a day each). The desktop looks at the queue every 5
+minutes, searches Checkers, Pick n Pay, Woolworths and Dis-Chem for that one word, uploads what the
+stores' own pages show, and the item appears marked **New** for 14 days. Nothing is ever guessed.
+
+Set up once (the same upload token as the night run, nothing else):
+```
+cd ~/pricepulse
+git pull
+scripts/linux/install_timer.sh        # now also installs pricepulse-ondemand.timer
+systemctl --user list-timers --no-pager
+```
+Look at what it did: `cat ~/pricepulse-logs/ondemand-$(date +%Y%m).log` (nothing is written when no
+search is waiting). Run one by hand: `scripts/linux/ondemand.sh`. The night run waits for a running
+search to finish (up to 40 minutes) and no search starts while the night run is going, so the
+searches simply wait until it is over. Search data is kept in `~/pricepulse-ondemand/` and removed
+after each search.

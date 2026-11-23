@@ -94,6 +94,9 @@ class Product(Base):
     visibility: Mapped[str] = mapped_column(
         String(6), default="auto", server_default="auto"
     )  # auto / show / hide (admin override)
+    via_search: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="0"
+    )  # created by a shopper's new-item search (shown with a "New" tag for a while)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     listings: Mapped[list[Listing]] = relationship(
         back_populates="product", foreign_keys="Listing.product_id"
@@ -259,6 +262,24 @@ class ItemRequest(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
+class SearchJob(Base):
+    """A paid shopper asks us to look for a product that is not listed. The scraper machine picks
+    these up every few minutes, searches the stores and uploads what it finds."""
+
+    __tablename__ = "search_job"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uid: Mapped[str] = mapped_column(String(128), index=True)
+    term: Mapped[str] = mapped_column(String(80))
+    key: Mapped[str] = mapped_column(String(80), index=True)  # lower-case, single spaces
+    category: Mapped[str] = mapped_column(String(40), default="Groceries")
+    status: Mapped[str] = mapped_column(String(10), default="pending")  # pending / running / done / failed
+    found: Mapped[int] = mapped_column(Integer, default=0)
+    note: Mapped[str] = mapped_column(String(200), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
 class EssentialItem(Base):
     """A search word list the scrapers look up every night (added by the owner in the admin area)."""
 
@@ -397,6 +418,14 @@ def _m10_store_limits(conn: Connection) -> None:
         conn.execute(text("ALTER TABLE store ADD COLUMN max_items INTEGER NOT NULL DEFAULT 1000"))
 
 
+def _m11_new_item_search(conn: Connection) -> None:
+    """New-item searches: a job table and a product flag (adds one table and one column only)."""
+    Base.metadata.create_all(conn, tables=[SearchJob.__table__])
+    pcols = {c["name"] for c in inspect(conn).get_columns("product")}
+    if "via_search" not in pcols:
+        conn.execute(text("ALTER TABLE product ADD COLUMN via_search BOOLEAN NOT NULL DEFAULT 0"))
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
@@ -408,6 +437,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (8, "local stores, item codes, departments and submissions", _m8_local_stores),
     (9, "item pictures and store type", _m9_pictures),
     (10, "store item limit", _m10_store_limits),
+    (11, "new-item searches", _m11_new_item_search),
 ]
 
 

@@ -17,7 +17,17 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .config import Settings
-from .db import AppUser, ItemRequest, LookupSession, Payment, Product, SessionItem, Subscription, utcnow
+from .db import (
+    AppUser,
+    ItemRequest,
+    LookupSession,
+    Payment,
+    Product,
+    SearchJob,
+    SessionItem,
+    Subscription,
+    utcnow,
+)
 from .ingest import SAST
 from .queries import visible_clause
 from .said import ADULT_AGE, check_id, fingerprint
@@ -202,6 +212,8 @@ def delete_user(s: Session, user: AppUser) -> None:
         s.delete(sub)
     for req in s.scalars(select(ItemRequest).where(ItemRequest.uid == user.uid)).all():
         s.delete(req)
+    for job in s.scalars(select(SearchJob).where(SearchJob.uid == user.uid)).all():
+        s.delete(job)
     for pay in s.scalars(select(Payment).where(Payment.uid == user.uid)).all():
         pay.uid = "deleted"
     s.flush()
