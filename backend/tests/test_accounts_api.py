@@ -91,7 +91,9 @@ def test_catalogue_has_no_prices(client):
     verify(client)
     body = client.get("/api/v1/catalogue", params={"q": "milk"}, headers=auth()).json()
     assert body["total"] == 1 and body["items"][0]["store_count"] == 3
-    assert "price" not in str(body).lower()
+    item = body["items"][0]
+    assert item["price"] is None and item["promo"] is None  # chain prices stay locked behind a lookup
+    assert not any(isinstance(v, float) for v in item.values())
 
 
 def test_private_answers_are_not_cached(client):

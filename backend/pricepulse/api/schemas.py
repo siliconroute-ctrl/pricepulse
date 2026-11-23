@@ -31,6 +31,13 @@ class PriceOut(_Model):
     )
     local: bool = Field(default=False, description="True for a local (private) store")
     image: str = Field(default="", description="Picture link of this store's item, empty when none")
+    store_id: int = 0
+    town: str = ""  # local stores only
+    address: str = ""
+    phone: str = ""
+    whatsapp: str = ""
+    condition: str = ""  # New / Refurbished (local stores)
+    sub: str = ""  # sub-category (local stores)
     unit_price: UnitPrice | None = None
 
 
@@ -167,6 +174,7 @@ class MeOut(_Model):
     id_checked: bool = Field(description="False until the person has confirmed their age with an ID number")
     adult: bool
     is_admin: bool = False
+    store_owner: bool = False  # runs a local store (the "My store" menu item)
     plan: str = Field(description="free or paid")
     paid_until: datetime | None = None
     subscription_status: str = Field(description="none, pending, active or cancelled")
@@ -194,6 +202,18 @@ class CatalogueItem(_Model):
     special: bool = False
     local: bool = False
     new: bool = False  # found by a shopper's new-item search in the last two weeks
+    sub: str = ""  # sub-category at a local store (Electronics: Laptops, Desktops, ...)
+    condition: str = ""  # New / Refurbished at a local store
+    store_id: int = 0  # the local store this row's sub-category and condition come from
+    store_name: str = ""
+    price: float | None = None  # a local store's price shows openly (no lookup needed); chains: null
+    promo: float | None = None
+    detail: str = ""  # the local store's spec text for the item
+
+
+class SubCount(_Model):
+    name: str
+    count: int
 
 
 class CatalogueOut(_Model):
@@ -205,6 +225,23 @@ class CatalogueOut(_Model):
     stores: int = 0  # how many stores have prices in this town (for the front screen)
     updated: datetime | None = None  # when the newest price in this town was collected
     items: list[CatalogueItem]
+    subs: list[SubCount] = []  # sub-categories with counts (for a category that has them, or one store)
+
+
+class StoreOut(_Model):
+    id: int
+    name: str
+    town: str
+    address: str
+    phone: str
+    whatsapp: str
+    store_type: str
+    category: str
+    items: int
+    subs: list[SubCount]
+    hours: dict = {}  # open_status(): state, text, today, week, note
+    photos: list[str] = []
+    directions: str = ""
 
 
 class SessionItemOut(_Model):

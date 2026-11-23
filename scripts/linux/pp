@@ -27,6 +27,7 @@ backup() {
   remote 'cd ~/pricepulse && bash scripts/server/backup.sh'
   echo "2/3 Copying it to $KEEP ..."
   scp -i "$KEY" "$HOST:pricepulse/pricepulse-backup-*.db" "$KEEP/"
+  scp -i "$KEY" "$HOST:pricepulse/pricepulse-uploads-*.tar.gz" "$KEEP/" 2>/dev/null || echo "  (no shop photos to copy yet)"
   newest="$(ls -t "$KEEP"/pricepulse-backup-*.db | head -1)"
   echo "3/3 Checking the copy ..."
   python3 - "$newest" <<'PY'
@@ -38,7 +39,7 @@ print("  integrity:", ok, "| products:", c.execute("select count(*) from product
 sys.exit(0 if ok == "ok" else 1)
 PY
   echo "  Removing the copy from the server (the desktop copy is checked) ..."
-  remote 'cd ~/pricepulse && sudo rm -f pricepulse-backup-*.db'
+  remote 'cd ~/pricepulse && sudo rm -f pricepulse-backup-*.db pricepulse-uploads-*.tar.gz'
   echo "Backup safe: $newest"
 }
 

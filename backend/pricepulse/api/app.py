@@ -212,6 +212,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     stale=now - sp.scraped_at > (local_stale_after if sp.local else stale_after),
                     local=sp.local,
                     image=sp.image,
+                    store_id=sp.store_id if sp.local else 0,
+                    town=sp.town,
+                    address=sp.address,
+                    phone=sp.phone,
+                    whatsapp=sp.whatsapp,
+                    condition=sp.condition,
+                    sub=sp.sub,
                     unit_price=S.UnitPrice(value=up[0], unit=up[1]) if up else None,
                 )
             )

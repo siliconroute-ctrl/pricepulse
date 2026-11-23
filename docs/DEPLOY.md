@@ -215,6 +215,9 @@ sudo docker compose cp api:/data/backup.db ./pricepulse-backup-$(date +%F).db
 ```
 Copy it to your PC, then delete it from the server: from PowerShell,
 `scp -i $env:USERPROFILE\.ssh\id_ed25519 deploy@SERVER_IP:pricepulse/pricepulse-backup-*.db .`
+Shop photos that store owners upload are files in `/data/uploads`, not in the database. `pp backup`
+(`scripts/server/backup.sh`) copies them too, as `pricepulse-uploads-DATE.tar.gz`. To put them back:
+`sudo docker compose cp pricepulse-uploads-DATE.tar.gz api:/data/ && sudo docker compose exec api tar -xzf /data/pricepulse-uploads-DATE.tar.gz -C /data`.
 Contabo's Auto Backup (about EUR 3.35 a month) is worth switching on once real accounts
 exist.
 

@@ -25,6 +25,7 @@ from .db import (
     Product,
     SearchJob,
     SessionItem,
+    StoreOwner,
     Subscription,
     utcnow,
 )
@@ -214,6 +215,9 @@ def delete_user(s: Session, user: AppUser) -> None:
         s.delete(req)
     for job in s.scalars(select(SearchJob).where(SearchJob.uid == user.uid)).all():
         s.delete(job)
+    link = s.get(StoreOwner, user.uid)
+    if link is not None:  # the store stays; only this person's link to it goes
+        s.delete(link)
     for pay in s.scalars(select(Payment).where(Payment.uid == user.uid)).all():
         pay.uid = "deleted"
     s.flush()
