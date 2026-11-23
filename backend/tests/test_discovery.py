@@ -52,6 +52,9 @@ def worker():
         ("rump steak", "Fresh"),
         ("Koo baked beans 410g", "Groceries"),
         ("tomato sauce 700ml", "Groceries"),
+        ("aQuelle watermelon flavoured sparkling water 500ml", "Groceries"),
+        ("still bottled water 5l", "Groceries"),
+        ("sparkling wine 750ml", "Liquor"),
     ],
 )
 def test_words_get_the_right_category(term, category):

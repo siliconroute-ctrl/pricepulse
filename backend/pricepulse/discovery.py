@@ -135,7 +135,6 @@ LIQUOR_WORDS = {
     "tequila",
     "liqueur",
     "champagne",
-    "sparkling",
     "cabernet",
     "merlot",
     "shiraz",
@@ -423,6 +422,8 @@ def classify(term: str, adult: bool = True) -> Verdict:
         if w in BLOCKED or joined in BLOCKED:
             return Verdict(False, reason=COVERED)
     ws = set(words)
+    if "water" in ws and not ws & {"rose", "dog", "cat", "pet", "puppy", "kitten"}:
+        return Verdict(True, "Groceries", cleaned)  # bottled, sparkling and flavoured water are groceries
     if ws & PET_STRONG or (ws & PET_WORDS and ws & {"food", "treats", "treat", "chews", "biscuits"}):
         return Verdict(True, "Pets", cleaned)
     if ws & LIQUOR_STRONG:
