@@ -72,6 +72,15 @@ class Store(Base):
     store_type: Mapped[str] = mapped_column(
         String(30), default="", server_default=""
     )  # Supermarket, Butchery, Stationery, IT & Electronics, Other ("" = chain)
+    paid_until: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True
+    )  # a paying local store is hidden from shoppers GRACE_DAYS after this date (None = no expiry)
+    category: Mapped[str] = mapped_column(
+        String(40), default="", server_default=""
+    )  # the category of items typed in by the owner (e.g. Electronics)
+    whatsapp: Mapped[str] = mapped_column(
+        String(30), default="", server_default=""
+    )  # number for the WhatsApp button (blank = use phone)
 
 
 class Product(Base):
@@ -124,7 +133,12 @@ class Listing(Base):
         String(80), default="", server_default=""
     )  # the search word that last found it
     sku: Mapped[str] = mapped_column(String(40), default="", server_default="")  # the store's own item code
-    department: Mapped[str] = mapped_column(String(60), default="", server_default="")  # e.g. Butchery
+    department: Mapped[str] = mapped_column(
+        String(60), default="", server_default=""
+    )  # e.g. Butchery; for Electronics the sub-category (Laptops, Desktops, ...)
+    condition: Mapped[str] = mapped_column(
+        String(12), default="", server_default=""
+    )  # New / Refurbished ("" = not stated)
     image_url: Mapped[str] = mapped_column(
         String(400), default="", server_default=""
     )  # https picture link, or our own /api/v1/img/... path
@@ -259,6 +273,15 @@ class ItemRequest(Base):
     term: Mapped[str] = mapped_column(String(80))
     key: Mapped[str] = mapped_column(String(80), index=True)  # lower-case, single spaces
     status: Mapped[str] = mapped_column(String(10), default="open")  # open / added / declined
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class StoreOwner(Base):
+    """Links a signed-in person to the one local store they run (set by the owner of PricePulse)."""
+
+    __tablename__ = "store_owner"
+    uid: Mapped[str] = mapped_column(String(128), primary_key=True)
+    store_id: Mapped[int] = mapped_column(ForeignKey("store.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
@@ -426,6 +449,23 @@ def _m11_new_item_search(conn: Connection) -> None:
         conn.execute(text("ALTER TABLE product ADD COLUMN via_search BOOLEAN NOT NULL DEFAULT 0"))
 
 
+def _m12_store_portal(conn: Connection) -> None:
+    """Store-owner portal: owner link table, store paid-until / category / WhatsApp, item condition
+    (adds one table and columns only; fresh databases already have them)."""
+    Base.metadata.create_all(conn, tables=[StoreOwner.__table__])
+    scols = {c["name"] for c in inspect(conn).get_columns("store")}
+    for name, ddl in (
+        ("paid_until", "DATETIME"),
+        ("category", "VARCHAR(40) NOT NULL DEFAULT ''"),
+        ("whatsapp", "VARCHAR(30) NOT NULL DEFAULT ''"),
+    ):
+        if name not in scols:
+            conn.execute(text(f"ALTER TABLE store ADD COLUMN {name} {ddl}"))
+    lcols = {c["name"] for c in inspect(conn).get_columns("listing")}
+    if "condition" not in lcols:
+        conn.execute(text("ALTER TABLE listing ADD COLUMN condition VARCHAR(12) NOT NULL DEFAULT ''"))
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
@@ -438,6 +478,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (9, "item pictures and store type", _m9_pictures),
     (10, "store item limit", _m10_store_limits),
     (11, "new-item searches", _m11_new_item_search),
+    (12, "store-owner portal", _m12_store_portal),
 ]
 
 

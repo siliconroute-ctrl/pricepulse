@@ -8,17 +8,82 @@ from urllib.parse import parse_qsl
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse, Response
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import case, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from .. import accounts, discovery, payfast, trolleyup
 from ..auth import AuthError, Identity, make_verifier
-from ..db import AppUser, ItemRequest, Listing, Price, Product, SearchJob, Store, Subscription, utcnow
+from ..categories import SUBCATEGORIES
+from ..db import (
+    AppUser,
+    ItemRequest,
+    Listing,
+    Price,
+    Product,
+    SearchJob,
+    Store,
+    StoreOwner,
+    Subscription,
+    utcnow,
+)
 from ..money import from_cents
-from ..queries import ProductPrices, latest_prices, product_images, visible_clause
+from ..phones import normalise_phone, pretty_phone
+from ..queries import ProductPrices, latest_prices, product_images, store_live, visible_clause
 from . import schemas as S
 
 log = logging.getLogger("pricepulse.api")
+
+
+def local_extras(s: Session, product_ids: list[int], region: str, store_id: int | None) -> dict[int, tuple]:
+    """For each product, (sub-category, condition, store id, store name) from a live local store's item
+    in this town (the chosen store's item when ``store_id`` is given)."""
+    if not product_ids:
+        return {}
+    stmt = (
+        select(Listing.product_id, Listing.department, Listing.condition, Store.id, Store.name)
+        .join(Store, Store.id == Listing.store_id)
+        .join(Price, Price.listing_id == Listing.id)
+        .where(
+            Listing.product_id.in_(product_ids),
+            Price.region == region,
+            Listing.active.is_(True),
+            store_live(),
+            Store.kind == "local",
+        )
+        .order_by(Listing.id)
+    )
+    if store_id:
+        stmt = stmt.where(Store.id == store_id)
+    out: dict[int, tuple] = {}
+    for pid, dept, cond, sid, sname in s.execute(stmt):
+        out.setdefault(pid, (dept or "", cond or "", sid, sname))
+    return out
+
+
+def sub_counts(s: Session, region: str, category: str | None, store_id: int | None) -> list[S.SubCount]:
+    """Sub-categories with the number of products, from live local stores in this town."""
+    stmt = (
+        select(Listing.department, func.count(func.distinct(Listing.product_id)))
+        .join(Store, Store.id == Listing.store_id)
+        .join(Price, Price.listing_id == Listing.id)
+        .join(Product, Product.id == Listing.product_id)
+        .where(
+            Price.region == region,
+            Listing.active.is_(True),
+            store_live(),
+            Store.kind == "local",
+            Listing.department != "",
+        )
+        .group_by(Listing.department)
+    )
+    if category:
+        stmt = stmt.where(Product.category == category)
+    if store_id:
+        stmt = stmt.where(Store.id == store_id)
+    found = {name: n for name, n in s.execute(stmt)}
+    order = {n: i for i, n in enumerate(SUBCATEGORIES.get(category or "", []))}
+    names = sorted(found, key=lambda n: (order.get(n, 99), n.lower()))
+    return [S.SubCount(name=n, count=found[n]) for n in names]
 
 
 def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
@@ -52,6 +117,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             id_checked=bool(user.id_fingerprint),
             adult=accounts.is_adult(user, today),
             is_admin=bool(user.is_admin),
+            store_owner=s.get(StoreOwner, user.uid) is not None,
             plan="paid" if paid else "free",
             paid_until=sub.paid_until if sub and paid else None,
             subscription_status=sub.status if sub else "none",
@@ -139,6 +205,9 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         category: str | None = Query(None, max_length=40),
         special: bool = Query(False, description="Only products with a special price at some store"),
         local: bool = Query(False, description="Only products sold by a local store"),
+        sub: str | None = Query(None, max_length=60, description="Sub-category at a local store"),
+        condition: str | None = Query(None, max_length=12, description="New or Refurbished"),
+        store_id: int | None = Query(None, ge=1, description="Only items sold by this local store"),
         limit: int = Query(50, ge=1, le=100),
         offset: int = Query(0, ge=0, le=100000),
         user: AppUser = Depends(user_dep),  # noqa: B008
@@ -156,7 +225,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             )
             .join(Price, Price.listing_id == Listing.id)
             .join(Store, Store.id == Listing.store_id)
-            .where(Price.region == region, Listing.active.is_(True), Store.active.is_(True))
+            .where(Price.region == region, Listing.active.is_(True), store_live())
             .group_by(Listing.product_id)
             .subquery()
         )
@@ -167,6 +236,32 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             stmt = stmt.where(stores.c.special == 1)
         if local:
             stmt = stmt.where(stores.c.local == 1)
+        local_conds = [Store.kind == "local"]
+        if store_id:
+            local_conds.append(Store.id == store_id)
+        if sub:
+            local_conds.append(Listing.department == sub)
+        if condition in ("New", "Refurbished"):
+            local_conds.append(Listing.condition == condition)
+
+        def local_exists(conds):  # a listing at a live local store in this town that meets every condition
+            return exists(
+                select(1)
+                .select_from(Listing)
+                .join(Store, Store.id == Listing.store_id)
+                .join(Price, Price.listing_id == Listing.id)
+                .where(
+                    Listing.product_id == Product.id,
+                    Price.region == region,
+                    Listing.active.is_(True),
+                    store_live(),
+                    *conds,
+                )
+                .correlate(Product)
+            )
+
+        if store_id or sub or condition in ("New", "Refurbished"):
+            stmt = stmt.where(local_exists(local_conds))
         stmt = stmt.where(visible_clause())  # extra search hits stay in the database, hidden
         if not adult:
             stmt = stmt.where(Product.category != accounts.LIQUOR)
@@ -186,6 +281,8 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         have = {i.product_id for i in sess.items} if sess else set()
         page = rows[offset : offset + limit]
         pictures = product_images(s, [row[0].id for row in page])
+        extras = local_extras(s, [row[0].id for row in page], region, store_id)
+        subs = sub_counts(s, region, category, store_id) if (store_id or category in SUBCATEGORIES) else []
         note = (
             ""
             if rows
@@ -200,7 +297,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             .select_from(Listing)
             .join(Price, Price.listing_id == Listing.id)
             .join(Store, Store.id == Listing.store_id)
-            .where(Price.region == region, Listing.active.is_(True), Store.active.is_(True))
+            .where(Price.region == region, Listing.active.is_(True), store_live())
         )
         newest = s.scalar(select(func.max(Price.scraped_at)).where(Price.region == region))
         new_since = utcnow() - timedelta(days=discovery.NEW_DAYS)
@@ -225,9 +322,46 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
                     special=bool(sp),
                     local=bool(lc),
                     new=bool(p.via_search and p.created_at and p.created_at > new_since),
+                    sub=extras.get(p.id, ("", "", 0, ""))[0],
+                    condition=extras.get(p.id, ("", "", 0, ""))[1],
+                    store_id=extras.get(p.id, ("", "", 0, ""))[2],
+                    store_name=extras.get(p.id, ("", "", 0, ""))[3],
                 )
                 for p, n, sp, lc in page
             ],
+            subs=subs,
+        )
+
+    @app.get(v1 + "/stores/{store_id}", response_model=S.StoreOut, tags=["lookup"])
+    def store_page(
+        store_id: int,
+        region: str = Query("paarl"),
+        user: AppUser = Depends(user_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """A local store's public details and its sub-categories (its items come from the catalogue
+        with ``store_id``). A chain, a switched-off or lapsed store, or another town's store: 404."""
+        ctx.check_region(region)
+        st = s.scalar(select(Store).where(Store.id == store_id, Store.kind == "local", store_live()))
+        if st is None or st.region != region:
+            raise HTTPException(404, {"code": "not_found", "message": "That store is not available."})
+        items = s.scalar(
+            select(func.count(func.distinct(Listing.product_id)))
+            .select_from(Listing)
+            .join(Price, Price.listing_id == Listing.id)
+            .where(Listing.store_id == st.id, Price.region == region, Listing.active.is_(True))
+        )
+        return S.StoreOut(
+            id=st.id,
+            name=st.name,
+            town=st.town,
+            address=st.address,
+            phone=pretty_phone(normalise_phone(st.phone) or st.phone),
+            whatsapp=normalise_phone(st.whatsapp or st.phone),
+            store_type=st.store_type,
+            category=st.category,
+            items=items or 0,
+            subs=sub_counts(s, region, st.category or None, st.id),
         )
 
     # --- Lookup session -----------------------------------------------------------
@@ -479,3 +613,6 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
     from .admin_routes import register_admin_routes
 
     register_admin_routes(app, ctx, user_dep)
+    from .store_routes import register_store_routes
+
+    register_store_routes(app, ctx, user_dep)

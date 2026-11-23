@@ -152,6 +152,14 @@ def main(argv: list[str] | None = None) -> int:
         choices=["paid", "free", "tester"],
         help="paid = unlimited sessions; tester = unlimited sessions AND unlimited items; free = normal",
     )
+    p_so = sub.add_parser("store-owner", help="let a signed-in person run a local store's portal")
+    p_so.add_argument("store_id", type=int)
+    p_so.add_argument("uid")
+    p_so.add_argument("--remove", action="store_true", help="take the access away instead")
+    p_paid = sub.add_parser("store-paid", help="set a local store's paid-until date (YYYY-MM-DD, or none)")
+    p_paid.add_argument("store_id", type=int)
+    p_paid.add_argument("date")
+    sub.add_parser("stores", help="list the local stores: plan, paid until, owners, items")
     p_role = sub.add_parser(
         "admin-role", help="make an account an admin of the PricePulse admin area (or not)"
     )
@@ -290,6 +298,63 @@ def main(argv: list[str] | None = None) -> int:
                         f"  {u.uid} | {u.created_at:%d %b %H:%M} | {check} | {u.plan_override or 'normal'}"
                         + (" | ADMIN" if u.is_admin else "")
                     )
+        elif args.cmd == "store-owner":
+            from pricepulse.db import AppUser, Store, StoreOwner
+
+            store, user = s.get(Store, args.store_id), s.get(AppUser, args.uid)
+            if store is None or store.kind != "local":
+                print(f"No local store with number {args.store_id}. List them with: admin.py stores")
+                return 1
+            if args.remove:
+                link = s.get(StoreOwner, args.uid)
+                if link is not None and link.store_id == store.id:
+                    s.delete(link)
+                print(f"{args.uid} no longer runs {store.name}.")
+            else:
+                if user is None:
+                    print(f"No account with ID {args.uid}. The person must sign in to PricePulse once first.")
+                    return 1
+                link = s.get(StoreOwner, args.uid)
+                if link is None:
+                    s.add(StoreOwner(uid=args.uid, store_id=store.id))
+                else:
+                    link.store_id = store.id
+                print(f"{args.uid} now runs {store.name}. They find it under My store in the menu.")
+        elif args.cmd == "store-paid":
+            from datetime import datetime, timedelta
+
+            from pricepulse.db import Store
+
+            store = s.get(Store, args.store_id)
+            if store is None or store.kind != "local":
+                print(f"No local store with number {args.store_id}. List them with: admin.py stores")
+                return 1
+            if args.date.lower() in ("none", "off", "-"):
+                store.paid_until = None
+                print(f"{store.name} has no expiry date.")
+            else:
+                try:
+                    store.paid_until = datetime.strptime(args.date, "%Y-%m-%d") + timedelta(
+                        hours=23, minutes=59
+                    )
+                except ValueError:
+                    print("Type the date like 2026-12-31.")
+                    return 1
+                print(f"{store.name} is paid until {args.date} (hidden from shoppers 3 days after that).")
+        elif args.cmd == "stores":
+            from pricepulse.db import Store, StoreOwner
+            from pricepulse.localstores import active_count
+
+            for st in s.scalars(select(Store).where(Store.kind == "local").order_by(Store.id)).all():
+                owners = [
+                    o.uid for o in s.scalars(select(StoreOwner).where(StoreOwner.store_id == st.id)).all()
+                ]
+                paid = st.paid_until.date().isoformat() if st.paid_until else "no expiry"
+                print(
+                    f"{st.id} | {st.name} | {st.town or st.region} | {st.category or '-'} | "
+                    f"{active_count(s, st)}/{st.max_items} items | paid until {paid} | "
+                    f"{'ON' if st.active else 'OFF'} | owners: {', '.join(owners) or 'none'}"
+                )
         elif args.cmd == "plan":
             from pricepulse.db import AppUser
 

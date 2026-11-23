@@ -7,6 +7,8 @@ stored) or secrets. Accounts are shown by their sign-in ID only.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -25,11 +27,14 @@ from ..db import (
     SchemaVersion,
     ScrapeRun,
     Store,
+    StoreOwner,
     StoreSubmission,
     Subscription,
 )
 from ..money import from_cents
+from ..phones import normalise_phone
 from ..queries import visible_clause
+from .store_routes import store_status
 
 MAX_ITEM_ROWS = 6000
 
@@ -50,6 +55,15 @@ class LocalStoreIn(BaseModel):
     active: bool = True
     store_type: str = Field(default="", max_length=30)
     max_items: int = Field(default=localstores.DEFAULT_MAX_ITEMS, ge=10, le=localstores.MAX_ROWS)
+    # Left out (None) = unchanged. category: the fixed category of the store's own items (Electronics);
+    # whatsapp: number for the WhatsApp button; paid_until: YYYY-MM-DD ("" = no expiry).
+    category: str | None = Field(default=None, max_length=40)
+    whatsapp: str | None = Field(default=None, max_length=30)
+    paid_until: str | None = Field(default=None, max_length=10)
+
+
+class StoreOwnerIn(BaseModel):
+    uid: str = Field(min_length=1, max_length=128)
 
 
 class StoreImportIn(BaseModel):
@@ -342,6 +356,13 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             "active": bool(st.active),
             "store_type": st.store_type,
             "max_items": st.max_items,
+            "category": st.category,
+            "whatsapp": st.whatsapp,
+            "paid_until": st.paid_until.date().isoformat() if st.paid_until else "",
+            "status": store_status(st),
+            "owners": [
+                o.uid for o in s.scalars(select(StoreOwner).where(StoreOwner.store_id == st.id)).all()
+            ],
             "items": items,
             "submissions": subs,
             "last_submission": st.last_submission_at.isoformat() + "Z" if st.last_submission_at else None,
@@ -371,6 +392,33 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             raise HTTPException(
                 422, {"code": "bad_email", "message": "That email address does not look right."}
             )
+        for key in ("category", "whatsapp", "paid_until"):
+            if data.get(key) is None:
+                data.pop(key, None)  # not sent: leave the stored value alone
+        if "category" in data and data["category"]:
+            try:
+                data["category"] = localstores.store_category(data["category"])
+            except ValueError as exc:
+                raise HTTPException(422, {"code": "bad_category", "message": str(exc)}) from None
+        if data.get("whatsapp"):
+            data["whatsapp"] = normalise_phone(data["whatsapp"])
+            if not data["whatsapp"]:
+                raise HTTPException(
+                    422, {"code": "bad_phone", "message": "Please type a South African WhatsApp number."}
+                )
+        if "paid_until" in data:
+            text_date = data["paid_until"]
+            if text_date:
+                try:
+                    data["paid_until"] = datetime.strptime(text_date, "%Y-%m-%d") + timedelta(
+                        hours=23, minutes=59
+                    )
+                except ValueError:
+                    raise HTTPException(
+                        422, {"code": "bad_date", "message": "Type the paid-until date like 2026-12-31."}
+                    ) from None
+            else:
+                data["paid_until"] = None
         clash = s.scalar(select(Store).where(func.lower(Store.name) == data["name"].lower()))
         if clash is not None and (current is None or clash.id != current.id):
             raise HTTPException(
@@ -387,6 +435,48 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         data = validate_store(body, s)
         st = Store(kind="local", **data)
         s.add(st)
+        s.commit()
+        return store_row(st, s)
+
+    @app.post(base + "/localstores/{store_id}/owner", tags=["admin"])
+    def localstore_owner(
+        store_id: int,
+        body: StoreOwnerIn,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """Let a signed-in person (by their sign-in ID) run this store's portal."""
+        st = s.get(Store, store_id)
+        if st is None or st.kind != "local":
+            raise HTTPException(404, {"code": "not_found", "message": "No such local store."})
+        if s.get(AppUser, body.uid) is None:
+            raise HTTPException(
+                422,
+                {
+                    "code": "no_such_user",
+                    "message": "No account has that sign-in ID. Ask them to sign in once first.",
+                },
+            )
+        link = s.get(StoreOwner, body.uid)
+        if link is None:
+            s.add(StoreOwner(uid=body.uid, store_id=st.id))
+        else:
+            link.store_id = st.id
+        s.commit()
+        return store_row(st, s)
+
+    @app.delete(base + "/localstores/{store_id}/owner/{uid}", tags=["admin"])
+    def localstore_owner_remove(
+        store_id: int,
+        uid: str,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        st = s.get(Store, store_id)
+        link = s.get(StoreOwner, uid)
+        if st is None or link is None or link.store_id != st.id:
+            raise HTTPException(404, {"code": "not_found", "message": "That person does not run this store."})
+        s.delete(link)
         s.commit()
         return store_row(st, s)
 

@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
-from .db import Listing, Price, Product, ScrapeRun, Store
+from .db import Listing, Price, Product, ScrapeRun, Store, utcnow
+from .phones import normalise_phone, pretty_phone
 from .sizes import Size
 
 
@@ -24,11 +25,30 @@ class StorePrice:
     is_sample: bool
     local: bool = False  # a local (private) store, not a national chain
     image: str = ""  # picture link of this store's item ("" = none)
+    store_id: int = 0
+    town: str = ""  # local stores only: shown to shoppers
+    address: str = ""
+    phone: str = ""
+    whatsapp: str = ""
+    condition: str = ""  # New / Refurbished ("" = not stated)
+    sub: str = ""  # sub-category (Electronics: Laptops, Desktops, ...)
 
     @property
     def effective_cents(self) -> int:
         """What the shopper pays: the promo price when there is one."""
         return self.promo_cents if self.promo_cents is not None else self.price_cents
+
+
+GRACE_DAYS = 3  # a paying store stays visible this long after its paid-until date
+
+
+def store_live():  # noqa: ANN201
+    """SQL test: may shoppers see this store? It must be switched on and, when it has a
+    paid-until date, not more than GRACE_DAYS past it."""
+    return and_(
+        Store.active.is_(True),
+        or_(Store.paid_until.is_(None), Store.paid_until > utcnow() - timedelta(days=GRACE_DAYS)),
+    )
 
 
 @dataclass
@@ -70,7 +90,7 @@ def latest_prices(
         .join(Listing, Listing.id == Price.listing_id)
         .join(Store, Store.id == Listing.store_id)
         .join(Product, Product.id == Listing.product_id)
-        .where(Price.region == region, Listing.active.is_(True), Store.active.is_(True))
+        .where(Price.region == region, Listing.active.is_(True), store_live())
     )
     if product_ids:
         stmt = stmt.where(Product.id.in_(product_ids))
@@ -98,6 +118,13 @@ def latest_prices(
             is_sample=price.is_sample,
             local=store.kind == "local",
             image=listing.image_url or "",
+            store_id=store.id,
+            town=store.town if store.kind == "local" else "",
+            address=store.address if store.kind == "local" else "",
+            phone=pretty_phone(normalise_phone(store.phone) or store.phone) if store.kind == "local" else "",
+            whatsapp=normalise_phone(store.whatsapp or store.phone) if store.kind == "local" else "",
+            condition=listing.condition or "",
+            sub=listing.department if store.kind == "local" else "",
         )
         current = next((x for x in pp.prices if x.store == store.name), None)
         if current is None:
@@ -128,7 +155,7 @@ def product_images(session: Session, product_ids: list[int]) -> dict[int, str]:
             Listing.product_id.in_(product_ids),
             Listing.image_url != "",
             Listing.active.is_(True),
-            Store.active.is_(True),
+            store_live(),
         )
         .order_by(Listing.id)
     )
@@ -173,7 +200,7 @@ def visible_clause():  # noqa: ANN201
         .where(
             Listing.product_id == Product.id,
             Listing.active.is_(True),
-            Store.active.is_(True),
+            store_live(),
             or_(Listing.hit_rank.is_(None), Listing.hit_rank <= 1),
         )
         .correlate(Product)
