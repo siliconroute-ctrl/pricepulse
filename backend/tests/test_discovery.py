@@ -113,6 +113,16 @@ def test_the_same_word_is_searched_once_and_the_daily_limit_holds(client):
     assert r.status_code == 429 and r.json()["detail"]["code"] == "daily_limit"
 
 
+def test_a_tester_account_has_no_daily_search_limit(client):
+    verify(client)
+    s = get_settings()
+    with session_factory(s.database_url).begin() as db:
+        db.scalars(select(AppUser)).first().plan_override = "tester"
+    for i in range(8):
+        r = client.post("/api/v1/searches", json={"term": f"rooibos tea blend {i}"}, headers=auth())
+        assert r.status_code == 200, r.json()
+
+
 # --- the scraper machine's side -------------------------------------------------------
 
 
