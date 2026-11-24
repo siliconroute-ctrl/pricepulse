@@ -64,3 +64,9 @@ Shoppers reach the store page by tapping the store name on an item, and the **En
 5. After approval the store is shown to shoppers whose town is within **100 km** (`PP_LOCAL_RADIUS_KM`) of the store's town. Prices are written once for every shopper town in range (`pricepulse/towns.py`).
 6. **Check `backend/towns.yaml`**: the coordinates are approximate town centres written from memory; correct them before go-live and add any town you need.
 7. Rules: a Liquor store needs a licence number and an owner who passed the age check, and is shown to adults only; Health & Beauty stores may not list prescription medicines (Store terms). Terms and Privacy are Version 6 (attorney review).
+
+## My store pages (app v45)
+- **Overview:** store name as shoppers see it, Store ID, status, items used of the plan, paid until, last change, how you sell, a summary of your business hours, and your shop photos (Change or Remove).
+- **Items:** Add an item and Upload a CSV file are at the top. Tick items and tap Remove ticked items, or Remove all my items. Removed items are only hidden from shoppers; they can be added again.
+- **Store details:** choose Physical shop, Online only, or both. An online-only store still shows its town (for example "serving Paarl") but no street address or opening hours. Business hours are set day by day with time pickers.
+- **Admin:** Local stores has a Delete button for test stores (type the store name to confirm; a store with a paid-until date in the future must have that date cleared first).

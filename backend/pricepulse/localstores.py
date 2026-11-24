@@ -616,6 +616,20 @@ def remove_item(s: Session, store: Store, listing_id: int) -> Listing:
     return lst
 
 
+def remove_items(s: Session, store: Store, listing_ids: list[int] | None = None) -> int:
+    """Hide several of the store's items (or, with no ids, all of them) from shoppers. History is kept.
+    Returns how many were hidden."""
+    stmt = select(Listing).where(Listing.store_id == store.id, Listing.active.is_(True))
+    if listing_ids is not None:
+        stmt = stmt.where(Listing.id.in_(listing_ids))
+    rows = s.scalars(stmt).all()
+    for lst in rows:
+        lst.active = False
+    store.last_submission_at = utcnow()
+    s.flush()
+    return len(rows)
+
+
 def confirm_prices(s: Session, store: Store, settings: Settings, now: datetime | None = None) -> int:
     """ "My prices are still correct": write today's date on every active item's latest price, so
     prices that have not changed do not turn "old". Returns how many items were confirmed."""

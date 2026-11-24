@@ -30,7 +30,7 @@
   --brand:#a3142a; --brand-ink:#ffffff; --brand-text:#ff8595; --best:#7fe7a6; --best-bg:#12301e; --warn:#ffd27a; --warn-bg:#3a2a08;
   --item:#f7eeee; --chip:#2f2324; --chip-on:#f7eeee; --chip-on-ink:#150f10; --focus:#ffffff; color-scheme:dark}
 *{box-sizing:border-box}
-html{font-size:106.25%;-webkit-text-size-adjust:100%}
+html{font-size:100%;-webkit-text-size-adjust:100%}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:1rem;line-height:1.45;
   padding:0 max(16px,env(safe-area-inset-right,0px)) 7rem max(16px,env(safe-area-inset-left,0px))}
@@ -50,19 +50,19 @@ header .apptop :focus-visible{outline-color:#fff}
 header .row{max-width:40rem;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
 h1{font-family:var(--font-display);font-size:1.55rem;line-height:1;margin:0;font-weight:700}
 .find-row{align-items:stretch;justify-content:flex-start}
-.homelink{color:inherit;text-decoration:none;display:inline-flex;align-items:center;min-height:3rem}
+.homelink{color:inherit;text-decoration:none;display:inline-flex;align-items:center;min-height:2.75rem}
 header .search-row{margin-top:.6rem}
-.find-row select{flex:1 1 auto;width:auto;max-width:14rem;background:var(--card);color:var(--ink);border:2px solid var(--muted);border-radius:.5rem;padding:.3rem .4rem;min-height:3rem;font-weight:600}
-.locbtn{flex:none;min-height:3rem;min-width:3rem;border-radius:.5rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.find-row select{flex:1 1 auto;width:auto;max-width:14rem;background:var(--card);color:var(--ink);border:2px solid var(--muted);border-radius:.5rem;padding:.3rem .4rem;min-height:2.75rem;font-weight:600}
+.locbtn{flex:none;min-height:2.75rem;min-width:2.75rem;border-radius:.5rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center}
 .locbtn svg{width:1.3rem;height:1.3rem;stroke:currentColor;fill:none;stroke-width:2}
 .search{flex:1;min-width:0}
-.search input{width:100%;min-height:3rem;padding:.5rem .7rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.06rem}
+.search input{width:100%;min-height:2.75rem;padding:.5rem .7rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.06rem}
 .banner{border-radius:.6rem;padding:.3rem .6rem;margin:.4rem 0;border:2px solid var(--line);background:var(--card);line-height:1.3}
 .banner.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--ink)}
 .banner b{display:inline;margin-right:.3rem}
 .pills{display:flex;gap:.5rem;overflow-x:auto;padding:.8rem 0 .3rem;scrollbar-width:none}
 .pills::-webkit-scrollbar{display:none}
-.pill{flex:none;min-height:3rem;padding:.4rem 1rem;border-radius:999px;border:2px solid var(--line);background:var(--chip);font-weight:600}
+.pill{flex:none;min-height:2.75rem;padding:.4rem 1rem;border-radius:999px;border:2px solid var(--line);background:var(--chip);font-weight:600}
 .pill[aria-pressed="true"]{background:var(--chip-on);color:var(--chip-on-ink);border-color:var(--chip-on)}
 .grid{display:flex;flex-direction:column;gap:.85rem;margin-top:.6rem}
 .card{background:var(--card);border:1px solid var(--line);border-radius:.85rem;padding:.85rem;min-width:0}
@@ -72,7 +72,7 @@ header .search-row{margin-top:.6rem}
 .pic{width:64px;height:64px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:.5rem;flex:none}
 .pic.big{width:min(100%,240px);height:auto;max-height:240px}
 .top{display:flex;justify-content:space-between;gap:.7rem;align-items:flex-start}
-.add{flex:none;min-width:3rem;min-height:3rem;border-radius:.7rem;border:2px solid var(--brand-text);background:transparent;color:var(--brand-text);font-weight:700;padding:0 .75rem}
+.add{flex:none;min-width:2.75rem;min-height:2.75rem;border-radius:.7rem;border:2px solid var(--brand-text);background:transparent;color:var(--brand-text);font-weight:700;padding:0 .75rem}
 .add[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
 .best{margin-top:.6rem;display:flex;align-items:center;gap:.6rem;background:var(--best-bg);border-radius:.6rem;padding:.6rem .7rem;flex-wrap:wrap}
 .price{font-family:var(--font-display);font-weight:700;font-size:2.1rem;line-height:1;font-variant-numeric:tabular-nums}
@@ -93,7 +93,7 @@ header .search-row{margin-top:.6rem}
 .h2{font-family:var(--font-display);font-size:1.65rem;margin:1.1rem 0 .25rem;font-weight:700}
 .sub{color:var(--muted);margin:0 0 .6rem}
 .seg{display:flex;gap:.5rem;margin:.6rem 0}
-.seg button{flex:1;min-height:3rem;border-radius:.6rem;border:2px solid var(--line);background:var(--chip);font-weight:700;padding:0 .3rem}
+.seg button{flex:1;min-height:2.75rem;border-radius:.6rem;border:2px solid var(--line);background:var(--chip);font-weight:700;padding:0 .3rem}
 .seg button[aria-pressed="true"]{background:var(--chip-on);color:var(--chip-on-ink);border-color:var(--chip-on)}
 .town{display:grid;grid-template-columns:1fr auto;gap:.25rem .7rem;padding:.7rem 0;border-top:1px solid var(--line)}
 .town:first-child{border-top:0}
@@ -107,7 +107,7 @@ header .search-row{margin-top:.6rem}
 .li:first-child{border-top:0}
 .li .n{flex:1;min-width:9rem;color:var(--item)}
 .qty{display:flex;align-items:center;gap:.35rem}
-.qty button{width:3rem;height:3rem;border-radius:.6rem;border:2px solid var(--line);background:var(--chip);font-size:1.3rem;font-weight:700}
+.qty button{width:2.75rem;height:2.75rem;border-radius:.6rem;border:2px solid var(--line);background:var(--chip);font-size:1.3rem;font-weight:700}
 .qty b{min-width:1.6rem;text-align:center;font-variant-numeric:tabular-nums;font-size:1.12rem}
 .tot-row{display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.6rem 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;flex-wrap:nowrap}
 .tot-row>:first-child{min-width:0;flex:1 1 auto}
@@ -116,7 +116,7 @@ header .search-row{margin-top:.6rem}
 .tot-row.win{background:var(--best-bg);border-radius:.6rem;padding:.6rem .7rem;border:0;margin-top:.25rem}
 .amt{font-family:var(--font-display);font-size:1.75rem;font-weight:700}
 .empty{text-align:center;color:var(--muted);padding:1.6rem .5rem}
-.btn{min-height:3rem;padding:0 1.05rem;border-radius:.7rem;border:2px solid var(--brand);background:var(--brand);color:var(--brand-ink);font-weight:700;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;gap:.4rem}
+.btn{min-height:2.75rem;padding:0 1.05rem;border-radius:.7rem;border:2px solid var(--brand);background:var(--brand);color:var(--brand-ink);font-weight:700;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;gap:.4rem}
 .btn.alt{background:transparent;color:var(--brand-text);border-color:var(--brand-text)}
 .btns{display:flex;gap:.6rem;flex-wrap:wrap;margin:.7rem 0}
 pre{background:var(--card);border:1px solid var(--line);border-radius:.6rem;padding:.7rem;overflow-x:auto;font-size:.8rem;margin:.5rem 0}
@@ -131,7 +131,7 @@ pre{background:var(--card);border:1px solid var(--line);border-radius:.6rem;padd
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--brand);border-top:2px solid var(--brand);
   padding:.35rem max(8px,env(safe-area-inset-right,0px)) calc(.35rem + max(env(safe-area-inset-bottom,0px),16px)) max(8px,env(safe-area-inset-left,0px))}
 nav.tabs .in{max-width:40rem;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:.25rem}
-nav.tabs button{min-height:3.4rem;border:0;background:transparent;border-radius:.6rem;font-weight:650;font-size:.88rem;color:var(--brand-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
+nav.tabs button{min-height:2.75rem;border:0;background:transparent;border-radius:.6rem;font-weight:650;font-size:.88rem;color:var(--brand-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
 nav.tabs button svg{width:1.5rem;height:1.5rem;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 nav.tabs button[aria-current="page"]{color:var(--brand-ink);background:rgba(255,255,255,.22);box-shadow:inset 0 -3px 0 #fff}
 nav.tabs :focus-visible{outline-color:#fff}
@@ -143,18 +143,18 @@ nav.tabs .cnt{background:#fff;color:var(--brand)}
 .hrow:first-child{border-top:0}
 .hrow .n{flex:1;min-width:9rem}
 .hrow .n b{font-weight:650;font-size:1.06rem;display:block;color:var(--item)}
-.lookup{min-height:3rem;border-radius:.7rem;border:2px solid var(--brand);background:var(--brand);color:var(--brand-ink);font-weight:700;padding:0 .9rem}
+.lookup{min-height:2.75rem;border-radius:.7rem;border:2px solid var(--brand);background:var(--brand);color:var(--brand-ink);font-weight:700;padding:0 .9rem}
 .field{display:block;margin:.8rem 0}
 .field span{display:block;font-weight:650;margin-bottom:.25rem}
-.field input{width:100%;min-height:3.2rem;padding:.5rem .8rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.12rem}
+.field input{width:100%;min-height:2.75rem;padding:.5rem .8rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.12rem}
 .field input.big{font-size:1.5rem;letter-spacing:.08em;font-variant-numeric:tabular-nums}
-.check{display:flex;gap:.7rem;align-items:flex-start;margin:.9rem 0;min-height:3rem}
+.check{display:flex;gap:.7rem;align-items:flex-start;margin:.9rem 0;min-height:2.75rem}
 .check input{width:1.7rem;height:1.7rem;flex:none;margin-top:.15rem;accent-color:var(--brand)}
 .err{color:var(--warn);font-weight:700;min-height:1.4rem;margin:.4rem 0}
 .wide{width:100%}
 .btn.plain{background:transparent;border-color:var(--line);color:var(--ink)}
 .btn[disabled],.lookup[disabled]{opacity:.55;cursor:not-allowed}
-.linkbtn{background:none;border:0;color:var(--brand-text);font-weight:700;text-decoration:underline;min-height:3rem;padding:0 .2rem}
+.linkbtn{background:none;border:0;color:var(--brand-text);font-weight:700;text-decoration:underline;min-height:2.75rem;padding:0 .2rem}
 .hero{text-align:center;padding:1.2rem 0 .4rem}
 .hero .big{font-family:var(--font-display);font-size:1.75rem;font-weight:700;line-height:1.15;margin:0 0 .4rem}
 .points{margin:.6rem 0;padding:0;list-style:none}
@@ -168,7 +168,7 @@ dialog{border:0;border-radius:1rem;padding:1.1rem;max-width:min(34rem,calc(100vw
 dialog::backdrop{background:rgba(0,0,0,.6)}
 dialog h2{margin:0 0 .5rem;font-family:var(--font-display);font-size:1.55rem}
 /* Three-dot menu (top right of every screen): a stacked drop-down list on the right of the screen */
-.menubtn{flex:none;width:3rem;height:3rem;min-width:3rem;border:0;border-radius:.6rem;background:transparent;color:var(--nav-ink,var(--brand-ink));display:inline-flex;align-items:center;justify-content:center}
+.menubtn{flex:none;width:2.75rem;height:2.75rem;min-width:2.75rem;border:0;border-radius:.6rem;background:transparent;color:var(--nav-ink,var(--brand-ink));display:inline-flex;align-items:center;justify-content:center}
 .menubtn svg{width:1.7rem;height:1.7rem;fill:currentColor}
 .menubtn[aria-expanded="true"]{background:var(--nav-tint,rgba(255,255,255,.22))}
 header .row.top{flex-wrap:nowrap}
@@ -185,7 +185,7 @@ dialog.how{padding:0;max-width:min(34rem,100vw);width:100%;height:min(46rem,100d
 dialog.how:not([open]){display:none}
 .how .hhead{flex:none;display:flex;align-items:center;gap:.5rem;background:var(--brand);color:var(--brand-ink);padding:.4rem .6rem}
 .how .hhead h2{margin:0;font-size:1.35rem;flex:1}
-.how .hhead button{min-height:3rem;min-width:3rem;border:0;background:transparent;color:inherit;font-size:1.05rem;font-weight:700;border-radius:.6rem}
+.how .hhead button{min-height:2.75rem;min-width:2.75rem;border:0;background:transparent;color:inherit;font-size:1.05rem;font-weight:700;border-radius:.6rem}
 .how .hhead :focus-visible{outline-color:#fff}
 .how .chat{flex:1;overflow-y:auto;padding:.8rem .7rem 1rem;background:#f7f4ee;color:#1d1415;display:flex;flex-direction:column;gap:.5rem}
 .how .bub{max-width:88%;padding:.55rem .8rem;border-radius:.2rem .9rem .9rem .9rem;background:#fff;box-shadow:0 1px 1px rgba(0,0,0,.15);font-size:1.03rem;line-height:1.4}
@@ -210,19 +210,23 @@ body.plainhead .findbar,body.plainhead nav.tabs{display:none}
 .admbar label{display:block;font-weight:650;font-size:.95rem}
 .admbar .admfull{flex:1 1 100%}
 .admbar .admfull input[type=search]{width:100%;box-sizing:border-box}
-.admbar select,.admbar input[type=search]{min-height:3rem;padding:.4rem .6rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.05rem;max-width:100%}
+.admbar select,.admbar input[type=search]{min-height:2.75rem;padding:.4rem .6rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.05rem;max-width:100%}
 .admwrap{overflow-x:auto;border:1px solid var(--muted);border-radius:.6rem}
-.admtable{border-collapse:collapse;width:100%;min-width:640px;font-size:1.06rem}
+.admtable{border-collapse:collapse;width:100%;min-width:640px;font-size:.875rem}
+.admtable.compact{min-width:0;table-layout:auto}
+.admtable.compact td,.admtable.compact th{padding:.35rem .4rem}
+.admtable.compact .nm{word-break:break-word;overflow-wrap:anywhere}
 .admtable th,.admtable td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--muted);vertical-align:top}
 .admtable th{position:sticky;top:0;background:var(--card);font-weight:700}
 .admtable td.num,.admtable th.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-.admtable .sub2{font-size:.9rem;color:var(--muted)}
-.admtable code{font-size:.9rem;word-break:break-all}
-.admtable select{min-height:3rem;font-size:1rem}
-.admgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.6rem;margin:.6rem 0}
+.admtable .sub2{font-size:.8rem;color:var(--muted)}
+.admtable code{font-size:.8rem;word-break:break-all}
+.admtable select{min-height:2.5rem;font-size:.875rem}
+.admgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(11.5rem,1fr));gap:.6rem;margin:.6rem 0}
 .admgrid .stat{border:1px solid var(--muted);border-radius:.6rem;padding:.6rem .7rem;background:var(--card)}
-.admgrid .stat b{display:block;font-size:1.6rem}
-.admbtn{min-height:3rem;padding:.4rem .9rem;border-radius:.6rem;border:2px solid var(--brand);background:var(--card);color:var(--ink);font-size:1rem;font-weight:650}
+.admgrid .stat b{display:block;font-size:1.25rem;overflow-wrap:anywhere}
+.admgrid .stat span{font-size:.875rem}
+.admbtn{min-height:2.75rem;padding:.4rem .9rem;border-radius:.6rem;border:2px solid var(--brand);background:var(--card);color:var(--ink);font-size:.9375rem;font-weight:650}
 .admbtn.go{background:var(--brand);color:var(--brand-ink)}
 .printonly{display:none}
 body.adm-wide .wrap{max-width:80rem}
@@ -232,7 +236,7 @@ body.adm-wide nav.tabs .in{max-width:80rem}
 .admform{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:.2rem .8rem}
 .admform .field{margin:.35rem 0}
 .admform .field.wide{grid-column:1/-1}
-.field select,.field textarea{width:100%;min-height:3.2rem;padding:.5rem .8rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.05rem}
+.field select,.field textarea{width:100%;min-height:2.75rem;padding:.5rem .8rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.05rem}
 .admtable .acts{white-space:nowrap}
 .admtable .acts .admbtn{margin:.1rem .15rem .1rem 0}
 .printtitle{margin:.4rem 0;font-size:1.15rem}
@@ -265,7 +269,7 @@ body.adm-wide nav.tabs .in{max-width:80rem}
 .cat[aria-pressed="true"] .lbl{font-weight:800;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:4px}
 .cat-all{--fc:var(--f-all)}.cat-groceries{--fc:var(--f-groceries)}.cat-fresh{--fc:var(--f-fresh)}.cat-liquor{--fc:var(--f-liquor)}.cat-health{--fc:var(--f-health)}
 .cardfoot{display:flex;justify-content:flex-end;margin-top:.5rem}
-.tupick{display:inline-flex;align-items:center;gap:.4rem;min-height:3rem;padding:.2rem .7rem .2rem .3rem;border-radius:.7rem;border:2px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;font-size:.95rem}
+.tupick{display:inline-flex;align-items:center;gap:.4rem;min-height:2.75rem;padding:.2rem .7rem .2rem .3rem;border-radius:.7rem;border:2px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;font-size:.95rem}
 .tupick svg{width:2.2rem;height:2.2rem;border-radius:.5rem;flex:none}
 .tupick[aria-pressed="true"]{border-color:var(--best);background:var(--best-bg);color:var(--best)}
 .tupick[aria-pressed="true"] span::before{content:"\2713 "}
@@ -302,7 +306,7 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--cnt-ink)}
 .cat[aria-pressed="true"] .circ{border-color:var(--nav)}
 .sect{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;margin:1.1rem 0 .1rem}
 .sect h2{margin:0;font-family:var(--font-display);font-size:1.45rem;text-transform:uppercase;letter-spacing:.02em;line-height:1.1}
-.sect .viewall{min-height:3rem;display:inline-flex;align-items:center;padding:0 .2rem;background:transparent;border:0;color:var(--accent);font-weight:800;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:2px}
+.sect .viewall{min-height:2.75rem;display:inline-flex;align-items:center;padding:0 .2rem;background:transparent;border:0;color:var(--accent);font-weight:800;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:2px}
 :root[data-theme="dark"] .sect .viewall{color:var(--nav-hi)}
 .hscroll{display:flex;gap:.7rem;overflow-x:auto;scroll-snap-type:x mandatory;padding:.3rem 0 .6rem;scrollbar-width:none;margin-right:-16px;padding-right:16px}
 .hscroll::-webkit-scrollbar{display:none}
@@ -328,7 +332,7 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--cnt-ink)}
 .pcard .others li{padding:.25rem 0;gap:.3rem;font-size:.94rem;border-top:1px solid var(--line)}
 .pcard .others .p{font-size:.98rem}
 .pcard .cardfoot{margin-top:auto;padding-top:.5rem;flex-direction:column;align-items:stretch;gap:.4rem}
-.pillbtn{min-height:3rem;border-radius:999px;border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:800;padding:0 .8rem;display:flex;align-items:center;justify-content:center;gap:.3rem;width:100%}
+.pillbtn{min-height:2.75rem;border-radius:999px;border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:800;padding:0 .8rem;display:flex;align-items:center;justify-content:center;gap:.3rem;width:100%}
 .pillbtn[aria-pressed="true"]{background:transparent;color:var(--accent)}
 :root[data-theme="dark"] .pillbtn[aria-pressed="true"]{color:var(--nav-hi)}
 .pcard .tupick{justify-content:center;width:100%}
@@ -339,7 +343,7 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--cnt-ink)}
 .pimg .pic{position:absolute;inset:0}
 .specialtag{margin:.4rem 0 0;display:block;color:var(--save)}
 .specialtag::before{content:""}
-.pcard .moreof{display:flex;align-items:center;min-height:3rem;color:var(--accent);font-weight:700}
+.pcard .moreof{display:flex;align-items:center;min-height:2.75rem;color:var(--accent);font-weight:700}
 :root[data-theme="dark"] .pcard .moreof{color:var(--nav-hi)}
 
 /* ---- Compact list rows and smaller headings (v23) ---- */
@@ -359,7 +363,7 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--cnt-ink)}
 .prow .nextline .moreof{display:inline;min-height:0;font-weight:700}
 .prow .cardfoot{grid-column:1/-1;display:flex;flex-direction:row;gap:.5rem;margin:0;padding-top:.3rem}
 .prow .cardfoot .pillbtn{flex:1 1 0;width:auto}
-.prow .cardfoot .tupick{flex:0 0 auto;width:auto;min-height:3rem}
+.prow .cardfoot .tupick{flex:0 0 auto;width:auto;min-height:2.75rem}
 .prow.small{grid-template-columns:4.3rem minmax(0,1fr) auto;align-items:center}
 .prow.small .pimg{width:4.3rem;height:4.3rem}
 .prow.small .cardfoot{grid-column:auto;padding:0}
@@ -383,7 +387,7 @@ nav.tabs .cnt{background:var(--nav-hi);color:var(--cnt-ink)}
 /* ---- Store buttons on the rows (v25) ---- */
 .storelinks{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.3rem}
 .storelinks.one{grid-template-columns:1fr}
-.sbtn{display:flex;flex-direction:column;justify-content:center;min-height:3rem;border-radius:.6rem;border:2px solid var(--line);padding:.1rem .55rem;text-decoration:none;color:var(--ink);background:var(--card);font-weight:700;line-height:1.15;min-width:0}
+.sbtn{display:flex;flex-direction:column;justify-content:center;min-height:2.75rem;border-radius:.6rem;border:2px solid var(--line);padding:.1rem .55rem;text-decoration:none;color:var(--ink);background:var(--card);font-weight:700;line-height:1.15;min-width:0}
 .sbtn .sn{font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sbtn .cap{font-size:.88rem;font-weight:600}
 .sbtn.best1{color:#fff}
@@ -430,7 +434,7 @@ body.front .promo h2{font-size:1.2rem}
 .cats8.sub3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .cats8 .cat .cnt2{font-size:1rem;color:var(--muted);font-weight:500}
 .crumb{display:flex;flex-wrap:wrap;gap:.2rem .5rem;align-items:center;margin:.3rem 0;font-size:1.05rem}
-.crumb button{min-height:3rem;background:none;border:0;color:var(--accent);font-weight:800;text-decoration:underline;padding:0 .2rem}
+.crumb button{min-height:2.75rem;background:none;border:0;color:var(--accent);font-weight:800;text-decoration:underline;padding:0 .2rem}
 .lrow{display:grid;grid-template-columns:5.6rem minmax(0,1fr);gap:.2rem .75rem;padding:.6rem;align-items:start}
 .lrow .lpic{width:5.6rem;height:5.6rem;border-radius:.7rem;background:var(--tile);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
 .lrow .lpic img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
@@ -440,7 +444,7 @@ body.front .promo h2{font-size:1.2rem}
 .lrow .lprice{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .6rem;margin:.25rem 0}
 .lrow .lprice s{color:var(--muted);font-size:1.05rem}
 .lrow .lfoot{grid-column:1/-1;display:flex;gap:.5rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.lrow .viewbtn{min-height:3rem;min-width:6rem;border-radius:.7rem;border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:800;padding:0 1rem;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.lrow .viewbtn{min-height:2.75rem;min-width:6rem;border-radius:.7rem;border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:800;padding:0 1rem;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .condpill{display:inline-block;border:2px solid var(--ink);border-radius:999px;padding:.05rem .6rem;font-weight:800;font-size:1.05rem}
 .lbigpic{width:100%;aspect-ratio:4/3;border-radius:.8rem;background:var(--tile);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;margin:.4rem 0}
 .lbigpic img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
@@ -457,14 +461,20 @@ body.front .promo h2{font-size:1.2rem}
 .openline svg{width:1.4rem;height:1.4rem;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .openline.closed{color:#8a1c1c}.openline.open,.openline.closing{color:#0a5c2e}
 :root[data-theme="dark"] .openline.closed{color:#ff9d9d}:root[data-theme="dark"] .openline.open,:root[data-theme="dark"] .openline.closing{color:#7be3a0}
-.weekhrs{margin:.2rem 0 .5rem}.weekhrs summary{min-height:3rem;display:flex;align-items:center;cursor:pointer;font-weight:700}
+.weekhrs{margin:.2rem 0 .5rem}.weekhrs summary{min-height:2.75rem;display:flex;align-items:center;cursor:pointer;font-weight:700}
 .weekhrs table{border-collapse:collapse;width:100%}.weekhrs td{padding:.3rem .2rem;border-top:1px solid var(--line)}
 .weekhrs tr.today td{font-weight:800}
-.bigenter{width:100%;min-height:3.4rem;font-size:1.15rem;margin-top:.4rem}
-.hrsedit{display:grid;gap:.4rem}
-.hrsedit .hr{display:grid;grid-template-columns:3.2rem 1fr 1fr;gap:.4rem;align-items:center}
-.hrsedit .hr label.cl{grid-column:1/-1;display:flex;gap:.5rem;align-items:center;min-height:2.4rem}
-.hrsedit input[type=text]{min-height:3rem}
+.bigenter{width:100%;min-height:2.75rem;font-size:1.15rem;margin-top:.4rem}
+.hrsedit{display:grid;gap:0;max-width:30rem}
+.hrsedit .hr2{display:grid;grid-template-columns:5.2rem 6.2rem 1fr;gap:.4rem;align-items:center;padding:.3rem 0;border-bottom:1px solid var(--line)}
+.hrsedit .hr2 .dn{font-weight:650}
+.hrsedit .hr2 .sw{display:flex;gap:.4rem;align-items:center;min-height:2.75rem;cursor:pointer}
+.hrsedit .hr2 .sw input{width:1.35rem;height:1.35rem}
+.hrsedit .hr2 .times{display:flex;gap:.35rem;align-items:center}
+.hrsedit .hr2 .times input[type=time]{width:6.6rem;min-height:2.5rem;padding:.2rem .4rem;font-size:.9375rem}
+.hrsedit .hr2 .shut{color:var(--muted)}
+.hrsum{margin:.2rem 0;padding:0;list-style:none;font-size:.9375rem}.hrsum li{display:flex;gap:.6rem}.hrsum li b{min-width:5.5rem;font-weight:650}
+.modepill{display:inline-block;border:2px solid var(--accent);border-radius:999px;padding:.05rem .65rem;font-weight:700;font-size:.9rem}
 .photoslot{display:flex;gap:.7rem;align-items:center;margin:.4rem 0;flex-wrap:wrap}
 .photoslot .thumb{width:8rem;aspect-ratio:4/3;border-radius:.6rem;background:var(--tile);overflow:hidden;display:flex;align-items:center;justify-content:center}
 .photoslot .thumb img{width:100%;height:100%;object-fit:cover}
@@ -531,7 +541,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 44;
+var APP_VERSION = 45;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -952,6 +962,7 @@ function loadItem(){
     ITEM.err=e.status===404?"That item is not available right now.":e.message;if(state.view==="item")renderMain();
   });
 }
+function modePill(mode){return mode==="online"?'<span class="modepill">Online only</span>':mode==="both"?'<span class="modepill">Shop and online</span>':''}
 function openLine(hs){
   if(!hs||!hs.text)return "";
   var ic=hs.state==="closed"?'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 8l8 8"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
@@ -970,8 +981,8 @@ function viewItem(){
   h+='<article class="card"><div class="lbigpic" aria-hidden="true">'+localPic(d)+'</div><h2 class="h2" style="margin:.2rem 0">'+esc(d.name)+'</h2>'+
     (d.condition?'<span class="condpill">'+esc(d.condition)+'</span>':'')+localPrice(d.price,d.promo)+
     (d.description?'<p>'+esc(d.description)+'</p>':'')+'<dl class="facts">'+facts.map(function(x){return '<dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd>'}).join("")+'</dl></article>'+
-    '<section class="card place" aria-label="The store"><h3 style="margin:0"><a href="#shop/'+st.id+'">'+esc(st.name)+'</a> <span class="tag localtag">Local store</span></h3>'+openLine(st.hours)+
-    '<p style="margin:.2rem 0">'+esc([st.town,st.address].filter(Boolean).join(" · "))+'</p><div class="btns" style="margin:.5rem 0 0">'+enquireItem(d)+contactButtons(st,true)+'</div>'+
+    '<section class="card place" aria-label="The store"><h3 style="margin:0"><a href="#shop/'+st.id+'">'+esc(st.name)+'</a> <span class="tag localtag">Local store</span> '+modePill(st.mode)+'</h3>'+openLine(st.hours)+
+    '<p style="margin:.2rem 0">'+esc(st.mode==="online"?'Online store, serving '+st.town:[st.town,st.address].filter(Boolean).join(" · "))+'</p><div class="btns" style="margin:.5rem 0 0">'+enquireItem(d)+contactButtons(st,false)+'</div>'+
     '<a class="btn bigenter" href="#shop/'+st.id+'">Enter Store</a></section>'+
     '<p class="sub">Prices include VAT. You deal directly with the store: PricePulse does not sell or deliver this item.</p>';
   return h+disclaimer();
@@ -1347,6 +1358,9 @@ document.getElementById("dlg").addEventListener("click",function(e){
   if(a==="lsload")return lsDoLoad(b,d);
   if(a.indexOf("lsapprove:")===0){var ad=(document.getElementById("lsappdate")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(10)+"/approve",{paid_until:ad}).then(function(){d.close();say("Store approved.");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lsapperr");if(el)el.textContent=e.message})}
   if(a.indexOf("lsreject:")===0){var rs=(document.getElementById("lsrejtext")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(9)+"/reject",{reason:rs}).then(function(){d.close();say("Store rejected.");ADM.loading=null;admLoad()}).catch(function(){b.disabled=false})}
+  if(a==="soremovesel"){b.disabled=true;return api("POST","/store/items/remove",{ids:Object.keys(SO.sel).map(Number)}).then(function(r){SO.sel={};d.close();say(r.removed+" items removed.");soReload()}).catch(function(e){d.close();ask("Could not remove",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])})}
+  if(a==="soremoveall"){b.disabled=true;return api("POST","/store/items/remove-all").then(function(r){SO.sel={};SO.offset=0;d.close();say("All items removed ("+r.removed+").");soReload()}).catch(function(e){d.close();ask("Could not remove",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])})}
+  if(a.indexOf("lsdel:")===0){var nm=(document.getElementById("lsdelname")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(6)+"/delete",{confirm:nm}).then(function(r){d.close();say("Deleted "+r.deleted+".");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lsdelerr");if(el)el.textContent=e.message})}
   if(a==="sellgo"){d.close();return enterApp()}
   if(a==="soload")return soDoLoad(b,d);
   if(a.indexOf("sosave:")===0)return soSave(b,d,a.slice(7));
@@ -1465,10 +1479,11 @@ document.getElementById("menupop").addEventListener("click",function(e){
 });
 document.addEventListener("click",function(){if(menuOpen())menuShow(false)});
 window.addEventListener("resize",function(){if(menuOpen())menuShow(false);fitFront()});
-/* Typing an opening or closing time clears that day's "closed all day" tick. */
-document.addEventListener("input",function(e){
-  var m=/^soh[oc]-(\w+)$/.exec(e.target.id||"");
-  if(m&&e.target.value.trim()){var x=document.getElementById("sohx-"+m[1]);if(x)x.checked=false}
+/* Ticking a day opens or closes its time boxes. */
+document.addEventListener("change",function(e){
+  var ds=(e.target&&e.target.dataset)||{};
+  if(ds.hrday)soSetDay(ds.hrday,e.target.checked);
+  if(ds.so==="tick"||ds.so==="tickall")soClick(e.target);
 });
 document.addEventListener("keydown",function(e){
   if(!menuOpen())return;
@@ -1503,7 +1518,8 @@ function viewSell(){
     '<label class="field"><span>What does your store sell? (choose one)</span><select name="category" required><option value="">(choose)</option>'+SELL.cats.map(function(c){return '<option'+(SELL.cat===c?' selected':'')+'>'+esc(c)+'</option>'}).join("")+'</select></label>'+
     '<label class="field"><span>Your town</span><select name="town" required><option value="">(choose)</option>'+
       (function(){var by={};SELL.towns.forEach(function(t){(by[t.province]=by[t.province]||[]).push(t)});return Object.keys(by).map(function(pv){return '<optgroup label="'+esc(pv)+'">'+by[pv].map(function(t){return '<option value="'+esc(t.slug)+'">'+esc(t.name)+'</option>'}).join("")+'</optgroup>'}).join("")})()+'</select></label>'+
-    '<label class="field"><span>Street address (shoppers see this)</span><input name="address" maxlength="160" autocomplete="street-address"></label>'+
+    '<label class="field"><span>How do you sell?</span><select name="mode"><option value="physical">Physical shop</option><option value="online">Online only (for example working from home)</option><option value="both">Physical shop and online</option></select></label>'+
+    '<label class="field"><span>Street address (needed for a physical shop; shoppers see it)</span><input name="address" maxlength="160" autocomplete="street-address"></label>'+
     '<label class="field"><span>Phone (shoppers see this)</span><input name="phone" required maxlength="30" inputmode="tel" placeholder="082 123 4567" autocomplete="tel"></label>'+
     '<label class="field"><span>WhatsApp number (optional, leave blank to use your phone)</span><input name="whatsapp" maxlength="30" inputmode="tel"></label>'+
     '<label class="field"><span>Contact person (only PricePulse sees this)</span><input name="contact_name" maxlength="80" autocomplete="name"></label>'+
@@ -1521,7 +1537,7 @@ document.addEventListener("change",function(e){
 });
 function sellSubmit(f){
   var v=function(n){return (f.elements[n]||{}).value||""};
-  var body={name:v("name"),category:v("category"),town:v("town"),address:v("address"),phone:v("phone"),whatsapp:v("whatsapp"),contact_name:v("contact_name"),email:v("email"),licence_no:v("licence_no"),accept_terms:!!f.elements.terms.checked};
+  var body={name:v("name"),mode:v("mode")||"physical",category:v("category"),town:v("town"),address:v("address"),phone:v("phone"),whatsapp:v("whatsapp"),contact_name:v("contact_name"),email:v("email"),licence_no:v("licence_no"),accept_terms:!!f.elements.terms.checked};
   SELL.busy=true;SELL.err="";var b=f.querySelector("button[type=submit]");if(b)b.disabled=true;
   api("POST","/store/apply",body,30000).then(function(r){
     drop("pp_sell");SELL.busy=false;
@@ -1537,14 +1553,14 @@ function sellSubmit(f){
 }
 
 /* ---------- My store (store owners; the server refuses everyone else) ---------- */
-var SO={tab:"overview",me:null,items:null,hist:null,q:"",err:"",busy:false,pending:null};
+var SO={tab:"overview",me:null,items:null,hist:null,q:"",err:"",busy:false,pending:null,offset:0,sel:{}};
 var SO_TABS=[["overview","Overview"],["items","Items"],["upload","Upload CSV"],["details","Store details"],["history","History"]];
 var SO_TEMPLATE="item,price,sub-category,condition,size,sku,barcode,promo price,image\r\nLenovo ThinkPad T480 14in,5499,Laptops,Refurbished,i5 16GB 512GB SSD,TP480,,4999,\r\nDell OptiPlex 7050 SFF,3999,Desktops,Refurbished,i5 8GB 256GB SSD,OP7050,,,\r\nLogitech K120 Keyboard,189,Peripherals,New,USB,K120,,,\r\n";
 function soLoad(){
   if(SO.busy)return;SO.busy=true;
   api("GET","/store/me").then(function(m){
     SO.me=m;
-    if(SO.tab==="items")return api("GET","/store/items?"+qs({q:SO.q})).then(function(r){SO.items=r});
+    if(SO.tab==="items")return api("GET","/store/items?"+qs({q:SO.q,offset:SO.offset||0,limit:SO_PAGE})).then(function(r){SO.items=r});
     if(SO.tab==="history")return api("GET","/store/submissions").then(function(r){SO.hist=r});
   }).then(function(){SO.busy=false;SO.err="";if(state.view==="store")renderMain()}).catch(function(e){
     SO.busy=false;if(handleAuthError(e))return;
@@ -1561,33 +1577,51 @@ function soBanner(m){
   if(m.status==="lapsed"||m.status==="off")return '<div class="banner warn" role="status"><b>Your store is hidden from shoppers.</b>You can still see and download your items. Changes are paused until your plan is renewed. Please contact PricePulse.</div>';
   return "";
 }
+var SO_MODES={physical:"Physical shop",online:"Online only",both:"Physical shop and online"};
+var SO_PAGE=25;
 function viewMyStore(){
   var m=SO.me,h='<h2 class="h2">My store</h2>';
   if(SO.err)return h+'<div class="empty">'+esc(SO.err)+'</div>';
   if(!m)return h+'<p class="sub" aria-busy="true">Loading…</p>';
-  h+='<p class="sub"><b>'+esc(m.name)+'</b> · '+esc(m.town||regionName(m.region))+'</p>'+soBanner(m)+
+  h+=soBanner(m)+
     '<div class="seg" role="group" aria-label="My store sections">'+SO_TABS.map(function(t){return '<button type="button" data-so="tab" data-tab="'+t[0]+'" aria-pressed="'+(SO.tab===t[0])+'">'+t[1]+'</button>'}).join("")+'</div>';
-  var pct=Math.min(100,Math.round(m.items*100/Math.max(1,m.max_items)));
+  var pct=Math.min(100,Math.round(m.items*100/Math.max(1,m.max_items))),mode=m.mode||"physical";
   if(SO.tab==="overview"){
-    if(m.store_number)h+='<div class="card storeidcard"><p style="margin:0">Your Store ID</p><p class="big13" style="margin:.2rem 0">'+esc(m.store_number)+'</p><div class="btns" style="margin:0"><button class="btn alt" type="button" data-so="copyid">Copy my Store ID</button></div></div>';
+    var shown=m.name+(m.town?' · '+m.town:'');
     h+='<div class="admgrid">'+
+      '<div class="stat"><b>'+esc(shown)+'</b><span>Store name, as shoppers see it</span></div>'+
+      (m.store_number?'<div class="stat"><b>'+esc(m.store_number)+'</b><span>Store ID <button class="linkbtn" type="button" data-so="copyid">Copy</button></span></div>':'')+
       '<div class="stat"><b>'+({active:"Active",grace:"Payment due",lapsed:"Hidden",off:"Switched off",pending:"Waiting for approval",rejected:"Not approved"}[m.status]||m.status)+'</b><span>Store status</span></div>'+
-      '<div class="stat"><b>'+m.items+' of '+m.max_items+'</b><span>Items on your plan</span><div class="meter" role="img" aria-label="'+pct+' percent of your items used"><i style="width:'+pct+'%"></i></div></div>'+
+      '<div class="stat"><b>'+m.items+' of '+m.max_items+'</b><span>Items on your plan used</span><div class="meter" role="img" aria-label="'+pct+' percent of your items used"><i style="width:'+pct+'%"></i></div></div>'+
       '<div class="stat"><b>'+esc(m.paid_until?fmtDate(m.paid_until):"No end date")+'</b><span>Paid until</span></div>'+
-      '<div class="stat"><b>'+esc(soDate(m.last_submission))+'</b><span>Last change</span></div></div>'+
-      '<div class="admbar"><button class="admbtn go" type="button" data-so="add">Add an item</button><button class="admbtn" type="button" data-so="gotab" data-tab="upload">Upload a CSV file</button>'+
-      '<button class="admbtn" type="button" data-so="seemine">See my store as shoppers see it</button></div>'+
+      '<div class="stat"><b>'+esc(soDate(m.last_submission))+'</b><span>Last change to store</span></div>'+
+      '<div class="stat"><b>'+esc(SO_MODES[mode]||mode)+'</b><span>How you sell</span></div></div>';
+    var hs=hoursSummary(m.hours);
+    h+='<div class="card"><p style="margin:0"><b>Business hours</b></p>'+
+      (mode==="online"?'<p class="sub" style="margin:.3rem 0 0">Not shown to shoppers: your store is online only.</p>':
+        hs?'<ul class="hrsum">'+hs.map(function(x){return '<li><b>'+esc(x[0])+'</b><span>'+esc(x[1])+'</span></li>'}).join("")+'</ul>'+(m.hours_note?'<p class="sub" style="margin:.2rem 0 0">'+esc(m.hours_note)+'</p>':''):'<p class="sub" style="margin:.3rem 0 0">No opening hours set yet.</p>')+
+      (mode==="online"?'':'<div class="btns" style="margin:.4rem 0 0"><button class="btn alt" type="button" data-so="gotab" data-tab="details">Edit business hours</button></div>')+'</div>'+
+      soPhotosCard(m)+
+      '<div class="admbar"><button class="admbtn" type="button" data-so="seemine">See my store as shoppers see it</button></div>'+
       '<div class="card"><p style="margin:0"><b>Are your prices still right?</b></p><p class="sub" style="margin:.3rem 0 0">Prices turn “old” for shoppers after 8 days. If nothing changed, tap the button and every price shows today’s date.</p>'+
       '<div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-so="confirm">My prices are still correct</button></div></div>';
   }else if(SO.tab==="items"){
-    var it=SO.items;
-    h+='<form id="soqform" class="admbar" role="search"><label class="vh" for="soq">Find one of my items</label><input id="soq" type="search" placeholder="Find one of my items" value="'+esc(SO.q)+'" maxlength="60" autocomplete="off">'+
-      '<button class="admbtn" type="submit">Find</button><button class="admbtn go" type="button" data-so="add">Add an item</button><button class="admbtn" type="button" data-so="download">Download my list</button></form>';
+    var it=SO.items,off=SO.offset||0;
+    h+='<div class="admbar"><button class="admbtn go" type="button" data-so="add">Add an item</button><button class="admbtn go" type="button" data-so="gotab" data-tab="upload">Upload a CSV file</button><button class="admbtn" type="button" data-so="download">Download my list</button></div>'+
+      '<form id="soqform" class="admbar" role="search"><label class="vh" for="soq">Find one of my items</label><input id="soq" type="search" placeholder="Find one of my items" value="'+esc(SO.q)+'" maxlength="60" autocomplete="off"><button class="admbtn" type="submit">Find</button></form>';
     if(!it)h+='<p class="sub" aria-busy="true">Loading…</p>';
-    else h+='<p class="sub" role="status">'+it.total+' items'+(it.items.length<it.total?' (first '+it.items.length+' shown)':'')+'.</p><div class="admwrap"><table class="admtable"><thead><tr><th>Code</th><th>Item</th><th>Type</th><th>Condition</th><th class="num">Price</th><th class="num">Special</th><th>Shoppers see it</th><th>Change</th></tr></thead><tbody>'+
-      admRows(it.items.map(function(r){
-        return '<tr><td>'+esc(r.sku)+'</td><td><b>'+esc(r.name)+'</b>'+(r.size?'<div class="sub2">'+esc(r.size)+'</div>':'')+'</td><td>'+esc(r.sub)+'</td><td>'+esc(r.condition)+'</td><td class="num">'+(r.price!=null?money(r.price):"")+'</td><td class="num">'+(r.promo!=null?money(r.promo):"")+'</td><td>'+(r.active?"Yes":"<b>Hidden</b>")+'</td>'+
-          '<td class="acts"><button class="admbtn" type="button" data-so="edit" data-id="'+r.id+'" aria-label="Edit '+esc(r.name)+'">Edit</button>'+(r.active?'<button class="admbtn" type="button" data-so="remove" data-id="'+r.id+'" data-name="'+esc(r.name)+'" aria-label="Remove '+esc(r.name)+'">Remove</button>':'')+'</td></tr>'}),"No items yet. Tap Add an item, or upload a CSV file.")+'</tbody></table></div>';
+    else{
+      var nsel=Object.keys(SO.sel||{}).length,last=Math.min(off+it.items.length,it.total);
+      h+='<p class="sub" role="status">'+(it.total?'Items '+(off+1)+' to '+last+' of '+it.total:'No items')+'.</p>'+
+        '<div class="admbar"><button class="admbtn" type="button" data-so="removesel"'+(nsel?'':' disabled')+'>Remove ticked items'+(nsel?' ('+nsel+')':'')+'</button><button class="admbtn" type="button" data-so="removeall"'+(m.items?'':' disabled')+'>Remove all my items</button></div>'+
+        '<div class="admwrap"><table class="admtable compact"><thead><tr><th><label class="vh" for="soall">Tick all on this page</label><input id="soall" type="checkbox" data-so="tickall" aria-label="Tick all on this page"></th><th>Item</th><th class="num">Price</th><th class="num">Special</th><th>Shown</th><th>Change</th></tr></thead><tbody>'+
+        admRows(it.items.map(function(r){
+          var meta=[r.sku,r.sub,r.condition].filter(Boolean).map(esc).join(" · ");
+          return '<tr><td>'+(r.active?'<input type="checkbox" data-so="tick" data-id="'+r.id+'" aria-label="Tick '+esc(r.name)+'"'+((SO.sel||{})[r.id]?' checked':'')+'>':'')+'</td>'+
+            '<td class="nm"><b>'+esc(r.name)+'</b>'+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+(meta?'<div class="sub2">'+meta+'</div>':'')+'</td><td class="num">'+(r.price!=null?money(r.price):"")+'</td><td class="num">'+(r.promo!=null?money(r.promo):"")+'</td><td>'+(r.active?"Yes":"<b>Hidden</b>")+'</td>'+
+            '<td class="acts"><button class="admbtn" type="button" data-so="edit" data-id="'+r.id+'" aria-label="Edit '+esc(r.name)+'">Edit</button>'+(r.active?'<button class="admbtn" type="button" data-so="remove" data-id="'+r.id+'" data-name="'+esc(r.name)+'" aria-label="Remove '+esc(r.name)+'">Remove</button>':'')+'</td></tr>'}),"No items yet. Tap Add an item, or upload a CSV file.")+'</tbody></table></div>'+
+        (it.total>SO_PAGE?'<div class="admbar"><button class="admbtn" type="button" data-so="page" data-dir="-1"'+(off?'':' disabled')+'>← Previous '+SO_PAGE+'</button><button class="admbtn" type="button" data-so="page" data-dir="1"'+(off+SO_PAGE<it.total?'':' disabled')+'>Next '+SO_PAGE+' →</button></div>':'');
+    }
   }else if(SO.tab==="upload"){
     h+='<div class="card"><p style="margin:0"><b>Load many items from a CSV file</b></p><ul class="steps"><li>Every price must be the <b>selling price including VAT</b>, what the buyer pays. PricePulse never adds VAT.</li>'+
       '<li>Needed columns: <b>item</b> and <b>price</b>'+(m.conditions.length?', and <b>condition</b> (New or Refurbished)':'')+'.'+(m.subcategories.length?' Please add <b>sub-category</b> too ('+m.subcategories.map(esc).join(", ")+').':'')+'</li>'+
@@ -1597,13 +1631,14 @@ function viewMyStore(){
       '<input id="sofile" class="vh" type="file" accept=".csv,.txt,text/csv,text/plain" tabindex="-1" aria-hidden="true"></div>';
   }else if(SO.tab==="details"){
     var f=function(id,label,val,max,hint){return '<label class="field wide"><span>'+label+'</span><input id="'+id+'" type="text" maxlength="'+max+'" value="'+esc(val||"")+'" autocomplete="off"'+(hint?' placeholder="'+esc(hint)+'"':'')+'></label>'};
-    h+='<div class="card"><p style="margin:0"><b>What shoppers see about your store</b></p><p class="sub" style="margin:.3rem 0 .6rem">Shoppers tap your store name on an item to see this, and can call you or message you on WhatsApp.</p><div class="admform">'+
-      f("sodaddr","Address",m.address,160)+f("sodphone","Phone",m.phone,30,"082 123 4567")+f("sodwa","WhatsApp number (leave blank to use your phone)",m.whatsapp,30,"082 123 4567")+f("sodemail","Email (only PricePulse sees this)",m.email,120)+f("sodcontact","Contact person (only PricePulse sees this)",m.contact_name,80)+
-      '</div><p class="err" id="soderr" role="alert"></p><div class="btns" style="margin-bottom:0"><button class="btn" type="button" data-so="savedetails">Save</button></div></div>'+soHoursCard(m)+soPhotosCard(m);
+    h+='<div class="card"><p style="margin:0"><b>What shoppers see about your store</b></p><p class="sub" style="margin:.3rem 0 .6rem">Shoppers tap your store name on an item to see this, and can call you or message you on WhatsApp. Your town ('+esc(m.town||"")+') is always shown.</p><div class="admform">'+
+      '<label class="field wide"><span>How do you sell?</span><select id="somode">'+Object.keys(SO_MODES).map(function(k){return '<option value="'+k+'"'+(k===mode?' selected':'')+'>'+esc(SO_MODES[k])+'</option>'}).join("")+'</select></label>'+
+      f("sodaddr","Street address (needed for a physical shop; not shown for an online-only store)",m.address,160)+f("sodphone","Phone",m.phone,30,"082 123 4567")+f("sodwa","WhatsApp number (leave blank to use your phone)",m.whatsapp,30,"082 123 4567")+f("sodemail","Email (only PricePulse sees this)",m.email,120)+f("sodcontact","Contact person (only PricePulse sees this)",m.contact_name,80)+
+      '</div><p class="err" id="soderr" role="alert"></p><div class="btns" style="margin-bottom:0"><button class="btn" type="button" data-so="savedetails">Save</button></div></div>'+(mode==="online"?'':soHoursCard(m));
   }else if(SO.tab==="history"){
-    var hs=SO.hist;
-    h+=!hs?'<p class="sub" aria-busy="true">Loading…</p>':'<div class="admwrap"><table class="admtable"><thead><tr><th>When</th><th>How</th><th>File</th><th class="num">Rows</th><th class="num">New</th><th class="num">Updated</th><th class="num">Hidden</th><th class="num">Skipped</th></tr></thead><tbody>'+
-      admRows(hs.submissions.map(function(x){return '<tr><td>'+esc(fmtDate(x.at))+'</td><td>'+esc(x.source)+'</td><td>'+esc(x.filename)+'</td><td class="num">'+x.rows+'</td><td class="num">'+x.added+'</td><td class="num">'+x.updated+'</td><td class="num">'+x.removed+'</td><td class="num">'+x.invalid+'</td></tr>'}),"No files loaded yet.")+'</tbody></table></div>';
+    var hs2=SO.hist;
+    h+=!hs2?'<p class="sub" aria-busy="true">Loading…</p>':'<div class="admwrap"><table class="admtable"><thead><tr><th>When</th><th>How</th><th>File</th><th class="num">Rows</th><th class="num">New</th><th class="num">Updated</th><th class="num">Hidden</th><th class="num">Skipped</th></tr></thead><tbody>'+
+      admRows(hs2.submissions.map(function(x){return '<tr><td>'+esc(fmtDate(x.at))+'</td><td>'+esc(x.source)+'</td><td>'+esc(x.filename)+'</td><td class="num">'+x.rows+'</td><td class="num">'+x.added+'</td><td class="num">'+x.updated+'</td><td class="num">'+x.removed+'</td><td class="num">'+x.invalid+'</td></tr>'}),"No files loaded yet.")+'</tbody></table></div>';
   }
   return h;
 }
@@ -1661,18 +1696,30 @@ var SO_DAYS=[["mon","Monday"],["tue","Tuesday"],["wed","Wednesday"],["thu","Thur
 function soHoursCard(m){
   var hr=m.hours||{};
   var rows=SO_DAYS.map(function(d){
-    var v=hr[d[0]],closed=!v;
-    return '<div class="hr"><b>'+d[1].slice(0,3)+'</b><label class="vh" for="soho-'+d[0]+'">'+d[1]+' opens</label><input id="soho-'+d[0]+'" type="text" inputmode="numeric" maxlength="5" placeholder="08:00" value="'+esc(v?v[0]:"")+'" autocomplete="off">'+
-      '<label class="vh" for="sohc-'+d[0]+'">'+d[1]+' closes</label><input id="sohc-'+d[0]+'" type="text" inputmode="numeric" maxlength="5" placeholder="17:00" value="'+esc(v?v[1]:"")+'" autocomplete="off">'+
-      '<label class="cl"><input type="checkbox" id="sohx-'+d[0]+'"'+(closed?' checked':'')+'><span>'+d[1]+': closed all day</span></label></div>'}).join("");
-  return '<div class="card"><p style="margin:0"><b>Opening hours</b></p><p class="sub" style="margin:.3rem 0 .6rem">24-hour clock, South African time, for example 08:00 and 17:00. Shoppers see “Open now” or “Closed” from these.</p>'+
+    var v=hr[d[0]],open=!!v;
+    return '<div class="hr2"><span class="dn">'+d[1]+'</span>'+
+      '<label class="sw"><input type="checkbox" id="sohx-'+d[0]+'"'+(open?' checked':'')+' data-hrday="'+d[0]+'"><span>'+(open?'Open':'Closed')+'</span></label>'+
+      '<span class="times" id="soht-'+d[0]+'"'+(open?'':' hidden')+'><label class="vh" for="soho-'+d[0]+'">'+d[1]+' opens</label><input id="soho-'+d[0]+'" type="time" value="'+esc(v?v[0]:"08:00")+'">'+
+      '<span aria-hidden="true">–</span><label class="vh" for="sohc-'+d[0]+'">'+d[1]+' closes</label><input id="sohc-'+d[0]+'" type="time" value="'+esc(v?v[1]:"17:00")+'"></span>'+
+      '<span class="shut" id="sohs-'+d[0]+'"'+(open?' hidden':'')+'>Closed</span></div>'}).join("");
+  return '<div class="card"><p style="margin:0"><b>Opening hours</b></p><p class="sub" style="margin:.3rem 0 .6rem">South African time. Tick a day to say you are open, then set from and to. Shoppers see “Open now” or “Closed” from these.</p>'+
     '<div class="hrsedit">'+rows+'</div><label class="field wide"><span>Note (optional, for example: closed on public holidays)</span><input id="sohnote" type="text" maxlength="200" value="'+esc(m.hours_note||"")+'" autocomplete="off"></label>'+
     '<p class="sub" id="sohprev" role="status">'+esc((m.hours_status||{}).text||"")+'</p><p class="err" id="soherr" role="alert"></p>'+
-    '<div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-so="copymon">Copy Monday to Tuesday–Friday</button><button class="btn" type="button" data-so="savehours">Save opening hours</button></div></div>';
+    '<div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-so="copymon">Copy Monday to Tuesday–Friday</button><button class="btn alt" type="button" data-so="copyall">Copy Monday to every day</button><button class="btn" type="button" data-so="savehours">Save opening hours</button></div></div>';
+}
+function hoursSummary(hr){
+  hr=hr||{};
+  var days=SO_DAYS.map(function(d){return {n:d[1].slice(0,3),v:hr[d[0]]?hr[d[0]][0]+"–"+hr[d[0]][1]:"Closed"}}),out=[],k=0;
+  if(!SO_DAYS.some(function(d){return hr[d[0]]}))return null;
+  while(k<days.length){
+    var e=k;while(e+1<days.length&&days[e+1].v===days[k].v)e++;
+    out.push([k===e?days[k].n:days[k].n+"–"+days[e].n,days[k].v]);k=e+1;
+  }
+  return out;
 }
 function soPhotosCard(m){
   var ph={};(m.photos||[]).forEach(function(x){ph[x.slot]=x.url});
-  return '<div class="card"><p style="margin:0"><b>Shop photos</b></p><p class="sub" style="margin:.3rem 0 .6rem">Use a clear photo of the front of your shop. Photo 2 is optional. Only upload photos you have the right to publish.</p>'+
+  return '<div class="card"><p style="margin:0"><b>Shop photos</b></p><p class="sub" style="margin:.3rem 0 .6rem">Use a clear photo of the front of your shop (photo 2 is optional). Tap Change or Remove to edit. Only upload photos you have the right to publish.</p>'+
     [1,2].map(function(n){return '<div class="photoslot"><div class="thumb">'+(ph[n]?'<img src="'+esc(ph[n])+'" alt="Photo '+n+' of my shop">':'<span class="sub" style="margin:0">No photo</span>')+'</div>'+
       '<div><button class="btn alt" type="button" data-so="photo" data-slot="'+n+'">'+(ph[n]?'Change photo '+n:'Choose photo '+n)+'</button>'+(ph[n]?' <button class="btn alt" type="button" data-so="photodel" data-slot="'+n+'">Remove photo '+n+'</button>':'')+'</div></div>'}).join("")+
     '<input id="sophoto" class="vh" type="file" accept="image/*" tabindex="-1" aria-hidden="true"><p class="err" id="sopherr" role="alert"></p></div>';
@@ -1681,9 +1728,15 @@ function soReadHours(){
   var days={};
   SO_DAYS.forEach(function(d){
     var x=document.getElementById("sohx-"+d[0]),a=document.getElementById("soho-"+d[0]).value.trim(),b=document.getElementById("sohc-"+d[0]).value.trim();
-    days[d[0]]=(x&&x.checked)||(!a&&!b)?null:[a,b];
+    days[d[0]]=(x&&x.checked&&a&&b)?[a,b]:null;
   });
   return days;
+}
+function soSetDay(k,open,a,b){
+  var x=document.getElementById("sohx-"+k);if(!x)return;
+  x.checked=open;x.nextElementSibling.textContent=open?"Open":"Closed";
+  document.getElementById("soht-"+k).hidden=!open;document.getElementById("sohs-"+k).hidden=open;
+  if(a)document.getElementById("soho-"+k).value=a;if(b)document.getElementById("sohc-"+k).value=b;
 }
 /* Shrink the photo in the browser to a JPEG (longest side 1200px). This also drops any location data. */
 function soShrink(file,maxSide){
@@ -1716,6 +1769,11 @@ function soClick(t){
   var d=t.dataset,m=SO.me;
   if(d.so==="tab"||d.so==="gotab"){SO.tab=d.tab;SO.err="";renderMain();return (SO.tab==="items"||SO.tab==="history"||SO.tab==="overview")?soReload():undefined}
   if(d.so==="add")return soItemForm(null);
+  if(d.so==="tick"){if(t.checked)SO.sel[d.id]=true;else delete SO.sel[d.id];return renderMain()}
+  if(d.so==="tickall"){((SO.items||{}).items||[]).forEach(function(r){if(r.active){if(t.checked)SO.sel[r.id]=true;else delete SO.sel[r.id]}});return renderMain()}
+  if(d.so==="page"){SO.offset=Math.max(0,(SO.offset||0)+(+d.dir)*SO_PAGE);SO.items=null;SO.sel={};renderMain();return soReload()}
+  if(d.so==="removesel"){var n=Object.keys(SO.sel).length;return n&&ask("Remove "+plural(n,"item")+"?",'<p>Shoppers will no longer see the ticked items. You can add them again later.</p>',[["Remove them","soremovesel","btn"],["Keep them","","btn alt"]])}
+  if(d.so==="removeall")return ask("Remove all your items?",'<p>This takes <b>every item</b> ('+plural(m.items,"item")+') off the shopper screens. Your store stays; you can upload or add items again later.</p>',[["Remove all my items","soremoveall","btn"],["Keep my items","","btn alt"]]);
   if(d.so==="copyid"&&m){try{navigator.clipboard.writeText(m.store_number);say("Store ID copied.")}catch(x){say("Your Store ID is "+m.store_number)}return}
   if(d.so==="edit"){var r=((SO.items||{}).items||[]).filter(function(x){return String(x.id)===d.id})[0];return r&&soItemForm(r)}
   if(d.so==="remove")return ask("Remove this item?",'<p>Shoppers will no longer see <b>'+esc(d.name)+'</b>. You can add it again later.</p>',[["Remove it","soremove:"+d.id,"btn"],["Keep it","","btn alt"]]);
@@ -1724,7 +1782,7 @@ function soClick(t){
   if(d.so==="download"){var rows=((SO.items||{}).items||[]);return admSaveFile("my-store-items.csv","item,price,sub-category,condition,size,sku,barcode,promo price,image\r\n"+rows.map(function(r){return [r.name,r.price==null?"":r.price,r.sub,r.condition,r.size,r.sku,r.barcode,r.promo==null?"":r.promo,r.image].map(csvCell).join(",")}).join("\r\n")+"\r\n")}
   if(d.so==="confirm"){t.disabled=true;return api("POST","/store/confirm-prices").then(function(r){t.disabled=false;say(r.confirmed+" prices confirmed for today.");soReload()}).catch(function(e){t.disabled=false;ask("Could not confirm",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])})}
   if(d.so==="seemine"&&m){state.region=m.region;savePrefs();state.found=null;return go("shop/"+m.id)}
-  if(d.so==="copymon"){var a=document.getElementById("soho-mon").value,b=document.getElementById("sohc-mon").value;["tue","wed","thu","fri"].forEach(function(k){document.getElementById("soho-"+k).value=a;document.getElementById("sohc-"+k).value=b;document.getElementById("sohx-"+k).checked=false});return}
+  if(d.so==="copymon"||d.so==="copyall"){var a=document.getElementById("soho-mon").value,b=document.getElementById("sohc-mon").value,open=document.getElementById("sohx-mon").checked;(d.so==="copyall"?["tue","wed","thu","fri","sat","sun"]:["tue","wed","thu","fri"]).forEach(function(k){soSetDay(k,open,a,b)});return}
   if(d.so==="savehours"){
     t.disabled=true;
     return api("POST","/store/hours",{days:soReadHours(),note:(document.getElementById("sohnote")||{}).value||""}).then(function(r){t.disabled=false;say("Opening hours saved.");var e=document.getElementById("sohprev");if(e)e.textContent=(r.status||{}).text||"";soReload()}).catch(function(e){t.disabled=false;var el=document.getElementById("soherr");if(el)el.textContent=e.message});
@@ -1734,7 +1792,7 @@ function soClick(t){
   if(d.so==="savedetails"){
     var v=function(x){return (document.getElementById(x)||{}).value||""};
     t.disabled=true;
-    return api("POST","/store/details",{address:v("sodaddr"),phone:v("sodphone"),whatsapp:v("sodwa"),email:v("sodemail"),contact_name:v("sodcontact")}).then(function(){t.disabled=false;say("Saved. Shoppers see the new details.");soReload()}).catch(function(e){t.disabled=false;var el=document.getElementById("soderr");if(el)el.textContent=e.message});
+    return api("POST","/store/details",{mode:v("somode"),address:v("sodaddr"),phone:v("sodphone"),whatsapp:v("sodwa"),email:v("sodemail"),contact_name:v("sodcontact")}).then(function(){t.disabled=false;say("Saved. Shoppers see the new details.");soReload()}).catch(function(e){t.disabled=false;var el=document.getElementById("soderr");if(el)el.textContent=e.message});
   }
 }
 
@@ -1776,9 +1834,9 @@ function viewShop(){
   var ph=(i.photos||[]).slice(0,2),hs=i.hours||{},week=(hs.week||[]);
   h+='<section class="card place" aria-label="'+esc(i.name)+'"><div class="photos'+(ph.length<2?' one':'')+'">'+
     (ph.length?ph.map(function(u,n){return '<div class="ph"'+(n?' class="ph"':'')+'><img src="'+esc(u)+'" alt="'+(n?'Inside or outside of ':'Front of ')+esc(i.name)+'" loading="'+(n?'lazy':'eager')+'" decoding="async" width="800" height="600" onerror="this.remove()"></div>'}).join(""):'<div class="ph" aria-hidden="true">'+SHOP_ICON+'</div>')+'</div>'+
-    '<h2>'+esc(i.name)+' <span class="tag localtag">Local store</span></h2>'+openLine(hs)+
+    '<h2>'+esc(i.name)+' <span class="tag localtag">Local store</span> '+modePill(i.mode)+'</h2>'+openLine(hs)+
     (week.length?'<details class="weekhrs"><summary>See all hours</summary><table><tbody>'+week.map(function(w){return '<tr><td>'+esc(w[0])+'</td><td>'+esc(w[1])+'</td></tr>'}).join("")+'</tbody></table>'+(hs.note?'<p class="sub">'+esc(hs.note)+'</p>':'')+'</details>':(hs.note?'<p class="sub">'+esc(hs.note)+'</p>':''))+
-    '<p style="margin:.3rem 0">'+esc([i.address,i.town].filter(Boolean).join(", "))+'</p>'+
+    '<p style="margin:.3rem 0">'+esc(i.mode==="online"?'Online store, serving '+i.town:[i.address,i.town].filter(Boolean).join(", "))+'</p>'+
     '<div class="btns" style="margin:.4rem 0 0">'+(i.directions?'<a class="btn alt" href="'+esc(i.directions)+'" target="_blank" rel="noopener noreferrer">Directions<span class="vh"> (opens a map in a new tab)</span></a>':'')+contactButtons(i,true)+'</div>'+
     '<a class="btn bigenter" href="#shop/'+i.id+'/items">Enter Store ('+plural(i.items,"item")+')</a></section>';
   return h+disclaimer();
@@ -1875,6 +1933,7 @@ function viewAdmin(){
           '<td class="num">'+r.items+' / '+r.max_items+'</td><td>'+esc(last)+(old?' <b>(over 8 days ago)</b>':'')+'</td><td>'+(r.status_flag==="pending"?'<b>Waiting for approval</b>':r.status_flag==="rejected"?'<b>Not approved</b>':r.active?'Active':'<b>Switched off</b>')+(r.paid_until?'<div class="sub2">Paid until '+esc(r.paid_until)+(r.status==='grace'?' <b>(overdue)</b>':r.status==='lapsed'?' <b>(hidden)</b>':'')+'</div>':'')+'</td>'+
           '<td class="acts"><button class="admbtn go" type="button" data-adm="lsimport" data-id="'+r.id+'" aria-label="Load the weekly file for '+esc(r.name)+'">Load weekly file</button>'+
           '<button class="admbtn" type="button" data-adm="lsedit" data-id="'+r.id+'" aria-label="Edit '+esc(r.name)+'">Edit</button>'+
+          '<button class="admbtn" type="button" data-adm="lsdelete" data-id="'+r.id+'" data-name="'+esc(r.name)+'" aria-label="Delete '+esc(r.name)+'">Delete</button>'+
           '<button class="admbtn" type="button" data-adm="lshistory" data-id="'+r.id+'" data-name="'+esc(r.name)+'" aria-label="File history of '+esc(r.name)+'">History</button></td></tr>'}),"No local stores yet. Tap Add a local store.")+'</tbody></table></div>';
   }else if(tab==="essentials"){
     h+='<p class="sub">Essential items are the words the app looks up in every store each night, so these items are always in the system with fresh prices. Add many at once from a CSV file: a column <b>item</b> and, if you like, a column <b>category</b> ('+d.categories.join(", ")+'). Items you approve under Requests are added here too. New items appear after the next overnight update.</p>'+
@@ -2044,6 +2103,7 @@ function lsHistory(id,name){
 function admClick(t){
   var d=t.dataset;
   if(d.adm==="unlock")return api("POST","/admin/users/"+encodeURIComponent(d.uid)+"/unlock").then(function(){say("Account unlocked.");ADM.loading=null;admLoad()}).catch(function(e){say(e.message)});
+  if(d.adm==="lsdelete")return ask("Delete "+d.name+"?",'<p><b>This cannot be undone.</b> It removes the store, all its items and prices, its photos and the owner link. (The backup from pp deploy is the only way back.)</p><label class="field"><span>Type the store name to confirm</span><input id="lsdelname" type="text" maxlength="80" autocomplete="off"></label><p class="err" id="lsdelerr" role="alert"></p>',[["Delete the store","lsdel:"+d.id,"btn"],["Cancel","","btn alt"]]);
   if(d.adm==="lsapprove"){var dt=new Date(Date.now()+31*864e5).toISOString().slice(0,10);return ask("Approve "+d.name+"?",'<p>Shoppers will see the store until the date below (plus 3 grace days). Set it after you have invoiced the R149.</p><label class="field"><span>Paid until (YYYY-MM-DD)</span><input id="lsappdate" type="text" value="'+dt+'" maxlength="10" inputmode="numeric"></label><p class="err" id="lsapperr" role="alert"></p>',[["Approve","lsapprove:"+d.id,"btn"],["Cancel","","btn alt"]])}
   if(d.adm==="lsreject")return ask("Reject "+d.name+"?",'<p>The owner is told the reason you type here.</p><label class="field"><span>Reason</span><input id="lsrejtext" type="text" maxlength="200"></label>',[["Reject","lsreject:"+d.id,"btn"],["Cancel","","btn alt"]]);
   if(d.adm==="lsnew")return lsForm(null);
@@ -2291,7 +2351,7 @@ function formState(f,busy,msg){
 document.addEventListener("submit",function(e){
   var f=e.target;e.preventDefault();
   if(f.id==="devform")return Auth.dev(f.querySelector("[name=name]").value.trim());
-  if(f.id==="soqform"){SO.q=(document.getElementById("soq")||{}).value||"";SO.q=SO.q.trim();SO.items=null;renderMain();return soReload()}
+  if(f.id==="soqform"){SO.q=(document.getElementById("soq")||{}).value||"";SO.q=SO.q.trim();SO.items=null;SO.offset=0;SO.sel={};renderMain();return soReload()}
   if(f.id==="emailform"){
     formState(f,true,"");
     var em=f.email.value.trim(),pw=f.password.value;

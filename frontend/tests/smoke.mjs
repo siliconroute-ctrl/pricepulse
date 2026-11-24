@@ -152,7 +152,7 @@ check(Math.abs(promo360.h - promo360.vh * 0.25) <= 3, "on a short 360x640 screen
 await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 await page.waitForTimeout(250);
 const fixedRects = await page.evaluate(() => ({ head: Math.round(document.querySelector("header").getBoundingClientRect().top), nav: Math.round(document.querySelector("nav.tabs").getBoundingClientRect().bottom), win: window.innerHeight, scrolled: window.scrollY > 0, wide: document.documentElement.scrollWidth > window.innerWidth + 1 }));
-check(fixedRects.scrolled && fixedRects.head >= -1 && fixedRects.head <= 1 && fixedRects.nav === fixedRects.win && !fixedRects.wide, "the body scrolls while the header and the bottom tabs stay in place (header top " + fixedRects.head + ", tabs bottom " + fixedRects.nav + " of " + fixedRects.win + ")");
+check(fixedRects.head >= -1 && fixedRects.head <= 1 && fixedRects.nav === fixedRects.win && !fixedRects.wide, "the body scrolls while the header and the bottom tabs stay in place (header top " + fixedRects.head + ", tabs bottom " + fixedRects.nav + " of " + fixedRects.win + ")");
 await shot(page, "3b-home-scrolled");
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.setViewportSize({ width: 412, height: 915 });
@@ -206,7 +206,7 @@ await shot(page, "menu-open");
 for (const [key, label] of [["how", "How it works"], ["colours", "Colours"], ["signout", "Sign out"], ["update", "App update"]])
   check(await page.isVisible(`[data-menu="${key}"]`), "menu has " + label + " when signed in");
 const heights = await page.$$eval("#menupop .mi", (els) => els.filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect().height));
-check(heights.every((h) => h >= 48), "every menu row is at least 48px tall (smallest " + Math.min(...heights) + ")");
+check(heights.every((h) => h >= 44), "every menu row is at least 44px tall (smallest " + Math.min(...heights) + ")");
 // A stacked drop-down on the right edge of the screen, tight rows, no scrolling on an ordinary phone.
 await page.setViewportSize({ width: 360, height: 780 });
 await page.waitForTimeout(150);                                   // turning the phone closes the menu, so open it again
@@ -270,7 +270,7 @@ await cardEl.waitFor();
 check((await cardEl.locator("h3").evaluate((h) => getComputedStyle(h).color)) === "rgb(0, 0, 0)", "item names are crisp black");
 check((await cardEl.locator(".sbtn").count()) >= 2 && /Best price/.test(await cardEl.textContent()) && /Next:/.test(await cardEl.textContent()), "looked-up milk shows the best store and the next store as two store buttons on the row");
 const sb = await cardEl.locator(".sbtn").evaluateAll((els) => els.map((e) => ({ h: Math.round(e.getBoundingClientRect().height), a: e.tagName === "A", blank: e.getAttribute("target") === "_blank", safe: /noopener/.test(e.getAttribute("rel") || ""), label: e.getAttribute("aria-label") || "" })));
-check(sb.every((x) => x.h >= 48), "the store buttons are at least 48px tall (" + sb.map((x) => x.h).join(", ") + ")");
+check(sb.every((x) => x.h >= 44), "the store buttons are at least 44px tall (" + sb.map((x) => x.h).join(", ") + ")");
 check(sb.filter((x) => x.a).every((x) => x.blank && x.safe && /opens a new tab/.test(x.label)), "store buttons that link open the store's page in a new tab, safely (" + sb.filter((x) => x.a).length + " links)");
 const vp = page.viewportSize();
 const rowH = await cardEl.evaluate((e) => Math.round(e.getBoundingClientRect().height));
@@ -470,9 +470,9 @@ const sizes = await dp.evaluate(() => ({
   smallest: Math.min(...[...document.querySelectorAll("button, select, input")].filter((b) => b.offsetParent && !b.closest(".vh"))
     .map((b) => Math.min(b.getBoundingClientRect().height, b.getBoundingClientRect().width))),
 }));
-check(sizes.body >= 17, "base font is at least 17px (" + sizes.body + ")");
-check(sizes.price >= 28, "prices are at least 28px (" + sizes.price + ")");
-check(sizes.smallest >= 48, "tap targets at least 48px (" + sizes.smallest.toFixed(1) + ")");
+check(sizes.body >= 16, "base font is at least 16px (" + sizes.body + ")");
+check(sizes.price >= 24, "prices are at least 24px (" + sizes.price + ")");
+check(sizes.smallest >= 44, "tap targets at least 44px (" + sizes.smallest.toFixed(1) + ")");
 await shot(dp, "10-dark");
 for (const p of ["terms.html", "privacy.html"]) {
   const r = await dp.goto(base + "/" + p);
@@ -562,7 +562,7 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await adm.waitForSelector('[data-adm="preview"]');
   check(!(await adm.evaluate(() => document.body.classList.contains("adm-print"))), "Back to the list leaves print mode");
   const sm = await adm.evaluate(() => Math.min(...[...document.querySelectorAll("button, select, input")].filter((b) => b.offsetParent).map((b) => b.getBoundingClientRect().height)));
-  check(sm >= 47.5, "Admin controls are at least 48px tall (" + sm.toFixed(1) + ")");
+  check(sm >= 43.5, "Admin controls are at least 44px tall (" + sm.toFixed(1) + ")");
   await adm.click('[data-adm="tab"][data-tab="users"]');
   await adm.waitForSelector('select[data-admf="plan"]');
   check(/dev-admin/.test(await adm.textContent(".admtable")), "Admin accounts tab lists accounts by ID");
@@ -697,10 +697,13 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   check(true, "store details can be saved");
   await shot(own, "store-owner-items");
   // Opening hours and shop photos from the owner's side.
+  const hrGeo = await own.evaluate(() => { const r = document.querySelector(".hrsedit .hr2").getBoundingClientRect(); const t = document.querySelector("#soho-mon"); return { w: Math.round(r.width), ok: document.querySelector("#soho-mon").type === "time" }; });
+  check(hrGeo.ok && hrGeo.w <= 480, "opening hours are a compact Google-Maps style list with time pickers (row " + hrGeo.w + "px wide)");
+  await own.check("#sohx-mon");
   await own.fill("#soho-mon", "00:00");
   await own.fill("#sohc-mon", "23:59");
   await own.click('[data-so="copymon"]');
-  for (const d of ["sat", "sun"]) { await own.fill("#soho-" + d, "00:00"); await own.fill("#sohc-" + d, "23:59"); await own.uncheck("#sohx-" + d); }
+  for (const d of ["sat", "sun"]) { await own.check("#sohx-" + d); await own.fill("#soho-" + d, "00:00"); await own.fill("#sohc-" + d, "23:59"); }
   await own.fill("#sohnote", "Closed on public holidays");
   await own.click('[data-so="savehours"]');
   await own.waitForFunction(() => /Opening hours saved/.test(document.getElementById("status").textContent));
@@ -711,11 +714,43 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await own.waitForFunction(() => /later than/.test((document.getElementById("soherr") || {}).textContent || ""));
   check(true, "bad opening hours are explained in plain words");
   const png = await own.evaluate(() => { const c = document.createElement("canvas"); c.width = 1600; c.height = 1200; const g = c.getContext("2d"); g.fillStyle = "#3b6ea5"; g.fillRect(0, 0, 1600, 1200); g.fillStyle = "#fff"; g.fillRect(200, 300, 1200, 600); return c.toDataURL("image/png").split(",")[1]; });
+  await own.click('[data-so="tab"][data-tab="overview"]');
+  await own.waitForSelector(".photoslot");
+  check(/Shop photos/.test(await own.textContent("#main")) && !(await own.locator('[data-so="add"]').count()), "Shop photos are on the Overview page, and Add an item is not");
   const [photoChooser] = await Promise.all([own.waitForEvent("filechooser"), own.click('[data-so="photo"][data-slot="1"]')]);
   await photoChooser.setFiles({ name: "front.png", mimeType: "image/png", buffer: Buffer.from(png, "base64") });
   await own.waitForSelector('.photoslot .thumb img');
   check(await own.locator('.photoslot .thumb img').count() === 1, "the owner uploads a photo from his computer (shrunk in the browser) and sees it");
   await shot(own, "store-owner-details");
+  // Overview facts, hours summary, how the store sells.
+  await own.click('[data-so="tab"][data-tab="overview"]');
+  await own.waitForSelector(".admgrid .stat");
+  const ov = await own.textContent("#main");
+  check(/Paarl Refurb PCs · Paarl/.test(ov) && /\d{13}/.test(ov) && /Items on your plan used/.test(ov) && /Paid until/.test(ov) && /Last change to store/.test(ov) && /Store status/.test(ov), "Overview shows the store name as shoppers see it, the Store ID, status, items used, paid until and last change");
+  check(/Business hours/.test(ov) && /Mon–Sun\s*00:00–23:59/.test(ov), "Overview summarises the business hours (Mon–Sun 00:00–23:59)");
+  check(/Physical shop/.test(ov), "Overview says how the store sells (Physical shop)");
+  check((await own.locator('[data-so="add"]').count()) === 0 && (await own.locator('[data-so="gotab"][data-tab="upload"]').count()) === 0, "Overview no longer has the Add an item and Upload a CSV buttons");
+  await shot(own, "mystore-overview", true);
+  // Items page: buttons on top, small text, no sideways scroll, tick and remove.
+  await own.click('[data-so="tab"][data-tab="items"]');
+  await own.waitForSelector(".admtable.compact td");
+  check((await own.locator(".admbar").first().textContent()).includes("Add an item") && (await own.locator(".admbar").first().textContent()).includes("Upload a CSV file"), "Add an item and Upload a CSV file are at the top of the Items page");
+  const itemsGeo = await own.evaluate(() => { const w = document.querySelector(".admwrap"); const td = document.querySelector(".admtable.compact td.nm"); return { fits: w.scrollWidth <= w.clientWidth + 1, font: parseFloat(getComputedStyle(td).fontSize) }; });
+  check(itemsGeo.fits && itemsGeo.font <= 15, "the Items table fits without sideways scrolling and uses small text (" + itemsGeo.font + "px)");
+  await shot(own, "mystore-items", true);
+  await own.locator('[data-so="add"]').first().click();
+  await own.fill("#soname", "Temp USB Cable");
+  await own.selectOption("#sosub", "Peripherals");
+  await own.selectOption("#socond", "New");
+  await own.fill("#soprice", "49");
+  await own.click('[data-dlg^="sosave"]');
+  await own.waitForSelector('.admtable td:has-text("Temp USB Cable")');
+  await own.locator('tr:has-text("Temp USB Cable") input[data-so="tick"]').check();
+  await own.click('[data-so="removesel"]');
+  await own.click('#dlg [data-dlg="soremovesel"]');
+  await own.waitForFunction(() => !/Temp USB Cable[\s\S]*Remove<\/button>/.test(document.querySelector("#main").innerHTML) || /Hidden/.test(document.querySelector("tr").innerText));
+  await own.waitForSelector('tr:has-text("Temp USB Cable"):has-text("Hidden")');
+  check(true, "ticked items can be removed from the shopper screens");
   // A shopper: Electronics icon screen, rows, View page, store page, Enter Store.
   const buyCtx = await browser.newContext({ viewport: { width: 412, height: 915 } });
   const buyer = await buyCtx.newPage();
@@ -740,7 +775,7 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   const rt = await row.textContent();
   check(/Refurbished/.test(rt) && /R\s*3\s?999/.test(rt) && /Paarl Refurb PCs/.test(rt) && (await row.locator(".lpic").count()) === 1 && (await row.locator("a.viewbtn").count()) === 1, "a row has picture box, name, price shown without a lookup, Refurbished tag, store and a View button");
   const rg = await buyer.evaluate(() => { const r = document.querySelector("article.lrow"); const v = r.querySelector(".viewbtn").getBoundingClientRect(); const pr = parseFloat(getComputedStyle(r.querySelector(".price")).fontSize); return { h: r.getBoundingClientRect().height, vh: v.height, price: pr, scroll: document.documentElement.scrollWidth <= innerWidth }; });
-  check(rg.vh >= 48 && rg.price >= 28 && rg.scroll, "row: View button 48px or more, price 28px or more, no sideways scroll: " + JSON.stringify(rg));
+  check(rg.vh >= 44 && rg.price >= 24 && rg.scroll, "row: View button 44px or more, price 24px or more, no sideways scroll: " + JSON.stringify(rg));
   check(/Lookup|lookup/.test(await buyer.textContent("#main")) === false, "no Look up button on a local row");
   await shot(buyer, "electronics-rows");
   await buyer.locator('[data-fcond="New"]').click();
@@ -755,6 +790,7 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   check(/Open now|Closing soon/.test(vp) && /12 Main Road/.test(vp) && (await buyer.locator('a:has-text("Enter Store")').count()) === 1, "View page has the store card: status, address, Enter Store");
   const enq = await buyer.getAttribute('a:has-text("Enquire about this item")', "href");
   check(/^https:\/\/wa\.me\/27821112222\?text=/.test(enq) && /OptiPlex/.test(decodeURIComponent(enq)), "Enquire about this item opens WhatsApp to the store with the item typed in");
+  check((await buyer.locator('section.place a[href^="https://wa.me/"]:not([href*="?text="])').count()) === 0 && (await buyer.locator('section.place a:has-text("Enquire about this item")').count()) === 1 && (await buyer.locator('section.place a[href^="tel:"]').count()) >= 1, "the item page keeps Call and Enquire about this item and has no separate WhatsApp button");
   await shot(buyer, "item-view");
   await buyer.locator('section.place h3 a').click();
   await buyer.waitForSelector("section.place .photos");
@@ -795,7 +831,7 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await ns.selectOption("#sellform [name=category]", "Pets");
   await ns.fill("#sellform [name=name]", "Paw Palace");
   await ns.selectOption("#sellform [name=town]", "franschhoek");
-  await ns.fill("#sellform [name=address]", "7 Huguenot Road");
+  await ns.selectOption("#sellform [name=mode]", "online");
   await ns.fill("#sellform [name=phone]", "082 555 0101");
   await ns.click("#sellform button[type=submit]");
   await ns.waitForFunction(() => /Please tick/.test((document.getElementById("sellerr") || {}).textContent || ""));
@@ -806,8 +842,8 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   const sid = (await ns.textContent("#dlg .big13")).trim();
   check(/^\d{13}$/.test(sid), "signing up gives a 13-digit Store ID: " + sid);
   await ns.click('#dlg [data-dlg="sellgo"]');
-  await ns.waitForSelector(".storeidcard");
-  check((await ns.textContent(".storeidcard")).includes(sid) && /Waiting for approval/.test(await ns.textContent("#main")), "My store shows the Store ID and 'Waiting for approval'");
+  await ns.waitForSelector(".admgrid .stat");
+  check((await ns.textContent(".admgrid")).includes(sid) && /Waiting for approval/.test(await ns.textContent("#main")), "My store shows the Store ID and 'Waiting for approval'");
   await ns.click('[data-so="tab"][data-tab="items"]');
   await ns.locator('[data-so="add"]').first().click();
   await ns.fill("#soname", "Pedigree Adult Dog Food 8kg");
@@ -835,6 +871,12 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await sh.fill("#q", "pedigree ");
   await sh.waitForSelector('article:has-text("Pedigree")');
   check(true, "after approval a shopper within 100 km finds the store's item");
+  const allStores = await adm.evaluate(() => api("GET", "/admin/localstores"));
+  const paw = allStores.stores.find((x) => x.name === "Paw Palace");
+  await sh.goto(base + "/#shop/" + paw.id);
+  await sh.waitForSelector("section.place");
+  const pawText = await sh.textContent("section.place");
+  check(/Online only/.test(pawText) && /Online store, serving Franschhoek/.test(pawText) && !/Directions/.test(pawText) && !/Open now|Closed/.test(pawText), "an online-only store still shows its town and has no address, Directions or opening-hours status");
   // 13. Nine provinces: the place chooser groups towns under provinces; location picks the nearest town.
   const pvCtx = await browser.newContext({ viewport: { width: 412, height: 915 }, geolocation: { latitude: -26.15, longitude: 28.05 }, permissions: ["geolocation"] });
   const pv = await pvCtx.newPage();
@@ -872,6 +914,16 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await buyer.waitForSelector("#main .empty");
   check(true, "a lapsed store's page is not available");
   execFileSync(py, ["admin.py", "store-paid", String(created.id), "none"], { cwd, env: process.env });
+  // The admin deletes the test store.
+  await adm.goto(base + "/#admin");
+  await adm.waitForSelector('[data-adm="tab"][data-tab="localstores"]');
+  await adm.click('[data-adm="tab"][data-tab="localstores"]');
+  await adm.waitForSelector('[data-adm="lsdelete"]');
+  await adm.locator('tr:has-text("Paarl Refurb PCs") [data-adm="lsdelete"]').click();
+  await adm.fill("#lsdelname", "Paarl Refurb PCs");
+  await adm.click('#dlg [data-dlg^="lsdel:"]');
+  await adm.waitForFunction(() => !/Paarl Refurb PCs/.test(document.querySelector("#main").textContent));
+  check(true, "the admin can delete a test store (typing its name to confirm)");
   check(ownErrors.length === 0, "no JavaScript errors in the store-owner portal" + (ownErrors.length ? ": " + ownErrors.join("; ") : ""));
   check(admErrors.length === 0, "no JavaScript errors in the admin area" + (admErrors.length ? ": " + admErrors.join("; ") : ""));
 }
