@@ -14,9 +14,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from .. import essentials, localstores
+from .. import abuse, essentials, localstores
 from ..accounts import TESTER, is_paid, sa_today
 from ..db import (
+    AbuseLock,
     AppUser,
     EssentialItem,
     ItemRequest,
@@ -30,6 +31,7 @@ from ..db import (
     StoreOwner,
     StoreSubmission,
     Subscription,
+    utcnow,
 )
 from ..money import from_cents
 from ..phones import normalise_phone
@@ -141,6 +143,11 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             "under_18": sum(1 for u in users if u.id_fingerprint and not u.adult),
             "paying": sum(1 for u in users if is_paid(s, u) and u.plan_override not in ("paid", TESTER)),
             "admins": sum(1 for u in users if u.is_admin),
+            "locked": s.scalar(
+                select(func.count(func.distinct(AbuseLock.uid))).where(
+                    AbuseLock.released.is_(False), AbuseLock.locked_until > utcnow()
+                )
+            ),
             "sessions_today": s.scalar(
                 select(func.count()).select_from(LookupSession).where(LookupSession.day == today.isoformat())
             ),
@@ -269,12 +276,30 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
                     "by_hand": bool(u.plan_override),
                     "paid_until": sub.paid_until.isoformat() + "Z" if sub and sub.paid_until else None,
                     "admin": bool(u.is_admin),
+                    "locked_until": (
+                        lk.locked_until.isoformat() + "Z"
+                        if (lk := abuse._locked_row(s, u.uid)) is not None
+                        else None
+                    ),
                     "requests": s.scalar(
                         select(func.count()).select_from(ItemRequest).where(ItemRequest.uid == u.uid)
                     ),
                 }
             )
         return {"users": out, "total": s.scalar(select(func.count()).select_from(AppUser))}
+
+    @app.post(base + "/users/{uid}/unlock", tags=["admin"])
+    def unlock_user(
+        uid: str,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """Lift a pause put on an account that looked automated."""
+        if s.get(AppUser, uid) is None:
+            raise HTTPException(404, {"code": "not_found", "message": "No such account."})
+        n = abuse.release(s, uid)
+        s.commit()
+        return {"uid": uid, "released": n}
 
     @app.post(base + "/users/{uid}/plan", tags=["admin"])
     def set_plan(
@@ -283,7 +308,7 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         admin: AppUser = Depends(admin_dep),  # noqa: B008
         s: Session = Depends(ctx.db),  # noqa: B008
     ):
-        """free = normal; paid = unlimited sessions and items; tester = same, for testing accounts."""
+        """free = normal; paid = the TrolleyUp plan; tester = no limits, for testing accounts."""
         target = s.get(AppUser, uid)
         if target is None:
             raise HTTPException(404, {"code": "not_found", "message": "No such account."})
@@ -685,8 +710,8 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         version = s.scalar(select(func.max(SchemaVersion.version)))
         return {
             "settings": [
-                ["Free lookup sessions a day", settings.free_sessions_per_day, "PP_FREE_SESSIONS"],
-                ["Items per free session", settings.session_items_max, "PP_SESSION_ITEMS"],
+                ["Lookup sessions a day (everyone)", settings.free_sessions_per_day, "PP_FREE_SESSIONS"],
+                ["Items per session", settings.session_items_max, "PP_SESSION_ITEMS"],
                 ["Paid plan price per month", str(from_cents(settings.price_cents)), "PP_PRICE_CENTS"],
                 ["Name match: join automatically from", settings.match_auto, "PP_MATCH_AUTO"],
                 ["Name match: send to review from", settings.match_review, "PP_MATCH_REVIEW"],

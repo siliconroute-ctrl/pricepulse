@@ -110,7 +110,7 @@ def test_requests_inbox_and_settings(api, app_settings):
     assert added[0]["term"] == "White Mushrooms 250g"
     shown = api.get("/api/v1/admin/settings", headers=h).json()["settings"]
     text = str(shown)
-    assert "Free lookup sessions a day" in text and "PP_FREE_SESSIONS" in text
+    assert "Lookup sessions a day (everyone)" in text and "PP_FREE_SESSIONS" in text
     assert "ingest" not in text.lower() or "off" in text.lower() or "on" in text.lower()
     assert app_settings.id_secret not in text or not app_settings.id_secret  # no secrets in the settings list
 

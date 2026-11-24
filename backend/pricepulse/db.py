@@ -100,6 +100,18 @@ class Store(Base):
     applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
+class AbuseLock(Base):
+    """An account paused because it looked automated (bots and scripts are not allowed on any plan)."""
+
+    __tablename__ = "abuse_lock"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uid: Mapped[str] = mapped_column(String(128), index=True)
+    reason: Mapped[str] = mapped_column(String(120), default="")
+    locked_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    locked_until: Mapped[datetime] = mapped_column(DateTime)
+    released: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+
+
 class Product(Base):
     """One canonical product, e.g. "Clover Full Cream Milk 2L"."""
 
@@ -579,6 +591,18 @@ def _m15_provinces(conn: Connection) -> None:
     conn.execute(text(f"UPDATE store SET region = 'western-cape' WHERE region IN ({old})"))
 
 
+def _m16_abuse_lock(conn: Connection) -> None:
+    """Accounts paused for automated use (adds a table only)."""
+    conn.execute(
+        text(
+            "CREATE TABLE IF NOT EXISTS abuse_lock (id INTEGER PRIMARY KEY, uid VARCHAR(128) NOT NULL, "
+            "reason VARCHAR(120) NOT NULL DEFAULT '', locked_at DATETIME NOT NULL, "
+            "locked_until DATETIME NOT NULL, released BOOLEAN NOT NULL DEFAULT 0)"
+        )
+    )
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_abuse_lock_uid ON abuse_lock (uid)"))
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
@@ -595,6 +619,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (13, "store pages: hours, photos, item descriptions", _m13_store_pages),
     (14, "store sign-up: store id, approval, map point", _m14_store_signup),
     (15, "regions are provinces", _m15_provinces),
+    (16, "accounts paused for automated use", _m16_abuse_lock),
 ]
 
 

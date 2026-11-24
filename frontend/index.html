@@ -531,7 +531,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 43;
+var APP_VERSION = 44;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -728,11 +728,11 @@ function handleAuthError(e){
 function meterText(){
   var m=state.me;if(!m)return "";
   var s=m.session,items=s.active?s.items_used+" of "+s.items_max+" items looked up":"No session open";
-  if(m.plan==="paid")return "Unlimited plan · "+items;
   var n=m.sessions_per_day;
+  if(n==null)return "Tester account · "+items;
   if(s.active)return "Session "+m.sessions_used_today+" of "+n+" today · "+items;
   var left=Math.max(0,n-m.sessions_used_today);
-  return left?plural(left,"free session")+" left today":"No free sessions left today";
+  return left?plural(left,"lookup session")+" left today":"No lookup sessions left today";
 }
 function newestPrice(){var n=null;state.items.forEach(function(i){for(var s in i.p.prices){var d=toDate(i.p.prices[s].at);if(d&&(!n||d>n))n=d}});return n}
 function oldestPrice(){var o=null;state.items.forEach(function(i){for(var s in i.p.prices){var d=toDate(i.p.prices[s].at);if(d&&(!o||d<o))o=d}});return o}
@@ -753,7 +753,7 @@ function oldTag(r){return r.at&&(r.stale!==undefined?r.stale:hoursOld(r.at)>STAL
 function sellCard(){return '<div class="card" style="margin-top:.85rem"><p style="margin:0"><b>Do you run a shop?</b></p><p class="sub" style="margin:.3rem 0 0">List your items for shoppers in your area. R149 a month per store, up to 200 items.</p><button class="btn alt sellcta" type="button" data-act="sellsignin">I run a store: list my items</button></div>'}
 function viewSignin(){
   var h='<div class="hero"><p class="big">See where your shopping is cheapest</p><p class="sub">Compare prices at Checkers, Pick n Pay, Woolworths, Dis-Chem and liquor stores.</p></div>';
-  h+='<div class="card"><ul class="points"><li>Free: 3 lookup sessions a day, 45 items each</li><li>R99 a month for unlimited sessions and unlimited items</li><li>Send your list to TrolleyUp</li><li>One sign-in for PricePulse and TrolleyUp</li></ul></div>';
+  h+='<div class="card"><ul class="points"><li>Free: 29 lookup sessions a day, 45 items each</li><li>Pick items and compare stores for free</li><li>R39 a month: send your picked items to TrolleyUp</li><li>One sign-in for PricePulse and TrolleyUp</li></ul></div>';
   if(Auth.mode==="dev"){
     return h+'<form class="card" id="devform" style="margin-top:.85rem"><div class="banner warn"><b>Test sign-in.</b>This copy runs in test mode. It is not for real users.</div><label class="field"><span>Test name</span><input name="name" required pattern="[a-z0-9]{2,20}" autocomplete="off" value="tester"></label><p class="err" role="alert">'+esc(state.authErr)+'</p><button class="btn wide">Sign in</button></form>'+sellCard();
   }
@@ -1088,7 +1088,8 @@ function lookUp(id){
   }).catch(function(e){
     state.busy=false;
     if(handleAuthError(e))return;
-    if(e.code==="daily_limit")return upgradeDialog(e.message);
+    if(e.code==="daily_limit")return ask("No lookup sessions left today",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]]);
+    if(e.code==="locked")return ask("Your account is paused",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]]);
     if(e.code==="session_full")return ask("This session is full",'<p>'+esc(e.message)+'</p><p>Your list stays until you clear it. Clearing starts a new session.</p>',[["Go to my list","golist","btn"],["Close","","btn alt"]]);
     if(e.code==="id_required"){state.phase="idcheck";return render()}
     say(e.message);ask("Could not look that up",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]]);
@@ -1223,7 +1224,7 @@ function viewList(){
   }
   if(off.length)h+='<h2 class="h2" style="font-size:1.35rem">Looked up, not on my list</h2><div class="card">'+off.map(function(i){
     return '<div class="hrow"><div class="n"><b>'+esc(i.p.name)+'</b><span class="size">'+esc(i.p.size)+'</span></div><button class="add" type="button" data-toggle="'+i.p.id+'" aria-label="Put '+esc(i.p.name)+' on my list">+ List</button></div>'}).join("")+'</div>';
-  h+='<h2 class="h2" style="font-size:1.35rem">This session</h2><div class="card"><p style="margin:0">'+esc(meterText())+'.</p><p class="sub" style="margin:.3rem 0 0">Items you look up stay counted even if you take them off the list. Clearing ends this session; your next lookup starts a new one'+(m&&m.plan!=="paid"?' ('+m.sessions_per_day+' free sessions a day)':'')+'.</p><div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-act="clear">Clear session</button></div></div>';
+  h+='<h2 class="h2" style="font-size:1.35rem">This session</h2><div class="card"><p style="margin:0">'+esc(meterText())+'.</p><p class="sub" style="margin:.3rem 0 0">Items you look up stay counted even if you take them off the list. Clearing ends this session; your next lookup starts a new one'+(m&&m.sessions_per_day!=null?' ('+m.sessions_per_day+' sessions a day)':'')+'.</p><div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-act="clear">Clear session</button></div></div>';
   return h+disclaimer();
 }
 function listText(){
@@ -1255,14 +1256,15 @@ function setItem(id,patch){
   return api("PATCH","/session/items/"+id,patch).then(function(s){applySession(s);render()}).catch(function(e){if(!handleAuthError(e)){say(e.message)}});
 }
 function clearSession(){
-  var m=state.me,free=m&&m.plan!=="paid",left=free?Math.max(0,m.sessions_per_day-m.sessions_used_today):null;
-  ask("Clear this session?",'<p>This empties your list and ends this session.</p>'+(free?'<p><b>'+(left?'You will have '+plural(left,"free session")+' left today.':'You have no free sessions left today, so you cannot start a new one until tomorrow unless you upgrade.')+'</b></p>':''),
+  var m=state.me,free=m&&m.sessions_per_day!=null,left=free?Math.max(0,m.sessions_per_day-m.sessions_used_today):null;
+  ask("Clear this session?",'<p>This empties your list and ends this session.</p>'+(free?'<p><b>'+(left?'You will have '+plural(left,"lookup session")+' left today.':'You have no lookup sessions left today, so you cannot start a new one until tomorrow.')+'</b></p>':''),
     [["Clear session","doclear","btn"],["Keep my list","","btn alt"]]);
 }
 
 /* ---------- Send to TrolleyUp ---------- */
 function exportDialog(){
   var single=state.basket&&state.basket.cheapest_single_store,n=pickedIds().length;
+  if(state.me&&state.me.plan!=="paid")return planDialog();
   if(!n)return ask("Pick items first",'<p>Tap the <b>TrolleyUp icon</b> on the items you want to send. Only picked items go to TrolleyUp.</p>',[["OK","","btn"]]);
   ask("Send to TrolleyUp",'<p>This makes a file with the '+plural(n,"item")+' you picked, to import into your TrolleyUp shopping list. Items you did not pick are not sent.</p>'+
     '<fieldset style="border:0;padding:0;margin:.6rem 0"><legend style="font-weight:650">Which store should each item go under?</legend>'+
@@ -1282,7 +1284,7 @@ function doExport(){
         [["Open TrolleyUp","opentu","btn"]].concat(file&&navigator.canShare&&navigator.canShare({files:[file]})?[["Share the file","sharefile","btn alt"]]:[]).concat([["Done","","btn alt"]]));
       state.exportFile=file;say("File saved. Follow the steps to import it in TrolleyUp.");
     });
-  }).catch(function(e){var x=document.getElementById("xerr");if(x)x.textContent=e.message;say(e.message)});
+  }).catch(function(e){if(e.code==="plan_needed"){document.getElementById("dlg").close();return planDialog(e.message)}var x=document.getElementById("xerr");if(x)x.textContent=e.message;say(e.message)});
 }
 
 /* ---------- Account and plan ---------- */
@@ -1290,15 +1292,16 @@ function viewAccount(){
   var m=state.me||{},h=banners()+'<h2 class="h2">My account</h2>';
   h+='<div class="card"><p style="margin:0"><b>Signed in as</b> '+esc(Auth.email()||"your account")+'</p><p class="size" style="margin:.3rem 0 0">Age check done: '+(m.adult?'18 or older.':'under 18. Liquor is hidden.')+'</p></div>';
   h+='<h2 class="h2" style="font-size:1.35rem">My plan</h2>';
+  var lim=m.sessions_per_day==null?'Tester account: no limits.':'<b>Your limits.</b> '+m.sessions_per_day+' lookup sessions a day, '+m.session.items_max+' items each. Used today: '+m.sessions_used_today+' of '+m.sessions_per_day+'.';
+  h+='<div class="card"><p style="margin:0">'+lim+'</p><p class="size" style="margin:.3rem 0 0">Prices are for people looking things up. Bots, scripts and scraping are not allowed on any plan.</p></div>';
   if(m.plan==="paid"){
-    h+='<div class="card plan"><span class="tag">Unlimited plan</span><p style="margin:.3rem 0 0">'+(m.session&&m.session.items_max>=1000?'Unlimited lookup sessions and unlimited items.':'Unlimited lookup sessions, '+((m.session&&m.session.items_max)||45)+' items each.')+'</p>'+
-      (m.paid_until?'<p class="size" style="margin:.3rem 0 0">'+(m.subscription_status==="cancelled"?'Cancelled. You keep unlimited sessions until ':'Paid up until ')+esc(fmtDay(m.paid_until))+'.</p>':'')+
+    h+='<div class="card plan" style="margin-top:.85rem"><span class="tag">TrolleyUp plan</span><p style="margin:.3rem 0 0">'+(m.sessions_per_day==null?'Send your picked items to TrolleyUp (tester account).':'You can send your picked items to TrolleyUp.')+'</p>'+
+      (m.paid_until?'<p class="size" style="margin:.3rem 0 0">'+(m.subscription_status==="cancelled"?'Cancelled. You can send to TrolleyUp until ':'Paid up until ')+esc(fmtDay(m.paid_until))+'.</p>':'')+
       (m.subscription_status==="active"?'<div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-act="cancelplan">Cancel my plan</button></div>':'')+'</div>';
   }else{
-    h+='<div class="card"><p style="margin:0"><b>Free plan.</b> '+m.sessions_per_day+' lookup sessions a day, '+m.session.items_max+' items each. Used today: '+m.sessions_used_today+' of '+m.sessions_per_day+'.</p></div>';
-    h+='<div class="card plan" style="margin-top:.85rem"><span class="tag">Unlimited plan</span><span class="amt">'+money(m.price_per_month).replace(".00","")+' a month</span><ul class="points"><li>Unlimited lookup sessions every day</li><li>Unlimited items in each session</li><li>Cancel any time</li></ul>'+
+    h+='<div class="card plan" style="margin-top:.85rem"><span class="tag">TrolleyUp plan</span><span class="amt">'+money(m.price_per_month).replace(".00","")+' a month</span><ul class="points"><li>Send your picked items from PricePulse to TrolleyUp</li><li>Make up your TrolleyUp shopping list in one tap</li><li>Cancel any time</li></ul>'+
       (m.subscription_status==="pending"?'<p class="size">If you have just paid, this updates within a minute. <button class="linkbtn" type="button" data-act="refresh">Check again</button></p>':'')+
-      (m.billing_ready?'<button class="btn wide" type="button" data-act="upgrade">Upgrade for '+money(m.price_per_month).replace(".00","")+' a month</button><p class="sub" style="margin:.5rem 0 0">Paid safely through PayFast by card. PricePulse never sees your card number.</p>':'<p class="sub" style="margin:0">Paid plans open soon.</p>')+'</div>';
+      (m.billing_ready?'<button class="btn wide" type="button" data-act="upgrade">Get the TrolleyUp plan for '+money(m.price_per_month).replace(".00","")+' a month</button><p class="sub" style="margin:.5rem 0 0">Paid safely through PayFast by card. PricePulse never sees your card number.</p>':'<p class="sub" style="margin:0">Paid plans open soon.</p>')+'</div>';
   }
   h+='<h2 class="h2" style="font-size:1.35rem">Colours</h2><div class="seg" role="group" aria-label="Colour theme">'+
     [["system","Like my phone"],["light","Light"],["dark","Dark"]].map(function(t){return '<button type="button" data-theme="'+t[0]+'" aria-pressed="'+(state.theme===t[0])+'">'+t[1]+'</button>'}).join("")+'</div>';
@@ -1307,10 +1310,10 @@ function viewAccount(){
   h+='<p class="sub">Help: <a href="mailto:'+esc(SUPPORT)+'">'+esc(SUPPORT)+'</a></p>';
   return h+disclaimer();
 }
-function upgradeDialog(msg){
-  var m=state.me||{},price=money(m.price_per_month||99).replace(".00","");
-  ask("No free sessions left today",'<p>'+esc(msg)+'</p><div class="card plan"><span class="tag">Unlimited plan</span><span class="amt">'+price+' a month</span><p style="margin:.2rem 0 0">Unlimited sessions every day. Cancel any time.</p></div>',
-    (m.billing_ready?[["Upgrade for "+price+" a month","upgrade","btn"]]:[]).concat([["Not now","","btn alt"]]));
+function planDialog(msg){
+  var m=state.me||{},price=money(m.price_per_month||39).replace(".00","");
+  ask("The TrolleyUp plan",'<p>'+esc(msg||"Sending your picked items to TrolleyUp is part of the TrolleyUp plan.")+'</p><div class="card plan"><span class="tag">TrolleyUp plan</span><span class="amt">'+price+' a month</span><p style="margin:.2rem 0 0">Send your picked items to TrolleyUp. Cancel any time.</p></div>',
+    (m.billing_ready?[["Get the plan for "+price+" a month","upgrade","btn"]]:[]).concat([["Not now","","btn alt"]]));
 }
 function upgrade(){
   say("Opening PayFast…");
@@ -1322,8 +1325,8 @@ function upgrade(){
 }
 function refreshMe(){return api("GET","/me").then(function(m){state.me=m;render();return m})}
 function afterPayment(){
-  ask("Thank you",'<p>PayFast is confirming your payment. Your plan will show as <b>Unlimited</b> within a minute.</p>',[["OK","","btn"]]);
-  var tries=0;(function poll(){refreshMe().then(function(m){if(m.plan!=="paid"&&++tries<8)setTimeout(poll,5000);else if(m.plan==="paid")say("Your Unlimited plan is active.")}).catch(function(){})})();
+  ask("Thank you",'<p>PayFast is confirming your payment. Your plan will show as <b>TrolleyUp plan</b> within a minute.</p>',[["OK","","btn"]]);
+  var tries=0;(function poll(){refreshMe().then(function(m){if(m.plan!=="paid"&&++tries<8)setTimeout(poll,5000);else if(m.plan==="paid")say("Your TrolleyUp plan is active.")}).catch(function(){})})();
 }
 
 /* ---------- Dialog ---------- */
@@ -1362,7 +1365,7 @@ document.getElementById("dlg").addEventListener("click",function(e){
   if(a==="golist")go("list");
   if(a==="upgrade")upgrade();
   if(a==="doclear")api("POST","/session/clear",{region:state.region}).then(function(s){applySession(s);state.detail=null;render();say("Session cleared. "+meterText()+".")}).catch(function(e){if(!handleAuthError(e))say(e.message)});
-  if(a==="docancel")api("POST","/billing/cancel").then(function(m){state.me=m;render();say("Your plan is cancelled. You keep unlimited sessions until the paid-up date.")}).catch(function(e){ask("Could not cancel",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
+  if(a==="docancel")api("POST","/billing/cancel").then(function(m){state.me=m;render();say("Your plan is cancelled. You can still send to TrolleyUp until the paid-up date.")}).catch(function(e){ask("Could not cancel",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
   if(a==="dodelete")api("DELETE","/me").then(function(){["pp_session_"+state.region].forEach(drop);say("Your PricePulse data was deleted.");Auth.out()}).catch(function(e){ask("Could not delete",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])});
 });
 
@@ -1409,7 +1412,7 @@ function howItWorks(){
     bub('<b>4. Open List.</b> It shows what your whole list costs at the cheapest single store, or split across stores. <b>Towns</b> shows the total in each town.')+
     bub('<b>5. Pick, then send.</b> Tap the green <b>TrolleyUp icon</b> on the items you want to buy, then tap <b>Send to TrolleyUp</b>. Only the picked items are sent.')+
     bub('What does it cost?',true)+
-    bub('Free: <b>3 lookup sessions a day</b>, 45 items each. Unlimited sessions and items are <b>R99 a month</b> (see My account).')+
+    bub('Looking up, picking and comparing are free: <b>29 lookup sessions a day</b>, 45 items each. Sending your picked items to TrolleyUp is the <b>TrolleyUp plan, R39 a month</b> (see My account). Bots and scripts are not allowed.')+
     bub('Liquor is only shown to people aged 18 and over.',false,'Prices come from the stores\u2019 websites and can differ in store. Always check at the till.')+
     '</div>';
   if(!d.open)d.showModal();
@@ -1885,11 +1888,11 @@ function viewAdmin(){
         return '<tr><td>'+esc(r.term)+'</td><td>'+esc(r.category)+'</td><td>'+esc({csv:"CSV file",drive:"Drive folder",request:"A request",admin:"Admin"}[r.source]||r.source)+'</td><td><button class="admbtn" type="button" data-adm="esremove" data-id="'+r.id+'" data-term="'+esc(r.term)+'" aria-label="Remove '+esc(r.term)+' from the essential items">Remove</button></td></tr>'}),"No essential items yet. Import a CSV file to add some.")+'</tbody></table></div>';
   }else if(tab==="users"){
     h+='<p class="sub">'+d.total+' accounts'+(d.users.length<d.total?' (newest '+d.users.length+' shown)':'')+'. Accounts are shown by sign-in ID only: PricePulse keeps no names, emails or ID numbers.</p>'+
-      '<div class="admwrap"><table class="admtable"><thead><tr><th>Account ID</th><th>Joined</th><th>Age check</th><th>Plan</th><th>Set plan</th></tr></thead><tbody>'+
+      '<div class="admwrap"><table class="admtable"><thead><tr><th>Account ID</th><th>Joined</th><th>Age check</th><th>Plan</th><th>Set plan</th><th>Paused</th></tr></thead><tbody>'+
       admRows(d.users.map(function(u){
         var age=u.age_checked?(u.adult?'adult':'under 18'):'not yet';
         return '<tr><td><code>'+esc(u.uid)+'</code>'+(u.admin?' <b>(admin)</b>':'')+'</td><td>'+esc(fmtDate(u.created))+'</td><td>'+age+'</td><td>'+esc(u.plan)+(u.by_hand?' (by hand)':'')+(u.paid_until&&!u.by_hand?' until '+esc(fmtDate(u.paid_until)):'')+'</td>'+
-          '<td><select aria-label="Plan for '+esc(u.uid)+'" data-admf="plan" data-uid="'+esc(u.uid)+'"><option value="">Choose…</option><option value="free">Free</option><option value="paid">Paid (unlimited)</option><option value="tester">Tester (unlimited)</option></select></td></tr>'}),"No accounts yet.")+'</tbody></table></div>';
+          '<td><select aria-label="Plan for '+esc(u.uid)+'" data-admf="plan" data-uid="'+esc(u.uid)+'"><option value="">Choose…</option><option value="free">Free</option><option value="paid">TrolleyUp plan</option><option value="tester">Tester (no limits)</option></select></td><td>'+(u.locked_until?'<b>Until '+esc(fmtDate(u.locked_until))+'</b> <button class="admbtn" type="button" data-adm="unlock" data-uid="'+esc(u.uid)+'" aria-label="Unlock account '+esc(u.uid)+'">Unlock</button>':'')+'</td></tr>'}),"No accounts yet.")+'</tbody></table></div>';
   }else if(tab==="requests"){
     h+='<p class="sub">What shoppers asked for that we do not list yet, most asked first. Tap <b>Mark added</b> to put an item on the nightly search list (see Essentials); <b>Decline</b> closes it without adding.</p>'+
       '<div class="seg noprint" role="group" aria-label="Show requests" style="margin:.4rem 0">'+["open","added","declined"].map(function(x){return '<button type="button" data-adm="reqshow" data-status="'+x+'" aria-pressed="'+(d.status===x)+'">'+x[0].toUpperCase()+x.slice(1)+'</button>'}).join("")+'</div>'+
@@ -2040,6 +2043,7 @@ function lsHistory(id,name){
 }
 function admClick(t){
   var d=t.dataset;
+  if(d.adm==="unlock")return api("POST","/admin/users/"+encodeURIComponent(d.uid)+"/unlock").then(function(){say("Account unlocked.");ADM.loading=null;admLoad()}).catch(function(e){say(e.message)});
   if(d.adm==="lsapprove"){var dt=new Date(Date.now()+31*864e5).toISOString().slice(0,10);return ask("Approve "+d.name+"?",'<p>Shoppers will see the store until the date below (plus 3 grace days). Set it after you have invoiced the R149.</p><label class="field"><span>Paid until (YYYY-MM-DD)</span><input id="lsappdate" type="text" value="'+dt+'" maxlength="10" inputmode="numeric"></label><p class="err" id="lsapperr" role="alert"></p>',[["Approve","lsapprove:"+d.id,"btn"],["Cancel","","btn alt"]])}
   if(d.adm==="lsreject")return ask("Reject "+d.name+"?",'<p>The owner is told the reason you type here.</p><label class="field"><span>Reason</span><input id="lsrejtext" type="text" maxlength="200"></label>',[["Reject","lsreject:"+d.id,"btn"],["Cancel","","btn alt"]]);
   if(d.adm==="lsnew")return lsForm(null);
@@ -2072,7 +2076,7 @@ function admClick(t){
 function admField(el){
   if(el.dataset.admf==="plan"){
     var plan=el.value,uid=el.dataset.uid;if(!plan)return;
-    var words={free:"the normal Free plan",paid:"the Paid plan (unlimited sessions and items)",tester:"the Tester plan (unlimited sessions and items)"};
+    var words={free:"the normal Free plan",paid:"the TrolleyUp plan (send to TrolleyUp)",tester:"the Tester plan (no limits)"};
     ask("Change plan?",'<p>Put account <b>'+esc(uid)+'</b> on '+words[plan]+'?</p>',[["Yes, change it","admplan:"+uid+":"+plan,"btn"],["Cancel","","btn alt"]]);
     el.value="";return;
   }
@@ -2272,8 +2276,8 @@ document.addEventListener("click",function(e){
     case "export":return exportDialog();
     case "clear":return clearSession();
     case "upgrade":return upgrade();
-    case "refresh":return void refreshMe().then(function(m){say(m.plan==="paid"?"Your Unlimited plan is active.":"Not paid yet.")});
-    case "cancelplan":return ask("Cancel your plan?",'<p>No more payments will be taken. You keep unlimited sessions until the end of the month you have paid for, then go back to the free plan.</p>',[["Cancel my plan","docancel","btn"],["Keep my plan","","btn alt"]]);
+    case "refresh":return void refreshMe().then(function(m){say(m.plan==="paid"?"Your TrolleyUp plan is active.":"Not paid yet.")});
+    case "cancelplan":return ask("Cancel your plan?",'<p>No more payments will be taken. You can keep sending to TrolleyUp until the end of the month you have paid for, then you go back to the free plan.</p>',[["Cancel my plan","docancel","btn"],["Keep my plan","","btn alt"]]);
     case "delete":return ask("Delete your PricePulse data?",'<p>This removes your age check, your sessions and your list from PricePulse. It does not delete your sign-in, which you also use for TrolleyUp.</p>',[["Delete my data","dodelete","btn"],["Keep it","","btn alt"]]);
   }
 });

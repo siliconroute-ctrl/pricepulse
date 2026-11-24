@@ -22,6 +22,10 @@ def settings(tmp_path, monkeypatch):
     monkeypatch.setenv("PP_OPEN_PRICES", "1")
     monkeypatch.setenv("PP_AUTH_DEV", "1")
     monkeypatch.setenv("PP_ID_SECRET", "test-secret-test-secret-0123456789")
+    # The anti-automation pause is switched off for ordinary tests (test_abuse.py turns it on).
+    monkeypatch.setenv("PP_ABUSE_LOOKUPS", "100000")
+    monkeypatch.setenv("PP_ABUSE_SEARCHES", "100000")
+    monkeypatch.setenv("PP_ABUSE_RHYTHM", "0")
     # Small test regions and towns (old town names as regions) so the tests do not depend on the real lists.
     data = Path(__file__).parent / "data"
     monkeypatch.setenv("PP_REGIONS_FILE", str(data / "regions_test.yaml"))

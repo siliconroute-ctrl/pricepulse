@@ -38,6 +38,7 @@ def main() -> int:
         "PP_DATA_DIR": data,
         "PP_FRONTEND_DIR": str(web),
         "PP_RATE_LIMIT_PER_MIN": "5000",
+        "PP_ABUSE_LOOKUPS": "40",  # the test itself makes 26 quick lookups; the bot step goes past 40
         "PP_AUTH_DEV": "1",
         "PP_OPEN_PRICES": "0",
         "PP_ID_SECRET": "smoke-test-secret-0123456789abcdef",

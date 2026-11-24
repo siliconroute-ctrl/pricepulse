@@ -11,7 +11,7 @@ from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy import case, exists, func, or_, select
 from sqlalchemy.orm import Session
 
-from .. import accounts, discovery, payfast, trolleyup
+from .. import abuse, accounts, discovery, payfast, trolleyup
 from ..auth import AuthError, Identity, make_verifier
 from ..categories import SUBCATEGORIES
 from ..db import (
@@ -168,7 +168,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             paid_until=sub.paid_until if sub and paid else None,
             subscription_status=sub.status if sub else "none",
             sessions_used_today=accounts.sessions_today(s, user.uid, today),
-            sessions_per_day=None if paid else settings.free_sessions_per_day,
+            sessions_per_day=None if accounts.is_tester(user) else settings.free_sessions_per_day,
             session=S.SessionMeter(
                 active=sess is not None,
                 items_used=len(sess.items) if sess else 0,
@@ -262,6 +262,11 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
     ):
         """Search products. Prices are shown only after an item is looked up in a session."""
         region = ctx.scope(s, ctx.check_region(region))
+        try:
+            abuse.guard(s, user, "search")
+        except accounts.RuleError as exc:
+            s.rollback()
+            raise fail(exc) from None
         adult = accounts.is_adult(user, accounts.sa_today())
         stores = (
             select(
@@ -485,6 +490,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         ctx.check_region(body.region)
         user = s.merge(user)
         try:
+            abuse.guard(s, user, "lookup")
             accounts.add_item(s, user, body.product_id, settings)
         except accounts.RuleError as exc:
             s.rollback()
@@ -542,10 +548,11 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
     def start_search(
         body: S.SearchIn, user: AppUser = Depends(user_dep), s: Session = Depends(ctx.db)  # noqa: B008
     ):
-        """Paid and tester accounts: look for an item that is not listed. The scraper machine searches
+        """Any account (5 a day): look for an item that is not listed. The scraper machine searches
         the stores within minutes and the item then appears marked New."""
         user = s.merge(user)
         try:
+            abuse.guard(s, user, "search")
             job, _created = discovery.start_search(s, user, body.term)
         except accounts.RuleError as exc:
             s.rollback()
@@ -615,6 +622,20 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         item on the list (kept so older copies of the app still work).
         """
         ctx.check_region(region)
+        if not accounts.is_paid(s, user):
+            raise HTTPException(
+                403,
+                {
+                    "code": "plan_needed",
+                    "message": "Sending your picked items to TrolleyUp is part of the TrolleyUp plan "
+                    "(R39 a month).",
+                },
+            )
+        try:
+            abuse.guard(s, user, "search")
+        except accounts.RuleError as exc:
+            s.rollback()
+            raise fail(exc) from None
         picked = {int(x) for x in ids.split(",") if x.strip().isdigit()} if ids.strip() else None
         out = session_out(s, s.merge(user), region)
         single = (

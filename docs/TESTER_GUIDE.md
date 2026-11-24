@@ -34,7 +34,7 @@ check at the till.**
 6. **Towns.** Open **Towns** to see what your list costs in nearby towns.
 7. **Clear and limits.** Tap **Clear session** on the List tab and start again. After
    3 sessions in one day the app should say you have none left and offer the
-   R99 plan. **Please do not pay during testing** unless Joao asks you to.
+   R39 TrolleyUp plan. **Please do not pay during testing** unless Joao asks you to.
 8. **Offline.** Turn on flight mode and open the app again. It should show your saved
    list and say **Showing saved prices from …**.
 9. **Text size.** Make your phone's text bigger (Settings → Display → Font size).

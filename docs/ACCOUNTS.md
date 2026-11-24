@@ -6,7 +6,7 @@
 |---|---|---|
 | Items looked up per session | 45 on the free plan; no cap when paid | `PP_SESSION_ITEMS` |
 | Free sessions per day | 3 (resets at midnight, South African time) | `PP_FREE_SESSIONS` |
-| Paid plan | R99 a month, unlimited sessions and unlimited items | `PP_PRICE_CENTS` |
+| TrolleyUp plan | R39 a month: send picked items to TrolleyUp (limits are the same as free: 29 sessions a day, 45 items each) | `PP_PRICE_CENTS` |
 
 - A session starts with the first lookup and ends when the person taps **Clear session**.
 - Taking an item off the list does **not** give the slot back. Otherwise one session

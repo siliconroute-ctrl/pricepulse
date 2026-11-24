@@ -176,11 +176,11 @@ class MeOut(_Model):
     adult: bool
     is_admin: bool = False
     store_owner: bool = False  # runs a local store (the "My store" menu item)
-    plan: str = Field(description="free or paid")
+    plan: str = Field(description="free, or paid = the TrolleyUp plan")
     paid_until: datetime | None = None
     subscription_status: str = Field(description="none, pending, active or cancelled")
     sessions_used_today: int
-    sessions_per_day: int | None = Field(description="Daily limit; null on the paid plan")
+    sessions_per_day: int | None = Field(description="Daily limit for everyone; null only for a tester")
     session: SessionMeter
     price_per_month: float
     billing_ready: bool = Field(description="False until the payment company is set up on the server")

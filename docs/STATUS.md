@@ -13,7 +13,7 @@ work on the real services.
 | Under-18s | Liquor hidden in search, lookups, list and export. Tested |
 | Sessions: 45 items, 3 a day free, reset at midnight SA time | Working, tested on the server and in the browser |
 | Prices locked to looked-up items | Working. The old whole-catalogue endpoints answer only with `PP_OPEN_PRICES=1` (tests) |
-| R99 monthly plan (PayFast) | Built. Signed checkout, payment notices (paid, repeated, forged, wrong amount, cancelled, lapsed, resubscribe) tested with our own signatures. **Not run against PayFast's sandbox.** Cancel-through-API is the least certain part |
+| R39 TrolleyUp plan (PayFast) | Built. Signed checkout, payment notices (paid, repeated, forged, wrong amount, cancelled, lapsed, resubscribe) tested with our own signatures. **Not run against PayFast's sandbox.** Cancel-through-API is the least certain part |
 | Send to TrolleyUp | Working. File checked with TrolleyUp's own `csv.js` and item rules. **Not tried by hand in the live TrolleyUp app** |
 | Terms of Use and Privacy Policy | **Drafts.** Need an attorney's review |
 | Delete my data | Working, tested |

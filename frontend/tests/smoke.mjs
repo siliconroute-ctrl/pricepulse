@@ -47,7 +47,10 @@ page.on("pageerror", (e) => errors.push(e.message));
 // 1. Sign in, then the age check.
 await page.goto(base + "/");
 await page.waitForSelector("#devform");
-check((await page.textContent("#main")).includes("3 lookup sessions a day"), "sign-in screen explains the free plan and R99");
+{
+  const t = await page.textContent("#main");
+  check(t.includes("29 lookup sessions a day") && t.includes("R39 a month") && !t.includes("R99") && !/unlimited/i.test(t), "sign-in screen explains 29 sessions a day and the R39 TrolleyUp plan");
+}
 check(!(await page.isVisible("nav.tabs")), "no tabs or prices before sign-in");
 await shot(page, "1-signin");
 check(!(await page.$("#meter")) && !(await page.$("#fresh")), "the session counter block is gone from the header");
@@ -56,16 +59,16 @@ await page.click("#menubtn");
 check(await page.isVisible("#menupop"), "three-dot menu opens on the sign-in screen");
 // The My account text must follow the real limits (a tester account has no item cap).
 const acctText = await page.evaluate(() => {
-  const base = { id_checked: true, adult: true, plan: "paid", sessions_per_day: null, sessions_used_today: 0, price_per_month: 99, subscription_status: "none", billing_ready: false };
+  const base = { id_checked: true, adult: true, plan: "paid", sessions_per_day: null, sessions_used_today: 0, price_per_month: 39, subscription_status: "none", billing_ready: false };
   state.me = { ...base, session: { active: false, items_used: 0, items_max: 9999 } };
   const tester = viewAccount();
-  state.me = { ...base, session: { active: false, items_used: 0, items_max: 45 } };
+  state.me = { ...base, sessions_per_day: 29, session: { active: false, items_used: 0, items_max: 45 } };
   const normal = viewAccount();
   state.me = null;
   return { tester, normal };
 });
-check(/unlimited items/.test(acctText.tester) && !/45 items each/.test(acctText.tester), "My account says unlimited items for a tester account");
-check(/Unlimited lookup sessions, 45 items each/.test(acctText.normal) || /unlimited/i.test(acctText.normal), "My account text for a paid account is present");
+check(/Tester account: no limits/.test(acctText.tester) && !/45 items each/.test(acctText.tester), "My account says no limits for a tester account");
+check(/29 lookup sessions a day, 45 items each/.test(acctText.normal) && /TrolleyUp plan/.test(acctText.normal) && !/nlimited/.test(acctText.normal), "My account shows the same 29 and 45 limits for a paid account, named TrolleyUp plan");
 check(!(await page.isVisible('[data-menu="list"]')), "menu hides My list before sign-in");
 check(await page.isVisible("#menupop >> text=Privacy Policy") && await page.isVisible("#menupop >> text=Terms of Use"), "menu has Privacy Policy and Terms of Use");
 const waHref = await page.getAttribute("#menuwa", "href");
@@ -84,7 +87,7 @@ await shot(page, "2-idcheck");
 await page.fill("#idform [name=idnum]", ADULT);
 await page.click("#idform button.btn");
 await page.waitForSelector(".cats8");
-check(/3 free sessions left today/.test(await meter(page)), "meter before first lookup: " + await meter(page));
+check(/29 lookup sessions left today/.test(await meter(page)), "meter before first lookup: " + await meter(page));
 const headH = await page.$eval("header", (h) => h.getBoundingClientRect().height);
 check(headH <= 200, "the top bar is compact (" + Math.round(headH) + "px tall)");
 const rowsTop = await page.evaluate(() => ["base", "q"].map((id) => Math.round(document.getElementById(id).getBoundingClientRect().top)));
@@ -229,7 +232,7 @@ if (!(await page.isVisible("#menupop"))) await page.click("#menubtn");
 await page.click('[data-menu="how"]');
 await page.waitForSelector("#howdlg[open]");
 const how = await page.textContent("#howdlg");
-check(/Look up price/.test(how) && /Send to TrolleyUp/.test(how) && /R99 a month/.test(how), "How it works explains looking up, sending to TrolleyUp and the plan");
+check(/Look up price/.test(how) && /Send to TrolleyUp/.test(how) && /R39 a month/.test(how) && /29 lookup sessions/.test(how), "How it works explains looking up, sending to TrolleyUp and the R39 plan");
 check(await page.locator("#howdlg .bub.me").count() >= 2, "How it works is laid out as a chat with your questions on the right");
 await shot(page, "how-it-works");
 await page.click('#howdlg [data-how="close"]');
@@ -284,7 +287,7 @@ console.log("INFO row height at 360px: " + rowH360 + "px");
 check(rowH360 <= 260 && !overflow360, "on a 360px phone a looked-up row is " + rowH360 + "px tall and nothing scrolls sideways");
 await page.setViewportSize({ width: vp.width, height: vp.height });
 check((await cardEl.textContent()).includes("Best price"), "best price is labelled in text, not only colour");
-check(/Session 1 of 3 today · 1 of 45 items/.test(await meter(page)), "meter after lookup: " + await meter(page));
+check(/Session 1 of 29 today · 1 of 45 items/.test(await meter(page)), "meter after lookup: " + await meter(page));
 await shot(page, "4-looked-up");
 const rowHtml = await page.evaluate(() => {
   const mk = (url) => ({ price: 10, promo: null, url, at: new Date().toISOString(), stale: false, local: false, unit: null });
@@ -337,6 +340,23 @@ check(await page.getByRole("button", { name: /^Send to TrolleyUp/ }).count() ===
 await page.locator("button.tupick").first().click();
 check((await page.locator("button.tupick[aria-pressed=true]").count()) === 1, "the TrolleyUp icon picks an item");
 await page.getByRole("button", { name: /^Send to TrolleyUp/ }).click();
+{
+  await page.waitForFunction(() => document.querySelector("#dlg").open && document.querySelector("#dlg").textContent.includes("TrolleyUp plan"));
+  const pd = await page.textContent("#dlg");
+  check(/R ?39 a month/.test(pd) && !/R ?99/.test(pd), "a free account tapping Send to TrolleyUp is offered the R39 TrolleyUp plan");
+  let posted = "";
+  await ctx.route("https://sandbox.payfast.co.za/**", (route) => { posted = route.request().postData() || ""; route.fulfill({ status: 200, contentType: "text/html", body: "<h1>PayFast test page</h1>" }); });
+  await page.locator('#dlg [data-dlg="upgrade"]').click();
+  await page.waitForURL(/sandbox\.payfast\.co\.za/, { timeout: 10000 }).catch(() => {});
+  check(/amount=39\.00/.test(posted) && /subscription_type=1/.test(posted) && /signature=[0-9a-f]{32}/.test(posted), "the plan button sends a signed R39 monthly subscription to PayFast (test mode)");
+  // the account is now given the plan by hand, as a paid subscription would
+  const { execFileSync: run } = require("child_process");
+  run(process.env.PP_PYTHON || "python3", ["admin.py", "plan", "dev-tester", "paid"], { cwd: process.env.PP_SMOKE_BACKEND, env: process.env });
+  await page.goto(base + "/#list");
+  await page.waitForSelector(".li");
+  await page.getByRole("button", { name: /^Send to TrolleyUp/ }).waitFor();
+  await page.getByRole("button", { name: /^Send to TrolleyUp/ }).click();
+}
 const dl = page.waitForEvent("download");
 await page.getByRole("button", { name: "Make the file" }).click();
 const file = await dl;
@@ -348,7 +368,7 @@ check(true, "steps for importing in TrolleyUp are shown");
 await shot(page, "6-export");
 await page.getByRole("button", { name: "Done" }).click();
 
-// 5. Clear and the 3-a-day limit, then upgrade.
+// 5. Clear, then the 29-a-day limit (the fast sessions are made through the app's own API).
 for (let n = 1; n <= 3; n++) {
   await page.getByRole("button", { name: /^List/ }).click();
   await page.getByRole("button", { name: "Clear session" }).click();
@@ -356,23 +376,49 @@ for (let n = 1; n <= 3; n++) {
   await page.waitForFunction(() => !document.querySelector(".li"));
   if (n < 3) { await lookUp(page, "milk"); await page.locator("article.card:has(.best)").first().waitFor(); }
 }
-check(/No free sessions left today/.test(await meter(page)), "after 3 sessions: " + await meter(page));
+await page.evaluate(async () => {
+  const pid = (await api("GET", "/catalogue?" + qs({ region: state.region, q: "milk", limit: 1 }))).items[0].id;
+  for (let n = 0; n < 26; n++) { await api("POST", "/session/items", { region: state.region, product_id: pid }); await api("POST", "/session/clear", { region: state.region }); }
+  await refreshMe();
+  render();
+});
+check(/No lookup sessions left today/.test(await meter(page)), "after 29 sessions: " + await meter(page));
 await lookUp(page, "milk");
 await page.waitForFunction(() => document.querySelector("#dlg").open);
 const dlg = await page.textContent("#dlg");
-check(/used your 3 free sessions/.test(dlg) && /R 99 a month/.test(dlg), "4th session is blocked and the R99 upgrade is offered");
+check(/used your 29 lookup sessions/.test(dlg) && !/R ?39|upgrade/i.test(dlg), "the 30th session is blocked with no upgrade offer (paid users have the same limit)");
 await shot(page, "7-limit");
-let posted = "";
-await ctx.route("https://sandbox.payfast.co.za/**", (route) => { posted = route.request().postData() || ""; route.fulfill({ status: 200, contentType: "text/html", body: "<h1>PayFast test page</h1>" }); });
-await page.locator('#dlg [data-dlg="upgrade"]').click();
-await page.waitForURL(/sandbox\.payfast\.co\.za/, { timeout: 10000 }).catch(() => {});
-check(/amount=99\.00/.test(posted) && /subscription_type=1/.test(posted) && /signature=[0-9a-f]{32}/.test(posted), "Upgrade sends a signed R99 monthly subscription to PayFast (test mode)");
+await page.locator('#dlg [data-dlg=""]').click();
+
+// 5b. A script that looks things up faster than a person is paused, on any plan.
+{
+  const botCtx = await browser.newContext({ viewport: { width: 412, height: 915 } });
+  const bot = await botCtx.newPage();
+  await signIn(bot, "scriptbot", makeId("580808"));
+  const out = await bot.evaluate(async () => {
+    const pid = (await api("GET", "/catalogue?" + qs({ region: state.region, q: "milk", limit: 1 }))).items[0].id;
+    let ok = 0, code = "";
+    for (let n = 0; n < 60 && !code; n++) {
+      try { await api("POST", "/session/items", { region: state.region, product_id: pid }); ok++; } catch (e) { code = e.code; }
+    }
+    return { ok, code };
+  });
+  check(out.code === "locked" && out.ok >= 30 && out.ok <= 45, "a fast script is paused after about 40 lookups in a minute: " + JSON.stringify(out));
+  await bot.reload();
+  await bot.waitForSelector(".cats8");
+  await bot.fill("#q", "milk");
+  await bot.waitForFunction(() => /paused/.test(document.getElementById("main").textContent));
+  check(true, "a paused account is told why in plain words");
+  await bot.goto(base + "/#account");
+  await bot.waitForSelector(".plan");
+  check(/Bots, scripts and scraping are not allowed/.test(await bot.textContent("#main")), "My account says bots and scraping are not allowed");
+}
 
 // 6. Account screen.
 await page.goto(base + "/#account");
 await page.waitForSelector(".plan");
 const acct = await page.textContent("#main");
-check(/Free plan/.test(acct) && /Used today: 3 of 3/.test(acct) && /Delete my PricePulse data/.test(acct), "account screen shows plan, usage and delete");
+check(/TrolleyUp plan/.test(acct) && /Used today: 29 of 29/.test(acct) && /Delete my PricePulse data/.test(acct), "account screen shows the TrolleyUp plan, usage and delete");
 await shot(page, "8-account", true);
 
 // 7. Under 18: liquor hidden.

@@ -37,7 +37,7 @@ def client(pf_settings):
     return c
 
 
-def itn(settings, m_payment_id, status="COMPLETE", pf_id="1001", amount="99.00", token="tok-abc", **extra):
+def itn(settings, m_payment_id, status="COMPLETE", pf_id="1001", amount="39.00", token="tok-abc", **extra):
     pairs = [
         ("m_payment_id", m_payment_id),
         ("pf_payment_id", pf_id),
@@ -85,7 +85,7 @@ def test_checkout_fields(client, pf_settings):
     out = client.post("/api/v1/billing/checkout", headers=AUTH).json()
     f = out["fields"]
     assert out["action_url"] == "https://sandbox.payfast.co.za/eng/process"
-    assert f["amount"] == "99.00" and f["recurring_amount"] == "99.00"
+    assert f["amount"] == "39.00" and f["recurring_amount"] == "39.00"
     assert f["subscription_type"] == "1" and f["frequency"] == "3" and f["cycles"] == "0"
     assert f["notify_url"] == "https://prices.example/api/v1/billing/payfast/itn"
     assert f["email_address"] == "alice@example.test"
@@ -107,7 +107,7 @@ def test_payment_makes_user_paid_and_is_idempotent(client, pf_settings):
     assert client.get("/api/v1/me", headers=AUTH).json()["plan"] == "free"
     assert post_itn(client, itn(pf_settings, mpid)).text == "OK"
     me = client.get("/api/v1/me", headers=AUTH).json()
-    assert me["plan"] == "paid" and me["subscription_status"] == "active" and me["sessions_per_day"] is None
+    assert me["plan"] == "paid" and me["subscription_status"] == "active" and me["sessions_per_day"] == 29
     first_until = me["paid_until"]
     assert post_itn(client, itn(pf_settings, mpid)).text == "OK"  # same notice again
     assert client.get("/api/v1/me", headers=AUTH).json()["paid_until"] == first_until
@@ -192,7 +192,7 @@ def test_cancel_keeps_access_until_paid_up(client, pf_settings):
     with session_factory(pf_settings.database_url).begin() as s:
         s.scalars(select(Subscription)).one().paid_until = utcnow() - timedelta(days=1)
     me = client.get("/api/v1/me", headers=AUTH).json()
-    assert me["plan"] == "free" and me["sessions_per_day"] == 3
+    assert me["plan"] == "free" and me["sessions_per_day"] == 29
 
 
 def test_lapsed_payment_drops_back_to_free(client, pf_settings):

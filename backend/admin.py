@@ -164,6 +164,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_ap.add_argument("store", help="the store's number (id) or its 13-digit Store ID")
     p_ap.add_argument("date", help="paid until, YYYY-MM-DD")
+    p_unlock = sub.add_parser("unlock", help="lift a pause on an account that looked automated")
+    p_unlock.add_argument("uid")
     sub.add_parser("stores", help="list the local stores: plan, paid until, owners, items")
     p_role = sub.add_parser(
         "admin-role", help="make an account an admin of the PricePulse admin area (or not)"
@@ -365,6 +367,11 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
             store.status, store.active, store.paid_until, store.reject_reason = "approved", True, until, ""
             print(f"{store.name} is approved and visible until {args.date} (plus 3 grace days).")
+        elif args.cmd == "unlock":
+            from pricepulse import abuse
+
+            n = abuse.release(s, args.uid)
+            print(f"Lifted {n} pause(s) on {args.uid}." if n else f"{args.uid} had no active pause.")
         elif args.cmd == "stores":
             from pricepulse.db import Store, StoreOwner
             from pricepulse.localstores import active_count
