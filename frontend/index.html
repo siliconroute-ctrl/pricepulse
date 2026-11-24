@@ -205,6 +205,7 @@ body.plainhead .findbar,body.plainhead nav.tabs{display:none}
 /* ---- Admin area ---- */
 .menupop:not([data-admin="1"]) [data-needs="admin"]{display:none}
 .menupop:not([data-owner="1"]) [data-needs="storeowner"]{display:none}
+.menupop:not([data-seller="1"]) [data-needs="seller"]{display:none}
 .admbar{display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end;margin:.6rem 0}
 .admbar label{display:block;font-weight:650;font-size:.95rem}
 .admbar .admfull{flex:1 1 100%}
@@ -468,6 +469,11 @@ body.front .promo h2{font-size:1.2rem}
 .photoslot .thumb{width:8rem;aspect-ratio:4/3;border-radius:.6rem;background:var(--tile);overflow:hidden;display:flex;align-items:center;justify-content:center}
 .photoslot .thumb img{width:100%;height:100%;object-fit:cover}
 @media (max-width:400px){.lrow{grid-template-columns:4.6rem minmax(0,1fr)}.lrow .lpic{width:4.6rem;height:4.6rem}}
+.sellbox .field select,.sellbox .field input{width:100%}
+.sellbox .big13{font-family:var(--font-display);font-size:1.6rem;font-weight:700;letter-spacing:.08em;word-break:break-all}
+.sellbox ul.points{margin:.3rem 0 .6rem}
+.storeidcard{border:2px solid var(--accent)}
+.sellcta{width:100%;margin-top:.85rem}
 </style>
 </head>
 <body class="plainhead">
@@ -499,6 +505,7 @@ body.front .promo h2{font-size:1.2rem}
 <nav class="tabs" aria-label="Main"><div class="in" id="nav"></div></nav>
 <div class="menupop" id="menupop" role="menu" aria-label="PricePulse menu" hidden>
   <button class="mi" type="button" role="menuitem" data-menu="mystore" data-needs="storeowner">My store</button>
+  <button class="mi" type="button" role="menuitem" data-menu="sell" data-needs="seller">List my store</button>
   <button class="mi" type="button" role="menuitem" data-menu="admin" data-needs="admin">Admin area</button>
   <hr data-needs="user">
   <button class="mi" type="button" role="menuitem" data-menu="how">How it works</button>
@@ -524,7 +531,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 41;
+var APP_VERSION = 42;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -728,11 +735,12 @@ function disclaimer(){return '<p class="disclaimer">'+DISCLAIMER+'</p>'}
 function oldTag(r){return r.at&&(r.stale!==undefined?r.stale:hoursOld(r.at)>STALE_HOURS)?' <span class="old">Old price ('+esc(fmtDate(r.at))+')</span>':''}
 
 /* ---------- Sign in ---------- */
+function sellCard(){return '<div class="card" style="margin-top:.85rem"><p style="margin:0"><b>Do you run a shop?</b></p><p class="sub" style="margin:.3rem 0 0">List your items for shoppers in your area. R149 a month per store, up to 200 items.</p><button class="btn alt sellcta" type="button" data-act="sellsignin">I run a store: list my items</button></div>'}
 function viewSignin(){
   var h='<div class="hero"><p class="big">See where your shopping is cheapest</p><p class="sub">Compare prices at Checkers, Pick n Pay, Woolworths, Dis-Chem and liquor stores.</p></div>';
   h+='<div class="card"><ul class="points"><li>Free: 3 lookup sessions a day, 45 items each</li><li>R99 a month for unlimited sessions and unlimited items</li><li>Send your list to TrolleyUp</li><li>One sign-in for PricePulse and TrolleyUp</li></ul></div>';
   if(Auth.mode==="dev"){
-    return h+'<form class="card" id="devform" style="margin-top:.85rem"><div class="banner warn"><b>Test sign-in.</b>This copy runs in test mode. It is not for real users.</div><label class="field"><span>Test name</span><input name="name" required pattern="[a-z0-9]{2,20}" autocomplete="off" value="tester"></label><p class="err" role="alert">'+esc(state.authErr)+'</p><button class="btn wide">Sign in</button></form>';
+    return h+'<form class="card" id="devform" style="margin-top:.85rem"><div class="banner warn"><b>Test sign-in.</b>This copy runs in test mode. It is not for real users.</div><label class="field"><span>Test name</span><input name="name" required pattern="[a-z0-9]{2,20}" autocomplete="off" value="tester"></label><p class="err" role="alert">'+esc(state.authErr)+'</p><button class="btn wide">Sign in</button></form>'+sellCard();
   }
   var isNew=state.signMode==="new";
   h+='<div class="card" style="margin-top:.85rem"><h2 class="h2" style="margin-top:0">'+(isNew?'Create your account':'Sign in')+'</h2>';
@@ -744,6 +752,7 @@ function viewSignin(){
   h+='<button class="btn wide"'+(state.busy?' disabled':'')+'>'+(isNew?'Create account':'Sign in')+'</button></form>';
   h+='<div class="btns" style="justify-content:space-between">'+(isNew?'<button class="linkbtn" type="button" data-act="mode-in">I already have an account</button>':'<button class="linkbtn" type="button" data-act="mode-new">Create an account</button><button class="linkbtn" type="button" data-act="forgot">Forgot password?</button>')+'</div>';
   h+='<p class="sub">Already use TrolleyUp? Sign in with the same Google account or email.</p></div>';
+  h+=sellCard();
   return h+legalLinks()+disclaimer();
 }
 function legalLinks(){return '<p class="sub" style="margin-top:1rem"><a href="terms.html">Terms of Use</a> · <a href="privacy.html">Privacy Policy</a> · Help: <a href="mailto:'+esc(SUPPORT)+'">'+esc(SUPPORT)+'</a></p>'}
@@ -1318,6 +1327,9 @@ document.getElementById("dlg").addEventListener("click",function(e){
   if(a==="sendreq"){b.disabled=true;return sendRequest(b)}
   if(a==="esimport")return esDoImport(b,d);
   if(a==="lsload")return lsDoLoad(b,d);
+  if(a.indexOf("lsapprove:")===0){var ad=(document.getElementById("lsappdate")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(10)+"/approve",{paid_until:ad}).then(function(){d.close();say("Store approved.");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lsapperr");if(el)el.textContent=e.message})}
+  if(a.indexOf("lsreject:")===0){var rs=(document.getElementById("lsrejtext")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(9)+"/reject",{reason:rs}).then(function(){d.close();say("Store rejected.");ADM.loading=null;admLoad()}).catch(function(){b.disabled=false})}
+  if(a==="sellgo"){d.close();return enterApp()}
   if(a==="soload")return soDoLoad(b,d);
   if(a.indexOf("sosave:")===0)return soSave(b,d,a.slice(7));
   if(a.indexOf("soremove:")===0)return soRemove(b,d,a.slice(9));
@@ -1347,6 +1359,7 @@ function menuShow(on){
   pop.dataset.phase=state.phase;
   pop.dataset.admin=state.me&&state.me.is_admin?"1":"0";
   pop.dataset.owner=state.me&&state.me.store_owner?"1":"0";
+  pop.dataset.seller=state.phase==="app"&&state.me&&!state.me.store_owner?"1":"0";
   pop.hidden=!on;btn.setAttribute("aria-expanded",on?"true":"false");
   if(on){var top=Math.round(btn.getBoundingClientRect().bottom)+4;pop.style.top=top+"px";pop.style.maxHeight=Math.max(160,window.innerHeight-top-8)+"px"}
   if(on){var first=pop.querySelector(".mi:not([hidden])");var vis=[].slice.call(pop.querySelectorAll(".mi")).filter(function(x){return x.offsetParent!==null});if(vis[0])vis[0].focus()}
@@ -1417,6 +1430,7 @@ function menuAction(act){
   menuShow(false);
   document.getElementById("menubtn").focus({preventScroll:true});
   if(act==="mystore")return go("store");
+  if(act==="sell")return startSell();
   if(act==="find"||act==="towns"||act==="list"||act==="account"||act==="admin")return go(act);
   if(act==="colours")return coloursDialog();
   if(act==="how")return howItWorks();
@@ -1449,6 +1463,61 @@ document.addEventListener("keydown",function(e){
   }
 });
 
+
+/* ---------- Sign up a local store (a person lists their own items for shoppers) ---------- */
+var SELL={towns:null,cats:[],err:"",busy:false,loading:false,cat:""};
+function startSell(){
+  state.phase="sell";SELL.err="";SELL.busy=false;
+  document.body.classList.remove("front");
+  render();
+  if(!SELL.towns&&!SELL.loading){
+    SELL.loading=true;
+    api("GET","/store/towns").then(function(t){SELL.towns=t.towns;SELL.cats=t.categories;SELL.info=t;SELL.loading=false;renderMain()}).catch(function(e){SELL.loading=false;if(handleAuthError(e))return;SELL.err=e.message;renderMain()});
+  }
+}
+function viewSell(){
+  var h='<h2 class="h2">List your store on PricePulse</h2>',I=SELL.info||{};
+  if(SELL.err&&!SELL.towns)return h+'<div class="empty">'+esc(SELL.err)+'</div><div class="btns"><button class="btn alt" type="button" data-act="sellcancel">Back</button></div>';
+  if(!SELL.towns)return h+'<p class="sub" aria-busy="true">Loading…</p>';
+  h+='<div class="card sellbox"><ul class="points"><li><b>R149 a month</b> per store, up to <b>'+(I.max_items||200)+' items</b>.</li><li>Shoppers within <b>'+(I.radius_km||100)+' km</b> of your town see your items.</li><li>You choose <b>one category</b> for your store.</li><li>Your store stays hidden until PricePulse approves it. You can add items while you wait.</li><li>Shoppers deal directly with you. PricePulse does not sell your goods.</li></ul>'+
+    '<form id="sellform">'+
+    '<label class="field"><span>Store name</span><input name="name" required maxlength="80" autocomplete="organization"></label>'+
+    '<label class="field"><span>What does your store sell? (choose one)</span><select name="category" required><option value="">(choose)</option>'+SELL.cats.map(function(c){return '<option'+(SELL.cat===c?' selected':'')+'>'+esc(c)+'</option>'}).join("")+'</select></label>'+
+    '<label class="field"><span>Your town</span><select name="town" required><option value="">(choose)</option>'+
+      (function(){var by={};SELL.towns.forEach(function(t){(by[t.province]=by[t.province]||[]).push(t)});return Object.keys(by).map(function(pv){return '<optgroup label="'+esc(pv)+'">'+by[pv].map(function(t){return '<option value="'+esc(t.slug)+'">'+esc(t.name)+'</option>'}).join("")+'</optgroup>'}).join("")})()+'</select></label>'+
+    '<label class="field"><span>Street address (shoppers see this)</span><input name="address" maxlength="160" autocomplete="street-address"></label>'+
+    '<label class="field"><span>Phone (shoppers see this)</span><input name="phone" required maxlength="30" inputmode="tel" placeholder="082 123 4567" autocomplete="tel"></label>'+
+    '<label class="field"><span>WhatsApp number (optional, leave blank to use your phone)</span><input name="whatsapp" maxlength="30" inputmode="tel"></label>'+
+    '<label class="field"><span>Contact person (only PricePulse sees this)</span><input name="contact_name" maxlength="80" autocomplete="name"></label>'+
+    '<label class="field"><span>Email (only PricePulse sees this)</span><input name="email" type="email" maxlength="120" autocomplete="email"></label>'+
+    '<div id="sellliq" hidden><label class="field"><span>Liquor licence number (required for a liquor store)</span><input name="licence_no" maxlength="40"></label><p class="sub">Liquor stores are shown to adults only, and need the age check on your account first.</p></div>'+
+    '<label class="check"><input type="checkbox" name="terms"><span>I have read the <a href="terms.html#stores" target="_blank" rel="noopener">Store terms</a>. My prices include VAT, my stock is honest, and I may publish my photos.</span></label>'+
+    '<p class="err" id="sellerr" role="alert">'+esc(SELL.err)+'</p>'+
+    '<div class="btns"><button class="btn" type="submit"'+(SELL.busy?' disabled':'')+'>Send my store for approval</button><button class="btn alt" type="button" data-act="sellcancel">Cancel</button></div></form></div>';
+  return h+legalLinks();
+}
+document.addEventListener("change",function(e){
+  if(e.target&&e.target.form&&e.target.form.id==="sellform"&&e.target.name==="category"){
+    SELL.cat=e.target.value;var l=document.getElementById("sellliq");if(l)l.hidden=SELL.cat!=="Liquor";
+  }
+});
+function sellSubmit(f){
+  var v=function(n){return (f.elements[n]||{}).value||""};
+  var body={name:v("name"),category:v("category"),town:v("town"),address:v("address"),phone:v("phone"),whatsapp:v("whatsapp"),contact_name:v("contact_name"),email:v("email"),licence_no:v("licence_no"),accept_terms:!!f.elements.terms.checked};
+  SELL.busy=true;SELL.err="";var b=f.querySelector("button[type=submit]");if(b)b.disabled=true;
+  api("POST","/store/apply",body,30000).then(function(r){
+    drop("pp_sell");SELL.busy=false;
+    return api("GET","/me").then(function(m){
+      state.me=m;
+      ask("Your store is waiting for approval",'<p>Your Store ID is</p><p class="big13">'+esc(r.store_number)+'</p><p>Keep it: it is the number we use for your store. You can add items now. Shoppers see your store after PricePulse approves it.</p>',[["Go to My store","sellgo","btn"]]);
+    });
+  }).catch(function(e){
+    SELL.busy=false;if(handleAuthError(e))return;
+    SELL.err=e.message;if(b)b.disabled=false;var el=document.getElementById("sellerr");if(el)el.textContent=e.message;
+    if(e.code==="age_check_needed"){SELL.err=e.message;}
+  });
+}
+
 /* ---------- My store (store owners; the server refuses everyone else) ---------- */
 var SO={tab:"overview",me:null,items:null,hist:null,q:"",err:"",busy:false,pending:null};
 var SO_TABS=[["overview","Overview"],["items","Items"],["upload","Upload CSV"],["details","Store details"],["history","History"]];
@@ -1468,6 +1537,8 @@ function soLoad(){
 function soReload(){SO.busy=false;soLoad()}
 function soDate(iso){return iso?fmtDate(iso):"never"}
 function soBanner(m){
+  if(m.status==="pending")return '<div class="banner warn" role="status"><b>Waiting for approval.</b>Shoppers cannot see your store yet. You can add items while you wait. PricePulse will approve your store and set the date it is paid until.</div>';
+  if(m.status==="rejected")return '<div class="banner warn" role="status"><b>Your store was not approved.</b>'+esc(m.reject_reason||"Please contact PricePulse.")+'</div>';
   if(m.status==="grace")return '<div class="banner warn" role="status"><b>Your payment date has passed.</b>Your store stays visible to shoppers for '+m.grace_days+' more days. Please contact PricePulse to renew.</div>';
   if(m.status==="lapsed"||m.status==="off")return '<div class="banner warn" role="status"><b>Your store is hidden from shoppers.</b>You can still see and download your items. Changes are paused until your plan is renewed. Please contact PricePulse.</div>';
   return "";
@@ -1480,8 +1551,9 @@ function viewMyStore(){
     '<div class="seg" role="group" aria-label="My store sections">'+SO_TABS.map(function(t){return '<button type="button" data-so="tab" data-tab="'+t[0]+'" aria-pressed="'+(SO.tab===t[0])+'">'+t[1]+'</button>'}).join("")+'</div>';
   var pct=Math.min(100,Math.round(m.items*100/Math.max(1,m.max_items)));
   if(SO.tab==="overview"){
+    if(m.store_number)h+='<div class="card storeidcard"><p style="margin:0">Your Store ID</p><p class="big13" style="margin:.2rem 0">'+esc(m.store_number)+'</p><div class="btns" style="margin:0"><button class="btn alt" type="button" data-so="copyid">Copy my Store ID</button></div></div>';
     h+='<div class="admgrid">'+
-      '<div class="stat"><b>'+({active:"Active",grace:"Payment due",lapsed:"Hidden",off:"Switched off"}[m.status]||m.status)+'</b><span>Store status</span></div>'+
+      '<div class="stat"><b>'+({active:"Active",grace:"Payment due",lapsed:"Hidden",off:"Switched off",pending:"Waiting for approval",rejected:"Not approved"}[m.status]||m.status)+'</b><span>Store status</span></div>'+
       '<div class="stat"><b>'+m.items+' of '+m.max_items+'</b><span>Items on your plan</span><div class="meter" role="img" aria-label="'+pct+' percent of your items used"><i style="width:'+pct+'%"></i></div></div>'+
       '<div class="stat"><b>'+esc(m.paid_until?fmtDate(m.paid_until):"No end date")+'</b><span>Paid until</span></div>'+
       '<div class="stat"><b>'+esc(soDate(m.last_submission))+'</b><span>Last change</span></div></div>'+
@@ -1626,6 +1698,7 @@ function soClick(t){
   var d=t.dataset,m=SO.me;
   if(d.so==="tab"||d.so==="gotab"){SO.tab=d.tab;SO.err="";renderMain();return (SO.tab==="items"||SO.tab==="history"||SO.tab==="overview")?soReload():undefined}
   if(d.so==="add")return soItemForm(null);
+  if(d.so==="copyid"&&m){try{navigator.clipboard.writeText(m.store_number);say("Store ID copied.")}catch(x){say("Your Store ID is "+m.store_number)}return}
   if(d.so==="edit"){var r=((SO.items||{}).items||[]).filter(function(x){return String(x.id)===d.id})[0];return r&&soItemForm(r)}
   if(d.so==="remove")return ask("Remove this item?",'<p>Shoppers will no longer see <b>'+esc(d.name)+'</b>. You can add it again later.</p>',[["Remove it","soremove:"+d.id,"btn"],["Keep it","","btn alt"]]);
   if(d.so==="pick"){var f=document.getElementById("sofile");if(f){f.value="";f.click()}return}
@@ -1770,13 +1843,18 @@ function viewAdmin(){
       '<div class="admbar noprint"><button class="admbtn go" type="button" data-adm="lsnew">Add a local store</button>'+
       '<button class="admbtn" type="button" data-adm="lstemplate">Download the CSV template</button>'+
       '<input id="lsfile" class="vh" type="file" accept=".csv,.txt,text/csv,text/plain" tabindex="-1" aria-hidden="true"></div>'+
+      (function(){var pend=d.stores.filter(function(r){return r.status_flag==="pending"});
+        if(!pend.length)return "";
+        return '<div class="card" style="border:2px solid var(--accent);margin:.6rem 0"><p style="margin:0"><b>Waiting for approval ('+pend.length+')</b></p><div class="admwrap"><table class="admtable"><thead><tr><th>Store ID</th><th>Store</th><th>Category</th><th>Town</th><th>Phone</th><th>Licence</th><th>Decide</th></tr></thead><tbody>'+
+          pend.map(function(r){return '<tr><td>'+esc(r.store_number)+'</td><td><b>'+esc(r.name)+'</b><div class="sub2">'+esc(r.address)+'</div></td><td>'+esc(r.category)+'</td><td>'+esc(r.town)+'</td><td>'+esc(r.phone)+'</td><td>'+esc(r.licence_no||"")+'</td>'+
+            '<td class="acts"><button class="admbtn go" type="button" data-adm="lsapprove" data-id="'+r.id+'" data-name="'+esc(r.name)+'">Approve</button><button class="admbtn" type="button" data-adm="lsreject" data-id="'+r.id+'" data-name="'+esc(r.name)+'">Reject</button></td></tr>'}).join("")+'</tbody></table></div></div>'})()+
       '<p class="sub" role="status">'+d.stores.length+' local '+(d.stores.length===1?'store':'stores')+'. Up to '+d.max_rows+' items per file.</p>'+
       '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Region</th><th>Contact</th><th class="num">Items</th><th>Last file</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
       admRows(d.stores.map(function(r){
         var last=r.last_submission?fmtDate(r.last_submission):"none yet";
         var old=r.last_submission&&(Date.now()-new Date(r.last_submission).getTime())>8*864e5;
-        return '<tr><td><b>'+esc(r.name)+'</b>'+(r.town?'<div class="sub2">'+esc(r.town)+'</div>':'')+'</td><td>'+esc(r.region_name)+'</td><td>'+esc(r.contact_name)+(r.phone?'<div class="sub2">'+esc(r.phone)+'</div>':'')+'</td>'+
-          '<td class="num">'+r.items+' / '+r.max_items+'</td><td>'+esc(last)+(old?' <b>(over 8 days ago)</b>':'')+'</td><td>'+(r.active?'Active':'<b>Switched off</b>')+(r.paid_until?'<div class="sub2">Paid until '+esc(r.paid_until)+(r.status==='grace'?' <b>(overdue)</b>':r.status==='lapsed'?' <b>(hidden)</b>':'')+'</div>':'')+'</td>'+
+        return '<tr><td><b>'+esc(r.name)+'</b>'+(r.store_number?'<div class="sub2">ID '+esc(r.store_number)+'</div>':'')+(r.town?'<div class="sub2">'+esc(r.town)+'</div>':'')+'</td><td>'+esc(r.region_name)+'</td><td>'+esc(r.contact_name)+(r.phone?'<div class="sub2">'+esc(r.phone)+'</div>':'')+'</td>'+
+          '<td class="num">'+r.items+' / '+r.max_items+'</td><td>'+esc(last)+(old?' <b>(over 8 days ago)</b>':'')+'</td><td>'+(r.status_flag==="pending"?'<b>Waiting for approval</b>':r.status_flag==="rejected"?'<b>Not approved</b>':r.active?'Active':'<b>Switched off</b>')+(r.paid_until?'<div class="sub2">Paid until '+esc(r.paid_until)+(r.status==='grace'?' <b>(overdue)</b>':r.status==='lapsed'?' <b>(hidden)</b>':'')+'</div>':'')+'</td>'+
           '<td class="acts"><button class="admbtn go" type="button" data-adm="lsimport" data-id="'+r.id+'" aria-label="Load the weekly file for '+esc(r.name)+'">Load weekly file</button>'+
           '<button class="admbtn" type="button" data-adm="lsedit" data-id="'+r.id+'" aria-label="Edit '+esc(r.name)+'">Edit</button>'+
           '<button class="admbtn" type="button" data-adm="lshistory" data-id="'+r.id+'" data-name="'+esc(r.name)+'" aria-label="File history of '+esc(r.name)+'">History</button></td></tr>'}),"No local stores yet. Tap Add a local store.")+'</tbody></table></div>';
@@ -1945,6 +2023,8 @@ function lsHistory(id,name){
 }
 function admClick(t){
   var d=t.dataset;
+  if(d.adm==="lsapprove"){var dt=new Date(Date.now()+31*864e5).toISOString().slice(0,10);return ask("Approve "+d.name+"?",'<p>Shoppers will see the store until the date below (plus 3 grace days). Set it after you have invoiced the R149.</p><label class="field"><span>Paid until (YYYY-MM-DD)</span><input id="lsappdate" type="text" value="'+dt+'" maxlength="10" inputmode="numeric"></label><p class="err" id="lsapperr" role="alert"></p>',[["Approve","lsapprove:"+d.id,"btn"],["Cancel","","btn alt"]])}
+  if(d.adm==="lsreject")return ask("Reject "+d.name+"?",'<p>The owner is told the reason you type here.</p><label class="field"><span>Reason</span><input id="lsrejtext" type="text" maxlength="200"></label>',[["Reject","lsreject:"+d.id,"btn"],["Cancel","","btn alt"]]);
   if(d.adm==="lsnew")return lsForm(null);
   if(d.adm==="lsedit")return lsForm(lsStore(d.id));
   if(d.adm==="lstemplate")return admSaveFile("pricepulse-local-store-template.csv",LS_TEMPLATE);
@@ -2011,6 +2091,7 @@ function renderMain(){
   if(state.phase==="boot")h='<p class="empty">Opening PricePulse…</p>';
   else if(state.phase==="signin")h=viewSignin();
   else if(state.phase==="idcheck")h=viewIdCheck();
+  else if(state.phase==="sell")h=viewSell();
   else h=state.view==="find"?viewFind():state.view==="towns"?viewTowns():state.view==="list"?viewList():state.view==="product"?viewProduct():state.view==="admin"?viewAdmin():state.view==="store"?viewMyStore():state.view==="shop"?viewShop():state.view==="item"?viewItem():viewAccount();
   m.innerHTML=h;
   document.body.classList.toggle("front",state.phase==="app"&&state.view==="find"&&!(state.q.trim()||state.cat!=="All"||state.flt));
@@ -2097,6 +2178,7 @@ function onAuth(signedIn){
   if(!signedIn){state.phase="signin";state.me=null;state.items=[];state.basket=null;state.found=null;return render()}
   api("GET","/me").then(function(m){
     state.me=m;
+    if(!m.store_owner&&load("pp_sell")==="1"){return startSell()}
     if(!m.id_checked&&!m.store_owner){state.phase="idcheck";return render()}
     enterApp();
   }).catch(function(e){
@@ -2142,6 +2224,8 @@ document.addEventListener("click",function(e){
   switch(d.act){
     case "google":return void Auth.google().catch(function(er){formState(document.getElementById("emailform"),false,er.message)});
     case "mode-in":state.signMode="in";state.authErr="";return renderMain();
+    case "sellsignin":store("pp_sell","1");state.signMode="new";state.authErr="";renderMain();say("Create your account or sign in. We then ask about your store.");var ef=document.getElementById("emailform");if(ef)ef.querySelector("input").focus();return;
+    case "sellcancel":drop("pp_sell");state.phase=state.me&&(state.me.id_checked||state.me.store_owner)?"app":"idcheck";return state.phase==="app"?enterApp():render();
     case "mode-new":state.signMode="new";state.authErr="";return renderMain();
     case "forgot":{
       var em=(document.querySelector('#emailform [name=email]')||{}).value||"";
@@ -2185,6 +2269,7 @@ document.addEventListener("submit",function(e){
     (state.signMode==="new"?Auth.emailNew(em,pw):Auth.emailIn(em,pw)).catch(function(er){formState(f,false,er.message)});
     return;
   }
+  if(f.id==="sellform")return sellSubmit(f);
   if(f.id==="idform"){
     formState(f,true,"");
     api("POST","/me/verify-id",{id_number:f.idnum.value,accept_terms:f.terms.checked}).then(function(m){

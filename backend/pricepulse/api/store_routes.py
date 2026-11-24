@@ -16,12 +16,12 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from .. import localstores
-from ..categories import CONDITIONS, SUBCATEGORIES
+from ..categories import CONDITIONS, SIGNUP_CATEGORIES, SUBCATEGORIES
 from ..db import AppUser, Store, StoreOwner, StoreSubmission, utcnow
 from ..hours import dump_hours, load_hours, open_status, parse_hours
 from ..phones import normalise_phone, pretty_phone
@@ -54,6 +54,19 @@ class ImportIn(BaseModel):
     dry_run: bool = False
 
 
+class ApplyIn(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+    category: str = Field(max_length=40)
+    town: str = Field(max_length=40)  # a slug from towns.yaml
+    address: str = Field(default="", max_length=160)
+    phone: str = Field(max_length=30)
+    whatsapp: str = Field(default="", max_length=30)
+    contact_name: str = Field(default="", max_length=80)
+    email: str = Field(default="", max_length=120)
+    licence_no: str = Field(default="", max_length=40)
+    accept_terms: bool = False
+
+
 class DetailsIn(BaseModel):
     address: str = Field(default="", max_length=160)
     phone: str = Field(default="", max_length=30)
@@ -66,6 +79,10 @@ class DetailsIn(BaseModel):
 def store_status(store: Store, now=None) -> str:
     """active / grace (past the paid-until date, still shown) / lapsed (hidden) / off."""
     now = now or utcnow()
+    if store.status == "pending":
+        return "pending"
+    if store.status == "rejected":
+        return "rejected"
     if not store.active:
         return "off"
     if store.paid_until is None or store.paid_until > now:
@@ -119,7 +136,7 @@ def register_store_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
 
     def can_edit(store: Store) -> None:
         status = store_status(store)
-        if status in ("lapsed", "off"):
+        if status in ("lapsed", "off", "rejected"):
             raise HTTPException(
                 409,
                 {
@@ -132,11 +149,131 @@ def register_store_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
     def fail(exc: Exception, code: str = "bad_item") -> HTTPException:
         return HTTPException(422, {"code": code, "message": str(exc)})
 
+    @app.get(base + "/towns", tags=["store"])
+    def towns(user: AppUser = Depends(user_dep)):  # noqa: B008
+        """The towns a new store can pick, with the categories it can sell in."""
+        from ..towns import load_towns
+
+        t = load_towns(str(settings.towns_file))
+        return {
+            "towns": [
+                {"slug": x.slug, "name": x.name, "province": x.province}
+                for x in sorted(t.values(), key=lambda x: (x.province, x.name))
+            ],
+            "categories": SIGNUP_CATEGORIES,
+            "radius_km": settings.local_radius_km,
+            "price_per_month": 149,
+            "max_items": 200,
+        }
+
+    @app.post(base + "/apply", tags=["store"])
+    def apply(
+        body: ApplyIn,
+        request: Request,
+        user: AppUser = Depends(user_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """A person signs up a local store. It waits (hidden) until PricePulse approves it."""
+        from datetime import timedelta as _td
+
+        from .. import accounts
+        from ..alerts import send_email
+        from ..regions import load_regions
+        from ..towns import load_towns, regions_in_range
+
+        def refuse(code: str, message: str, status: int = 422):
+            raise HTTPException(status, {"code": code, "message": message})
+
+        if s.get(StoreOwner, user.uid) is not None:
+            refuse("already_owner", "This account already runs a store.", 409)
+        if not body.accept_terms:
+            refuse("terms", "Please tick that you have read the Store terms.")
+        name = re.sub(r"\s+", " ", body.name).strip()
+        if len(name) < 2 or re.search(r"https?:|www\.|@", name, re.I):
+            refuse("bad_name", "Please type your store's name (no web addresses).")
+        for label, text in (("address", body.address), ("contact name", body.contact_name)):
+            if re.search(r"https?:|www\.|@", text, re.I):
+                refuse("bad_details", f"The {label} must not contain a web address.")
+        if body.category not in SIGNUP_CATEGORIES:
+            refuse("bad_category", "Please choose one category for your store.")
+        town = load_towns(str(settings.towns_file)).get(body.town)
+        if town is None:
+            refuse("bad_town", "Please choose your town from the list.")
+        phone = normalise_phone(body.phone)
+        if not phone:
+            refuse("bad_phone", "Please type a South African phone number, like 082 123 4567.")
+        whatsapp = normalise_phone(body.whatsapp) if body.whatsapp.strip() else ""
+        if body.whatsapp.strip() and not whatsapp:
+            refuse("bad_phone", "Please type a South African WhatsApp number, like 082 123 4567.")
+        licence = re.sub(r"\s+", " ", body.licence_no).strip()
+        if body.category == "Liquor":
+            if not licence:
+                refuse("licence", "A liquor store must give its liquor licence number.")
+            if not accounts.is_adult(user, accounts.sa_today()):
+                refuse(
+                    "age_check_needed",
+                    "A liquor store needs the age check first. Please complete it, then apply again.",
+                )
+        recent = s.scalar(
+            select(func.count())
+            .select_from(Store)
+            .where(Store.applied_at > utcnow() - _td(hours=24), Store.status == "pending")
+        )
+        if (recent or 0) >= 50:
+            refuse("busy", "We have a lot of applications right now. Please try again tomorrow.", 429)
+        if s.scalar(select(Store.id).where(Store.name == name)) is not None:
+            name = f"{name} ({town.name})"[:80]
+            if s.scalar(select(Store.id).where(Store.name == name)) is not None:
+                refuse(
+                    "name_taken",
+                    "A store with that name already exists. Please add your town or suburb.",
+                    409,
+                )
+        regions = load_regions(str(settings.regions_file))
+        near = regions_in_range(town.lat, town.lon, regions, settings.local_radius_km)
+        st = Store(
+            name=name,
+            kind="local",
+            region=near[0] if near else town.slug,
+            town=town.name,
+            address=body.address.strip(),
+            contact_name=body.contact_name.strip(),
+            phone=pretty_phone(phone),
+            whatsapp=pretty_phone(whatsapp) if whatsapp else "",
+            email=body.email.strip(),
+            active=False,
+            status="pending",
+            category=body.category,
+            store_type=body.category,
+            max_items=200,
+            lat=town.lat,
+            lon=town.lon,
+            licence_no=licence,
+            applied_at=utcnow(),
+        )
+        s.add(st)
+        s.flush()
+        localstores.ensure_store_number(s, st)
+        s.add(StoreOwner(uid=user.uid, store_id=st.id))
+        s.commit()
+        try:
+            send_email(
+                f"New store application: {st.name}",
+                f"{st.name} ({st.category}, {st.town}) applied. Store ID {st.store_number}. "
+                "Approve it in Admin, Local stores.",
+            )
+        except Exception:  # noqa: BLE001 - the email is a convenience, never a reason to fail
+            pass
+        return {"store_number": st.store_number, "status": "pending", "name": st.name}
+
     @app.get(base + "/me", tags=["store"])
     def me(store: Store = Depends(owner_store), s: Session = Depends(ctx.db)):  # noqa: B008
         limit = min(store.max_items or localstores.DEFAULT_MAX_ITEMS, localstores.MAX_ROWS)
         return {
             "id": store.id,
+            "store_number": store.store_number or "",
+            "reject_reason": store.reject_reason,
+            "licence_no": store.licence_no,
             "name": store.name,
             "town": store.town,
             "region": store.region,

@@ -68,7 +68,7 @@ class Settings:
     session_items_max: int = field(default_factory=lambda: int(_float("PP_SESSION_ITEMS", 45)))
     free_sessions_per_day: int = field(default_factory=lambda: int(_float("PP_FREE_SESSIONS", 3)))
     price_cents: int = field(default_factory=lambda: int(_float("PP_PRICE_CENTS", 9900)))
-    terms_version: int = 5
+    terms_version: int = 6
     public_url: str = field(
         default_factory=lambda: os.environ.get("PP_PUBLIC_URL", "http://localhost:8000").rstrip("/")
     )
@@ -80,6 +80,10 @@ class Settings:
     regions_file: Path = field(
         default_factory=lambda: Path(os.environ.get("PP_REGIONS_FILE", BACKEND_DIR / "regions.yaml"))
     )
+    towns_file: Path = field(
+        default_factory=lambda: Path(os.environ.get("PP_TOWNS_FILE", BACKEND_DIR / "towns.yaml"))
+    )
+    local_radius_km: float = field(default_factory=lambda: float(os.environ.get("PP_LOCAL_RADIUS_KM", "100")))
 
     # Price upload from the scraper machine (see docs/AUTOMATION.md). SECRET. Empty = the upload
     # address does not exist. A long random token (at least 32 characters) switches it on.

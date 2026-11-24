@@ -214,6 +214,29 @@ def in_stock(value: str) -> bool:
     return not _NO_STOCK.search((value or "").strip())
 
 
+def _regions_for(store: Store, settings: Settings) -> list[str]:
+    """Shopper towns this store's prices are written for (100 km rule; see towns.py)."""
+    from .regions import load_regions
+    from .towns import price_regions
+
+    got = price_regions(store, load_regions(str(settings.regions_file)))
+    return got or ([store.region] if store.region else [])
+
+
+def ensure_store_number(s: Session, store: Store) -> str:
+    """Give a local store its 13-digit Store ID if it has none yet."""
+    from .storeid import make_store_id
+
+    if not store.store_number:
+        while True:
+            n = make_store_id()
+            if s.scalar(select(Store.id).where(Store.store_number == n)) is None:
+                break
+        store.store_number = n
+        s.flush()
+    return store.store_number
+
+
 def store_category(text: str) -> str:
     """Our four categories keep their names; other text (a wholesaler's own sections) is kept as typed."""
     t = re.sub(r"\s+", " ", (text or "").strip())
@@ -423,7 +446,8 @@ def import_for_store(
         for r in checked.ok
     ]
     if items:
-        ingest_items(s, items, store.region, now, settings)
+        for region in _regions_for(store, settings):
+            ingest_items(s, items, region, now, settings)
     s.flush()
     seen = {str(r["ident"]).lower()[:400] for r in checked.ok}
     rep.added = sum(1 for i in seen if i not in before)
@@ -563,13 +587,14 @@ def save_item(
         )
     if current is not None and current.ident != ident:
         current.active = False  # the item code changed: the old entry is retired
-    ingest_items(
-        s,
-        [{**row, "store": store.name, "source": "web", "rank": 1, "url": ""}],
-        store.region,
-        now,
-        settings,
-    )
+    for region in _regions_for(store, settings):
+        ingest_items(
+            s,
+            [{**row, "store": store.name, "source": "web", "rank": 1, "url": ""}],
+            region,
+            now,
+            settings,
+        )
     s.flush()
     listing = s.scalar(select(Listing).where(Listing.store_id == store.id, Listing.ident == ident))
     assert listing is not None
@@ -602,26 +627,28 @@ def confirm_prices(s: Session, store: Store, settings: Settings, now: datetime |
     now = now or utcnow()
     slot = slot_for(now, settings.slot_hours)
     count = 0
+    regions = _regions_for(store, settings)
     for lst in s.scalars(select(Listing).where(Listing.store_id == store.id, Listing.active.is_(True))).all():
         last = s.scalar(
             select(Price)
-            .where(Price.listing_id == lst.id, Price.region == store.region)
+            .where(Price.listing_id == lst.id, Price.region == (store.region or regions[0]))
             .order_by(Price.scraped_at.desc())
         )
         if last is None:
             continue
-        cur = s.scalar(
-            select(Price).where(Price.listing_id == lst.id, Price.region == store.region, Price.slot == slot)
-        )
-        if cur is None:
-            cur = Price(listing_id=lst.id, region=store.region, slot=slot)
-            s.add(cur)
-        cur.price_cents, cur.promo_cents, cur.scraped_at, cur.is_sample = (
-            last.price_cents,
-            last.promo_cents,
-            now,
-            False,
-        )
+        for region in regions:
+            cur = s.scalar(
+                select(Price).where(Price.listing_id == lst.id, Price.region == region, Price.slot == slot)
+            )
+            if cur is None:
+                cur = Price(listing_id=lst.id, region=region, slot=slot)
+                s.add(cur)
+            cur.price_cents, cur.promo_cents, cur.scraped_at, cur.is_sample = (
+                last.price_cents,
+                last.promo_cents,
+                now,
+                False,
+            )
         count += 1
     store.last_submission_at = now
     s.flush()

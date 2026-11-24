@@ -87,6 +87,17 @@ class Store(Base):
     hours_note: Mapped[str] = mapped_column(String(200), default="", server_default="")
     photo1: Mapped[str] = mapped_column(String(64), default="", server_default="")  # shop photo file name
     photo2: Mapped[str] = mapped_column(String(64), default="", server_default="")
+    store_number: Mapped[str | None] = mapped_column(
+        String(13), unique=True, nullable=True
+    )  # the 13-digit Store ID (12 digits + check digit) used for every reference to a local store
+    status: Mapped[str] = mapped_column(
+        String(10), default="approved", server_default="approved"
+    )  # pending / approved / rejected (self sign-up stores wait for approval)
+    lat: Mapped[float | None] = mapped_column(Float, nullable=True)  # the store's town, for the 100 km rule
+    lon: Mapped[float | None] = mapped_column(Float, nullable=True)
+    licence_no: Mapped[str] = mapped_column(String(40), default="", server_default="")  # liquor licence
+    reject_reason: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class Product(Base):
@@ -491,6 +502,29 @@ def _m13_store_pages(conn: Connection) -> None:
         conn.execute(text("ALTER TABLE listing ADD COLUMN description VARCHAR(500) NOT NULL DEFAULT ''"))
 
 
+def _m14_store_signup(conn: Connection) -> None:
+    """Store sign-up: 13-digit Store ID, approval status, map point and liquor licence (columns only)."""
+    from .storeid import make_store_id
+
+    cols = {c["name"] for c in inspect(conn).get_columns("store")}
+    for name, ddl in (
+        ("store_number", "VARCHAR(13)"),
+        ("status", "VARCHAR(10) NOT NULL DEFAULT 'approved'"),
+        ("lat", "FLOAT"),
+        ("lon", "FLOAT"),
+        ("licence_no", "VARCHAR(40) NOT NULL DEFAULT ''"),
+        ("reject_reason", "VARCHAR(200) NOT NULL DEFAULT ''"),
+        ("applied_at", "DATETIME"),
+    ):
+        if name not in cols:
+            conn.execute(text(f"ALTER TABLE store ADD COLUMN {name} {ddl}"))
+    conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_store_number ON store (store_number)"))
+    for (sid,) in conn.execute(text("SELECT id FROM store WHERE kind = 'local' AND store_number IS NULL")):
+        conn.execute(
+            text("UPDATE store SET store_number = :n WHERE id = :i"), {"n": make_store_id(), "i": sid}
+        )
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
@@ -505,6 +539,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (11, "new-item searches", _m11_new_item_search),
     (12, "store-owner portal", _m12_store_portal),
     (13, "store pages: hours, photos, item descriptions", _m13_store_pages),
+    (14, "store sign-up: store id, approval, map point", _m14_store_signup),
 ]
 
 
