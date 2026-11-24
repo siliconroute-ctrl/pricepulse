@@ -22,6 +22,10 @@ def settings(tmp_path, monkeypatch):
     monkeypatch.setenv("PP_OPEN_PRICES", "1")
     monkeypatch.setenv("PP_AUTH_DEV", "1")
     monkeypatch.setenv("PP_ID_SECRET", "test-secret-test-secret-0123456789")
+    # Small test regions and towns (old town names as regions) so the tests do not depend on the real lists.
+    data = Path(__file__).parent / "data"
+    monkeypatch.setenv("PP_REGIONS_FILE", str(data / "regions_test.yaml"))
+    monkeypatch.setenv("PP_TOWNS_FILE", str(data / "towns_test.yaml"))
     for k in ("PP_PAYFAST_MERCHANT_ID", "PP_PAYFAST_MERCHANT_KEY", "PP_PAYFAST_PASSPHRASE"):
         monkeypatch.delenv(k, raising=False)
     from pricepulse.config import get_settings

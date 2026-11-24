@@ -591,7 +591,7 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   check(/PP_FREE_SESSIONS/.test(await adm.textContent("#main")), "Admin settings tab lists the settings");
   // 11. Store-owner portal: an owner runs one store (items by hand and by CSV); shoppers find the store.
   const py = process.env.PP_PYTHON || "python3", cwd = process.env.PP_SMOKE_BACKEND;
-  const created = await adm.evaluate(() => api("POST", "/admin/localstores", { name: "Paarl Refurb PCs", region: "paarl", town: "Paarl", address: "12 Main Road, Paarl", contact_name: "", phone: "082 123 4567", email: "", notes: "", store_type: "IT & Electronics", max_items: 200, active: true, category: "Electronics", whatsapp: "", paid_until: "" }));
+  const created = await adm.evaluate(() => api("POST", "/admin/localstores", { name: "Paarl Refurb PCs", town_slug: "paarl", address: "12 Main Road, Paarl", contact_name: "", phone: "082 123 4567", email: "", notes: "", store_type: "IT & Electronics", max_items: 200, active: true, category: "Electronics", whatsapp: "", paid_until: "" }));
   const ownCtx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
   const own = await ownCtx.newPage();
   const ownErrors = [];
@@ -789,6 +789,26 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await sh.fill("#q", "pedigree ");
   await sh.waitForSelector('article:has-text("Pedigree")');
   check(true, "after approval a shopper within 100 km finds the store's item");
+  // 13. Nine provinces: the place chooser groups towns under provinces; location picks the nearest town.
+  const pvCtx = await browser.newContext({ viewport: { width: 412, height: 915 }, geolocation: { latitude: -26.15, longitude: 28.05 }, permissions: ["geolocation"] });
+  const pv = await pvCtx.newPage();
+  const pvErrors = [];
+  pv.on("pageerror", (e) => pvErrors.push(e.message));
+  await signIn(pv, "traveller", makeId("620610"));
+  check((await pv.locator("#base optgroup").count()) === 9, "the place chooser has nine provinces");
+  const labs9 = await pv.locator("#base optgroup").evaluateAll((els) => els.map((e) => e.label));
+  check(["Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo", "Mpumalanga", "North West", "Northern Cape", "Western Cape"].every((n) => labs9.includes(n)), "all nine province names are listed: " + labs9.join(", "));
+  check((await pv.inputValue("#base")) === "western-cape|", "a new shopper starts on the Western Cape (whole province)");
+  await pv.click("#locate");
+  await pv.waitForFunction(() => document.getElementById("base").value.startsWith("gauteng|"));
+  check((await pv.inputValue("#base")).startsWith("gauteng|"), "'use my location' near Johannesburg picks a Gauteng town: " + (await pv.inputValue("#base")));
+  await pv.fill("#q", "milk");
+  await pv.waitForSelector(".grid article");
+  check(true, "Gauteng has chain prices");
+  await pv.click('[data-view="towns"]');
+  check(/Compare towns near me/.test(await pv.textContent("#main")) || /list is empty/.test(await pv.textContent("#main")), "the Towns tab is now 'Compare towns near me'");
+  check(await pv.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "no sideways scroll with the longer place list");
+  check(pvErrors.length === 0, "no JavaScript errors in the province chooser" + (pvErrors.length ? ": " + pvErrors.join("; ") : ""));
   check(nsErrors.length === 0, "no JavaScript errors on the store sign-up screens" + (nsErrors.length ? ": " + nsErrors.join("; ") : ""));
   check(buyErrors.length === 0, "no JavaScript errors on the shopper screens" + (buyErrors.length ? ": " + buyErrors.join("; ") : ""));
   // A lapsed store disappears; the owner is told.

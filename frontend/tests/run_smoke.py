@@ -48,7 +48,7 @@ def main() -> int:
     }
     env.pop("PP_DATABASE_URL", None)
     subprocess.run(
-        [sys.executable, "make_sample.py", "--regions", "paarl,wellington", "--days", "5"],
+        [sys.executable, "make_sample.py", "--regions", "western-cape,gauteng", "--days", "5"],
         cwd=BACKEND, env=env, check=True, stdout=subprocess.DEVNULL,
     )
     server = subprocess.Popen(

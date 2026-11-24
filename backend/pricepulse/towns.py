@@ -1,7 +1,8 @@
-"""Towns a local store can be in, and which shopper towns (regions) a store is shown in.
+"""Towns inside the nine provinces, and which local stores a shopper can see.
 
-A store is shown to shoppers whose town is within ``radius_km`` (default 100) of the store's town.
-Prices are written once for every shopper town in range, so the normal price queries need no change.
+A region is a province (regions.yaml). A town (towns.yaml) belongs to one province. A shopper picks a
+province and, optionally, a town; with no town the province capital is used. A local store is shown to
+a shopper when the store's town is within ``radius_km`` (default 100) of the shopper's town.
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ DEFAULT_RADIUS_KM = 100.0
 class Town:
     slug: str
     name: str
-    province: str
+    province: str  # a region slug from regions.yaml
     lat: float
     lon: float
 
@@ -33,23 +34,27 @@ def load_towns(path: str) -> dict[str, Town]:
     for slug, t in (raw.get("towns") or {}).items():
         if not valid_region(slug):
             raise ValueError(f"Bad town name in towns.yaml: {slug!r}")
-        out[slug] = Town(slug, t["name"], t.get("province", ""), float(t["lat"]), float(t["lon"]))
+        out[slug] = Town(slug, t["name"], str(t["province"]), float(t["lat"]), float(t["lon"]))
     return out
 
 
-def regions_in_range(lat: float, lon: float, regions, radius_km: float = DEFAULT_RADIUS_KM) -> list[str]:
-    """Shopper towns within the radius, nearest first."""
-    near = sorted((haversine_km(lat, lon, r.lat, r.lon), slug) for slug, r in regions.regions.items())
-    return [slug for d, slug in near if d <= radius_km]
+def shopper_point(regions, towns: dict[str, Town], region: str, town: str | None) -> tuple[float, float, str]:
+    """The shopper's map point and town slug: the chosen town (if it is in this province), else the
+    province capital's point (town slug "")."""
+    t = towns.get(town or "")
+    if t is not None and t.province == region:
+        return t.lat, t.lon, t.slug
+    r = regions.regions[region]
+    return r.lat, r.lon, ""
 
 
-def price_regions(store, regions, radius_km: float = DEFAULT_RADIUS_KM) -> list[str]:
-    """The shopper towns a store's prices are written for. A store without a map point (set by hand
-    in Admin) keeps its single region; a store out of range of every shopper town is written under
-    its own town name, which no shopper has, so it stays unseen until a nearby town is added."""
-    if store.lat is None or store.lon is None or (store.lat == 0 and store.lon == 0):
-        return [store.region] if store.region else []
-    near = regions_in_range(store.lat, store.lon, regions, radius_km)
-    if near:
-        return near
-    return [store.region or "none"]
+def near_store_ids(stores, lat: float, lon: float, region: str, radius_km: float) -> frozenset[int]:
+    """Ids of local stores within the radius. A store with no map point is seen only in its own region."""
+    out = set()
+    for st in stores:
+        if st.lat is None or st.lon is None:
+            if st.region == region:
+                out.add(st.id)
+        elif haversine_km(lat, lon, st.lat, st.lon) <= radius_km:
+            out.add(st.id)
+    return frozenset(out)

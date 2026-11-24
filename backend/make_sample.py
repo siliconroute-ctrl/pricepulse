@@ -3,8 +3,8 @@
 These are made-up test figures, not shelf prices. Every file and database row this
 writes is flagged as sample, and the app shows an "Example prices" banner for them.
 
-    python make_sample.py                     # data/latest_paarl.json + database
-    python make_sample.py --regions paarl,stellenbosch --days 14
+    python make_sample.py                     # data/latest_western-cape.json + database
+    python make_sample.py --regions western-cape,gauteng --days 14
     python make_sample.py --no-db
 """
 
@@ -155,7 +155,7 @@ def rows_for(region_index: int, when: datetime, rng: random.Random) -> list[dict
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Write example (made-up) price data for testing.")
-    ap.add_argument("--regions", default="paarl")
+    ap.add_argument("--regions", default="western-cape")
     ap.add_argument("--days", type=int, default=7, help="days of example history")
     ap.add_argument("--no-db", action="store_true")
     ap.add_argument("--seed", type=int, default=7)

@@ -42,6 +42,40 @@ class StorePrice:
 GRACE_DAYS = 3  # a paying store stays visible this long after its paid-until date
 
 
+class Scope(str):
+    """A shopper's region (a province) plus the local stores near the shopper (within 100 km of their
+    town). It behaves as the region string; ``near`` lists the local store ids that may be shown.
+    A plain string region (tests, old callers) keeps the old rule: every row in that region."""
+
+    near: frozenset[int]
+
+    def __new__(cls, region: str, near=()):  # noqa: ANN001, ANN204
+        obj = super().__new__(cls, region)
+        obj.near = frozenset(near)
+        return obj
+
+
+def scope_price(region):  # noqa: ANN001, ANN201
+    """SQL on ``Price`` alone (for sub-queries): this region's rows, plus the near local stores' rows."""
+    if isinstance(region, Scope):
+        return or_(
+            Price.region == str(region),
+            Price.listing_id.in_(select(Listing.id).where(Listing.store_id.in_(region.near))),
+        )
+    return Price.region == region
+
+
+def scope_rows(region):  # noqa: ANN001, ANN201
+    """SQL needing Price, Listing and Store joined: chain rows of this region; local rows only of the
+    stores near the shopper."""
+    if isinstance(region, Scope):
+        return or_(
+            and_(Price.region == str(region), Store.kind != "local"),
+            and_(Store.kind == "local", Listing.store_id.in_(region.near)),
+        )
+    return Price.region == region
+
+
 def store_live():  # noqa: ANN201
     """SQL test: may shoppers see this store? It must be switched on and, when it has a
     paid-until date, not more than GRACE_DAYS past it."""
@@ -80,7 +114,7 @@ def latest_prices(
     """
     latest = (
         select(Price.listing_id, func.max(Price.scraped_at).label("at"))
-        .where(Price.region == region)
+        .where(scope_price(region))
         .group_by(Price.listing_id)
         .subquery()
     )
@@ -90,7 +124,7 @@ def latest_prices(
         .join(Listing, Listing.id == Price.listing_id)
         .join(Store, Store.id == Listing.store_id)
         .join(Product, Product.id == Listing.product_id)
-        .where(Price.region == region, Listing.active.is_(True), store_live())
+        .where(scope_rows(region), Listing.active.is_(True), store_live())
     )
     if product_ids:
         stmt = stmt.where(Product.id.in_(product_ids))

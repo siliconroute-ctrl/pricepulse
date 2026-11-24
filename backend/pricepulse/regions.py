@@ -15,13 +15,15 @@ REGION_RE = re.compile(r"^[a-z0-9_-]{1,40}$")
 
 @dataclass
 class Region:
-    """One town the app can price."""
+    """One region the app can price: a province (the capital's map point is used when a shopper has
+    not picked a town)."""
 
     slug: str
     name: str
     lat: float
     lon: float
     postal_code: str = ""
+    capital: str = ""
     stores: dict[str, dict] = field(default_factory=dict)
 
 
@@ -59,6 +61,7 @@ def load_regions(path: str | Path) -> RegionConfig:
             lat=float(r["lat"]),
             lon=float(r["lon"]),
             postal_code=str(r.get("postal_code", "")),
+            capital=str(r.get("capital", "")),
             stores=r.get("stores") or {},
         )
     pricing = {

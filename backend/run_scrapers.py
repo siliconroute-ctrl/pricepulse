@@ -1,10 +1,10 @@
 """Run the store scrapers and save prices.
 
 Examples:
-    python run_scrapers.py --region paarl
-    python run_scrapers.py --region paarl --store Checkers --debug
+    python run_scrapers.py --region western-cape
+    python run_scrapers.py --region western-cape --store Checkers --debug
     python run_scrapers.py --region all
-    python run_scrapers.py --region paarl --every 6        # keep running every 6 hours
+    python run_scrapers.py --region western-cape --every 6        # keep running every 6 hours
 
 Writes data/latest_{region}.json (atomically), a timestamped history copy, a health
 report data/health_{region}.json, and loads the prices into the database unless

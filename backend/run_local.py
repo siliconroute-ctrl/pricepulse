@@ -37,7 +37,10 @@ def main() -> int:
     env.pop("PP_DATABASE_URL", None)
     if not (data / "pricepulse.db").exists():
         subprocess.run(
-            [sys.executable, "make_sample.py", "--regions", "paarl,wellington"], cwd=HERE, env=env, check=True
+            [sys.executable, "make_sample.py", "--regions", "western-cape,gauteng"],
+            cwd=HERE,
+            env=env,
+            check=True,
         )
     print("\nPricePulse TEST copy: open http://127.0.0.1:8000  (Ctrl+C to stop)\n")
     try:
