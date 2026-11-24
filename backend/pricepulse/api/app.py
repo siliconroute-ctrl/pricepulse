@@ -126,9 +126,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """The app sends the shopper's chosen town in a header; queries use it for the 100 km rule."""
         token = shopper_town.set((request.headers.get("x-pp-town") or "")[:40])
         try:
-            return await call_next(request)
+            response = await call_next(request)
         finally:
             shopper_town.reset(token)
+        if request.url.path.startswith("/api/"):  # prices are for people: never indexed by search engines
+            response.headers["X-Robots-Tag"] = "noindex, nofollow"
+        return response
 
     app.add_middleware(GZipMiddleware, minimum_size=500)
     app.add_middleware(

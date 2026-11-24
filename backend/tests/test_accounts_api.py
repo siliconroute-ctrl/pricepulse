@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from pricepulse.api.app import create_app
+from pricepulse.config import get_settings
 from pricepulse.db import AppUser, LookupSession, Subscription, session_factory, utcnow
 from pricepulse.ingest import ingest_items
 
@@ -106,7 +107,7 @@ def test_private_answers_are_not_cached(client):
 
 def test_new_user_must_check_id_before_lookup(client):
     me = client.get("/api/v1/me", headers=auth()).json()
-    assert me["id_checked"] is False and me["plan"] == "free" and me["sessions_per_day"] == 3
+    assert me["id_checked"] is False and me["plan"] == "free" and me["sessions_per_day"] == 29
     assert me["session"] == {"active": False, "items_used": 0, "items_max": 45}
     pid = ids(client)["Clover Full Cream Milk"]
     r = add(client, pid)
@@ -207,10 +208,10 @@ def test_45_items_per_session(app_settings):
     assert client.get("/api/v1/me", headers=auth()).json()["session"]["items_used"] == 45
 
 
-def test_three_sessions_a_day_then_blocked(client):
+def test_29_sessions_a_day_then_blocked(client):
     verify(client)
     pid = ids(client)["Clover Full Cream Milk"]
-    for n in (1, 2, 3):
+    for n in range(1, 30):
         body = add(client, pid).json()
         assert body["me"]["sessions_used_today"] == n
         cleared = client.post("/api/v1/session/clear", json={"region": "paarl"}, headers=auth()).json()
@@ -235,16 +236,25 @@ def test_limit_resets_next_day(client, app_settings):
     assert add(client, pid).status_code == 200
 
 
-def test_paid_plan_has_no_daily_limit(client, app_settings):
+def test_paid_plan_has_the_same_limits_as_free(client, app_settings):
     verify(client)
     with session_factory(app_settings.database_url).begin() as s:
         s.scalars(select(AppUser)).one().plan_override = "paid"
+    me = client.get("/api/v1/me", headers=auth()).json()
+    assert me["plan"] == "paid" and me["sessions_per_day"] == 29 and me["session"]["items_max"] == 45
+    assert me["price_per_month"] == 39
+
+
+def test_tester_has_no_daily_limit(client, app_settings):
+    verify(client)
+    with session_factory(app_settings.database_url).begin() as s:
+        s.scalars(select(AppUser)).one().plan_override = "tester"
     pid = ids(client)["Clover Full Cream Milk"]
-    for _ in range(5):
+    for _ in range(31):
         assert add(client, pid).status_code == 200
         client.post("/api/v1/session/clear", json={"region": "paarl"}, headers=auth())
     me = client.get("/api/v1/me", headers=auth()).json()
-    assert me["plan"] == "paid" and me["sessions_per_day"] is None and me["session"]["items_max"] >= 1000
+    assert me["sessions_per_day"] is None and me["session"]["items_max"] >= 1000
 
 
 def test_detail_and_towns_only_for_session_items(client):
@@ -262,8 +272,25 @@ def test_detail_and_towns_only_for_session_items(client):
 # --- TrolleyUp export ---------------------------------------------------------------
 
 
+def make_paid(client):
+    s = get_settings()
+    with session_factory(s.database_url).begin() as db:
+        db.scalars(select(AppUser)).first().plan_override = "paid"
+
+
+def test_sending_to_trolleyup_needs_the_plan(client):
+    verify(client)
+    p = ids(client)
+    add(client, p["Clover Full Cream Milk"])
+    r = client.get("/api/v1/session/export/trolleyup", headers=auth())
+    assert r.status_code == 403 and r.json()["detail"]["code"] == "plan_needed"
+    make_paid(client)
+    assert client.get("/api/v1/session/export/trolleyup", headers=auth()).status_code == 200
+
+
 def test_trolleyup_export(client):
     verify(client)
+    make_paid(client)
     p = ids(client)
     for name in ("Clover Full Cream Milk", "Albany Superior White Bread", "Castle Lite"):
         add(client, p[name])
@@ -286,6 +313,7 @@ def test_trolleyup_export(client):
 
 def test_trolleyup_export_sends_only_the_picked_items(client):
     verify(client)
+    make_paid(client)
     p = ids(client)
     for name in ("Clover Full Cream Milk", "Albany Superior White Bread", "Castle Lite"):
         add(client, p[name])
@@ -301,6 +329,7 @@ def test_trolleyup_export_sends_only_the_picked_items(client):
 
 def test_export_empty_list(client):
     verify(client)
+    make_paid(client)
     assert client.get("/api/v1/session/export/trolleyup", headers=auth()).status_code == 404
 
 
@@ -368,7 +397,7 @@ def test_tester_plan_has_no_session_or_item_limit(app_settings):
     assert me["session"]["items_used"] == 55 and me["session"]["items_max"] >= 1000
 
 
-def test_paid_by_hand_has_no_item_cap_but_free_keeps_45(app_settings):
+def test_only_a_tester_has_no_item_cap(app_settings):
     seed(app_settings, n_extra=50)
     client = TestClient(create_app(app_settings))
     verify(client)
@@ -378,7 +407,10 @@ def test_paid_by_hand_has_no_item_cap_but_free_keeps_45(app_settings):
     assert add(client, extra[45]).json()["detail"]["code"] == "session_full"  # free: 45
     with session_factory(app_settings.database_url).begin() as s:
         s.scalars(select(AppUser)).one().plan_override = "paid"
-    assert add(client, extra[45]).status_code == 200  # paid: no cap
+    assert add(client, extra[45]).json()["detail"]["code"] == "session_full"  # paid keeps 45 too
+    with session_factory(app_settings.database_url).begin() as s:
+        s.scalars(select(AppUser)).one().plan_override = "tester"
+    assert add(client, extra[45]).status_code == 200  # tester: no cap
     assert client.get("/api/v1/me", headers=auth()).json()["session"]["items_max"] >= 1000
 
 

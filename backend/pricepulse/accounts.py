@@ -3,8 +3,9 @@
 Rules (settings can change the numbers):
 - A free session holds up to 45 looked-up items. Taking an item off the list does not
   give the slot back; clearing the session ends it.
-- Free plan: 3 sessions started per South African calendar day. Paid plan
-  (R99 a month): no daily limit and no item cap.
+- Everyone: 29 sessions started per South African calendar day and 45 items a session. The TrolleyUp
+  plan (R39 a month) does not raise these limits: it lets a person send picked items to TrolleyUp.
+  Only a tester (the owner, set by hand) has no limits. Automated lookups are not allowed on any plan.
 - The ID check is needed before the first lookup. Under-18s do not see liquor.
 """
 
@@ -69,13 +70,18 @@ TESTER = "tester"  # set by hand with admin.py: unlimited sessions AND unlimited
 TESTER_ITEMS = 9999
 
 
+def is_tester(user: AppUser) -> bool:
+    return user.plan_override == TESTER
+
+
 def items_cap(s: Session, user: AppUser, settings: Settings, now: datetime | None = None) -> int:
-    """Items allowed in one session: the free cap, or no practical limit when paid or a tester."""
-    return TESTER_ITEMS if is_paid(s, user, now) else settings.session_items_max
+    """Items allowed in one session: 45 for everyone, no practical limit for a tester."""
+    return TESTER_ITEMS if is_tester(user) else settings.session_items_max
 
 
 def is_paid(s: Session, user: AppUser, now: datetime | None = None) -> bool:
-    """Paid while the paid-up period lasts, even after cancelling."""
+    """Has the TrolleyUp plan (R39 a month): paid-up period not over (even after cancelling), or
+    set by hand as paid or tester. The plan unlocks sending picked items to TrolleyUp only."""
     if user.plan_override in ("paid", TESTER):
         return True
     now = now or utcnow()
@@ -168,11 +174,11 @@ def add_item(
             )
     else:
         used = sessions_today(s, user.uid, today)
-        if not is_paid(s, user, now) and used >= settings.free_sessions_per_day:
+        if not is_tester(user) and used >= settings.free_sessions_per_day:
             raise RuleError(
                 "daily_limit",
-                f"You have used your {settings.free_sessions_per_day} free sessions for today. "
-                "Come back tomorrow, or upgrade for unlimited sessions.",
+                f"You have used your {settings.free_sessions_per_day} lookup sessions for today. "
+                "Please come back tomorrow.",
             )
         sess = LookupSession(uid=user.uid, day=today.isoformat(), started_at=now)
         s.add(sess)

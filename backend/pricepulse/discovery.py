@@ -15,7 +15,7 @@ from datetime import timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .accounts import TESTER, RuleError, clean_request, is_adult, is_paid
+from .accounts import TESTER, RuleError, clean_request, is_adult
 from .db import AppUser, SearchJob, utcnow
 
 DAILY_LIMIT = 5  # searches one person may start per day
@@ -446,16 +446,10 @@ def classify(term: str, adult: bool = True) -> Verdict:
 
 
 def start_search(s: Session, user: AppUser, term: str, today=None) -> tuple[SearchJob, bool]:
-    """Queue a search for a paid or tester account. Returns (job, created).
+    """Queue a search for any signed-in account (5 a day, testers unlimited). Returns (job, created).
 
     The same word asked again within a week reuses the earlier search and does not count against
     the person's daily limit."""
-    if not is_paid(s, user):
-        raise RuleError(
-            "paid_only",
-            "Searching for new items is part of the paid plan. You can still request an item.",
-            403,
-        )
     verdict = classify(term, adult=is_adult(user, utcnow().date()))
     if not verdict.ok:
         raise RuleError("not_covered", verdict.reason, 422)

@@ -1,4 +1,4 @@
-"""PayFast monthly subscription (R99 a month).
+"""PayFast monthly subscription (the TrolleyUp plan, R39 a month).
 
 STATUS: written from PayFast's published integration rules, tested here only with
 signatures we generate ourselves. It has NOT been run against PayFast's sandbox
@@ -82,7 +82,7 @@ def checkout(s: Session, user: AppUser, email: str, settings: Settings) -> dict:
         ("email_address", email),
         ("m_payment_id", sub.m_payment_id),
         ("amount", amount),
-        ("item_name", "PricePulse ZA monthly plan"),
+        ("item_name", "PricePulse ZA TrolleyUp plan"),
         ("item_description", "Unlimited price-lookup sessions, billed monthly"),
         ("subscription_type", "1"),
         ("recurring_amount", amount),

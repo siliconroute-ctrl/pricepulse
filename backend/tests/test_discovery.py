@@ -78,11 +78,8 @@ def test_liquor_is_for_adults_only():
 # --- who may search ------------------------------------------------------------------
 
 
-def test_free_accounts_cannot_start_a_search_but_paid_and_testers_can(client):
+def test_every_account_can_start_a_search(client):
     verify(client)
-    r = client.post("/api/v1/searches", json={"term": "pedigree dog food 8kg"}, headers=auth())
-    assert r.status_code == 403 and r.json()["detail"]["code"] == "paid_only"
-    make_paid(client)
     r = client.post("/api/v1/searches", json={"term": "pedigree dog food 8kg"}, headers=auth())
     assert r.status_code == 200
     body = r.json()

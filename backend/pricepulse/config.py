@@ -66,9 +66,12 @@ class Settings:
     open_prices: bool = field(default_factory=lambda: os.environ.get("PP_OPEN_PRICES", "0") == "1")
     id_secret: str = field(default_factory=lambda: os.environ.get("PP_ID_SECRET", ""))
     session_items_max: int = field(default_factory=lambda: int(_float("PP_SESSION_ITEMS", 45)))
-    free_sessions_per_day: int = field(default_factory=lambda: int(_float("PP_FREE_SESSIONS", 3)))
-    price_cents: int = field(default_factory=lambda: int(_float("PP_PRICE_CENTS", 9900)))
-    terms_version: int = 6
+    free_sessions_per_day: int = field(default_factory=lambda: int(_float("PP_FREE_SESSIONS", 29)))
+    abuse_lookups_per_min: int = field(default_factory=lambda: int(_float("PP_ABUSE_LOOKUPS", 20)))
+    abuse_searches_per_min: int = field(default_factory=lambda: int(_float("PP_ABUSE_SEARCHES", 90)))
+    abuse_rhythm_calls: int = field(default_factory=lambda: int(_float("PP_ABUSE_RHYTHM", 50)))  # 0 = off
+    price_cents: int = field(default_factory=lambda: int(_float("PP_PRICE_CENTS", 3900)))
+    terms_version: int = 7
     public_url: str = field(
         default_factory=lambda: os.environ.get("PP_PUBLIC_URL", "http://localhost:8000").rstrip("/")
     )
