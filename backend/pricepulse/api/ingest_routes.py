@@ -12,6 +12,7 @@ import hashlib
 import hmac
 import json
 import logging
+import threading
 import time
 from collections import defaultdict, deque
 from datetime import timedelta
@@ -46,6 +47,21 @@ class SearchDoneIn(BaseModel):
 
 class TermsIn(BaseModel):
     rows: list[dict] = Field(max_length=essentials.MAX_ROWS)
+
+
+_rematch_lock = threading.Lock()
+_rematch_last = 0.0
+
+
+def _rematch_due(gap_s: float) -> bool:
+    """True when no matching pass ran in the last ``gap_s`` seconds (and claims the slot)."""
+    global _rematch_last  # noqa: PLW0603
+    with _rematch_lock:
+        now = time.monotonic()
+        if _rematch_last and now - _rematch_last < gap_s:
+            return False
+        _rematch_last = now
+        return True
 
 
 def register_ingest_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001
@@ -150,10 +166,13 @@ def register_ingest_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001
         def load():  # runs off the main loop so other visitors are not held up
             rep = ingest_items(s, items, region, when, settings)
             record_runs(s, items, region, when)
+            s.commit()  # let go of the database lock before the long matching pass, so visitors can write
             joined = 0
-            if settings.auto_rematch:  # apply the newest matching rules to everything loaded so far
+            if settings.auto_rematch and _rematch_due(settings.rematch_min_gap_s):
+                # apply the newest matching rules to everything loaded so far (once per gap: the nine
+                # province files of one night carry the same products, so one pass is enough)
                 joined = rematch(s, settings).joined
-            s.commit()
+                s.commit()
             return rep, joined
 
         report, rejoined = await run_in_threadpool(load)
