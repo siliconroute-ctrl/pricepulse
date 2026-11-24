@@ -947,6 +947,49 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await sh.waitForSelector('#dlg h2:has-text("Photo search")', { timeout: 120000 });
   check(/could not find a barcode/.test(await sh.textContent("#dlg")), "a photo with nothing readable is explained in plain words");
   await sh.click('#dlg [data-dlg=""]');
+  // 15. Welcome splash: asks for a name once, greets by name, speaks after a tap, remembers on the phone.
+  const wCtx = await browser.newContext({ viewport: { width: 412, height: 915 } });
+  await wCtx.addInitScript(() => {
+    window.__spoken = [];
+    Object.defineProperty(window, "speechSynthesis", { configurable: true, value: { speak: (u) => { window.__spoken.push(u.text); setTimeout(() => u.onend && u.onend(), 30); }, cancel() {}, getVoices() { return []; } } });
+    window.SpeechSynthesisUtterance = function (t) { this.text = t; };
+    try { localStorage.setItem("pp_force_splash", '"1"'); } catch (e) {}
+  });
+  const wp = await wCtx.newPage();
+  const wErrors = [];
+  wp.on("pageerror", (e) => wErrors.push(e.message));
+  await signIn(wp, "joao", makeId("560606"));
+  await wp.waitForSelector("#welcome:not([hidden]) #nameform");
+  check(/What should I call you/.test(await wp.textContent("#welcome")) && /stays on this phone/.test(await wp.textContent("#welcome")), "the first open asks 'What should I call you?' and says the name stays on the phone");
+  await wp.fill("#wname", "joao");
+  await wp.click('#nameform button[type="submit"]');
+  await wp.waitForSelector("#welcome #wtitle");
+  const greet = await wp.textContent("#wtitle");
+  check(/^Good (morning|afternoon|evening) Joao, /.test(greet), "the splash greets by name: " + greet);
+  await shot(wp, "welcome-splash");
+  await wp.click('[data-w="hear"]');
+  await wp.waitForFunction(() => document.getElementById("welcome").hidden);
+  const said = await wp.evaluate(() => window.__spoken);
+  check(said.length === 1 && said[0] === greet, "the greeting is read aloud after a tap: " + JSON.stringify(said));
+  await wp.reload();
+  await wp.waitForSelector(".cats8");
+  check(await wp.evaluate(() => document.getElementById("welcome").hidden), "the splash shows once per visit, not on every reload");
+  await wp.goto(base + "/#account");
+  await wp.waitForSelector(".plan");
+  check(/I call you Joao/.test(await wp.textContent("#main")), "My account shows the name the phone keeps");
+  await wp.click('[data-act="changename"]');
+  await wp.fill("#chname", "mamphela");
+  await wp.click('[data-dlg="namesave"]');
+  await wp.waitForFunction(() => /I call you Mamphela/.test(document.getElementById("main").textContent));
+  await wp.click('[data-act="togglevoice"]');
+  check(/Voice: off/.test(await wp.textContent("#main")), "the greeting voice can be turned off in My account");
+  const wp2 = await wCtx.newPage();  // a new visit (new tab) on the same phone
+  await wp2.goto(base + "/");
+  await wp2.waitForSelector("#welcome:not([hidden]) #wtitle");
+  check(/Mamphela/.test(await wp2.textContent("#wtitle")) && (await wp2.locator('[data-w="hear"]').count()) === 0, "the next visit greets the new name and, with the voice off, offers no sound");
+  await wp2.click('[data-w="go"]');
+  await wp2.waitForFunction(() => document.getElementById("welcome").hidden);
+  check(wErrors.length === 0, "no JavaScript errors in the welcome splash" + (wErrors.length ? ": " + wErrors.join("; ") : ""));
   check(buyErrors.length === 0, "no JavaScript errors on the shopper screens" + (buyErrors.length ? ": " + buyErrors.join("; ") : ""));
   // A lapsed store disappears; the owner is told.
   execFileSync(py, ["admin.py", "store-paid", String(created.id), "2020-01-01"], { cwd, env: process.env });

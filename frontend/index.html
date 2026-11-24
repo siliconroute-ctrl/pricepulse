@@ -487,9 +487,21 @@ body.front .promo h2{font-size:1.2rem}
 .sellbox ul.points{margin:.3rem 0 .6rem}
 .storeidcard{border:2px solid var(--accent)}
 .sellcta{width:100%;margin-top:.85rem}
+/* Welcome splash: a greeting by name that the phone can read aloud (after a tap) */
+#welcome{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:1.5rem;text-align:center}
+#welcome[hidden]{display:none}
+#welcome .wlogo{width:6.5rem;height:6.5rem;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center}
+#welcome .wlogo svg{width:3.6rem;height:3.6rem;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion:no-preference){#welcome .wlogo{animation:ppulse 1.6s ease-in-out infinite}@keyframes ppulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(7,94,84,.35)}50%{transform:scale(1.06);box-shadow:0 0 0 18px rgba(7,94,84,0)}}}
+#welcome h2{font-family:var(--font-display);font-size:1.6rem;margin:0;max-width:22rem;line-height:1.25}
+#welcome p{margin:0;color:var(--muted);max-width:22rem}
+#welcome .wbtns{display:flex;flex-direction:column;gap:.6rem;width:min(100%,20rem)}
+#welcome input{width:100%;min-height:2.75rem;padding:.5rem .8rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.06rem;text-align:center}
+#welcome .wsmall{font-size:.9rem}
 </style>
 </head>
 <body class="plainhead">
+<div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wtitle" hidden></div>
 <a class="skip" href="#main">Skip to content</a>
 <div class="wrap">
 <header>
@@ -544,7 +556,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 47;
+var APP_VERSION = 48;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -1381,6 +1393,7 @@ function doExport(){
 function viewAccount(){
   var m=state.me||{},h=banners()+'<h2 class="h2">My account</h2>';
   h+='<div class="card"><p style="margin:0"><b>Signed in as</b> '+esc(Auth.email()||"your account")+'</p><p class="size" style="margin:.3rem 0 0">Age check done: '+(m.adult?'18 or older.':'under 18. Liquor is hidden.')+'</p></div>';
+  h+='<div class="card"><p style="margin:0"><b>Greeting</b></p><p class="size" style="margin:.3rem 0 0">'+(savedName()?'I call you <b>'+esc(savedName())+'</b>.':'I do not know your name yet.')+' The name stays on this phone. Voice: <b>'+(voiceOn()?'on':'off')+'</b>.</p><div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-act="changename">'+(savedName()?'Change my name':'Tell PricePulse my name')+'</button><button class="btn alt" type="button" data-act="togglevoice">'+(voiceOn()?'Turn the greeting voice off':'Turn the greeting voice on')+'</button></div></div>';
   h+='<h2 class="h2" style="font-size:1.35rem">My plan</h2>';
   var lim=m.sessions_per_day==null?'Tester account: no limits.':'<b>Your limits.</b> '+m.sessions_per_day+' lookup sessions a day, '+m.session.items_max+' items each. Used today: '+m.sessions_used_today+' of '+m.sessions_per_day+'.';
   h+='<div class="card"><p style="margin:0">'+lim+'</p><p class="size" style="margin:.3rem 0 0">Prices are for people looking things up. Bots, scripts and scraping are not allowed on any plan.</p></div>';
@@ -1441,6 +1454,7 @@ document.getElementById("dlg").addEventListener("click",function(e){
   if(a==="soremovesel"){b.disabled=true;return api("POST","/store/items/remove",{ids:Object.keys(SO.sel).map(Number)}).then(function(r){SO.sel={};d.close();say(r.removed+" items removed.");soReload()}).catch(function(e){d.close();ask("Could not remove",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])})}
   if(a==="soremoveall"){b.disabled=true;return api("POST","/store/items/remove-all").then(function(r){SO.sel={};SO.offset=0;d.close();say("All items removed ("+r.removed+").");soReload()}).catch(function(e){d.close();ask("Could not remove",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])})}
   if(a.indexOf("lsdel:")===0){var nm=(document.getElementById("lsdelname")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(6)+"/delete",{confirm:nm}).then(function(r){d.close();say("Deleted "+r.deleted+".");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lsdelerr");if(el)el.textContent=e.message})}
+  if(a==="namesave"){var nn=cleanName((document.getElementById("chname")||{}).value);if(nn){store("pp_name",nn);store("pp_name_asked","1")}else{drop("pp_name")}d.close();say(nn?"Saved. I will call you "+nn+".":"Name removed.");return render()}
   if(a==="sellgo"){d.close();return enterApp()}
   if(a==="soload")return soDoLoad(b,d);
   if(a.indexOf("sosave:")===0)return soSave(b,d,a.slice(7));
@@ -2361,10 +2375,99 @@ function onAuth(signedIn){
     state.phase="signin";state.authErr=e.message+" Please try again when you have a connection.";render();
   });
 }
+
+/* ---------- Welcome splash: greeting by name, spoken after a tap (the name stays on the phone) ---------- */
+var WELCOME={timer:null,spoken:false};
+var WELCOME_LINES=["what prices are pulsating today?","ready to find today’s best prices?","let’s see who has it for less.","what are we shopping for today?"];
+function savedName(){return load("pp_name")||""}
+function cleanName(v){
+  v=String(v||"").replace(/[^\p{L}\p{M}' \-]/gu,"").replace(/\s+/g," ").trim().slice(0,30);
+  return v?v.charAt(0).toLocaleUpperCase()+v.slice(1):"";
+}
+function voiceOn(){return load("pp_voice")!=="off"}
+function greetingText(name){
+  var h=new Date().getHours(),g=h<12?"Good morning":h<18?"Good afternoon":"Good evening";
+  var line=WELCOME_LINES[new Date().getDate()%WELCOME_LINES.length];
+  if(WELCOME.line)line=WELCOME.line;else WELCOME.line=line;
+  return g+(name?" "+name:"")+", "+line;
+}
+function speak(text,done){
+  var ss=window.speechSynthesis;
+  if(!ss||typeof SpeechSynthesisUtterance==="undefined"||!voiceOn()){if(done)done();return false}
+  try{
+    ss.cancel();
+    var u=new SpeechSynthesisUtterance(text);u.lang="en-ZA";u.rate=0.95;
+    var voices=ss.getVoices?ss.getVoices():[];
+    var v=voices.filter(function(x){return /^en[-_]ZA/i.test(x.lang)})[0]||voices.filter(function(x){return /^en/i.test(x.lang)})[0];
+    if(v)u.voice=v;
+    u.onend=u.onerror=function(){if(done)done()};
+    ss.speak(u);return true;
+  }catch(e){if(done)done();return false}
+}
+function closeWelcome(){
+  clearTimeout(WELCOME.timer);
+  try{window.speechSynthesis&&window.speechSynthesis.cancel()}catch(e){}
+  var w=document.getElementById("welcome");w.hidden=true;w.innerHTML="";
+  try{sessionStorage.setItem("pp_welcomed","1")}catch(e){}
+  var m=document.getElementById("main");if(m)m.focus({preventScroll:true});
+}
+function showWelcome(){
+  var w=document.getElementById("welcome");
+  try{if(sessionStorage.getItem("pp_welcomed")==="1")return}catch(e){}
+  if(Auth.mode==="dev"&&load("pp_force_splash")!=="1")return;  /* the test sign-in has no splash unless a test asks for it */
+  WELCOME.spoken=false;WELCOME.line="";
+  var logo='<div class="wlogo" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M2 4h4l3 13h12l3-9H8"/><circle cx="11" cy="23" r="1.8"/><circle cx="20" cy="23" r="1.8"/><path d="M10 12l2-3 2 5 2-3 2 1"/></svg></div>';
+  var name=savedName();
+  w.hidden=false;
+  if(!name&&load("pp_name_asked")!=="1"){
+    w.innerHTML=logo+'<h2 id="wtitle">Welcome to PricePulse</h2><p>What should I call you?</p><form id="nameform" class="wbtns"><label class="vh" for="wname">Your first name</label><input id="wname" type="text" maxlength="30" autocomplete="given-name" placeholder="Your first name"><button class="btn" type="submit">Continue</button><button class="linkbtn" type="button" data-w="skipname">Skip</button></form><p class="wsmall">Only used to greet you. It stays on this phone.</p>';
+    setTimeout(function(){var i=document.getElementById("wname");if(i)i.focus()},50);
+    return;
+  }
+  greetNow(name);
+}
+function greetNow(name){
+  var w=document.getElementById("welcome"),text=greetingText(name);
+  var logo='<div class="wlogo" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M2 4h4l3 13h12l3-9H8"/><circle cx="11" cy="23" r="1.8"/><circle cx="20" cy="23" r="1.8"/><path d="M10 12l2-3 2 5 2-3 2 1"/></svg></div>';
+  w.hidden=false;
+  w.innerHTML=logo+'<h2 id="wtitle">'+esc(text)+'</h2>'+
+    '<div class="wbtns"><button class="btn" type="button" data-w="go">Continue</button>'+
+    (window.speechSynthesis&&voiceOn()?'<button class="btn alt" type="button" data-w="hear" aria-label="Hear the greeting read aloud">🔊 Hear it</button>':'')+
+    '<button class="linkbtn wsmall" type="button" data-w="voice">'+(voiceOn()?'Turn the voice off':'Turn the voice on')+'</button></div>';
+  /* the first tap anywhere speaks the greeting (phones only allow sound after a tap); it closes by itself otherwise */
+  clearTimeout(WELCOME.timer);
+  WELCOME.timer=setTimeout(function(){if(!WELCOME.spoken)closeWelcome()},7000);
+}
+document.getElementById("welcome").addEventListener("click",function(e){
+  var t=e.target.closest("[data-w]"),act=t&&t.dataset.w;
+  if(act==="skipname"){store("pp_name_asked","1");return greetNow("")}
+  if(act==="voice"){store("pp_voice",voiceOn()?"off":"on");try{window.speechSynthesis&&window.speechSynthesis.cancel()}catch(x){}return greetNow(savedName())}
+  if(act==="go")return closeWelcome();
+  if(act==="hear"||(!act&&!e.target.closest("form")&&document.getElementById("nameform")===null)){
+    if(WELCOME.spoken)return;
+    WELCOME.spoken=true;clearTimeout(WELCOME.timer);
+    var txt=(document.getElementById("wtitle")||{}).textContent||"";
+    var ok=speak(txt,function(){setTimeout(closeWelcome,500)});
+    if(!ok)setTimeout(closeWelcome,1200);
+    else WELCOME.timer=setTimeout(closeWelcome,9000);
+  }
+});
+document.getElementById("welcome").addEventListener("submit",function(e){
+  e.preventDefault();
+  var n=cleanName(document.getElementById("wname").value);
+  store("pp_name_asked","1");
+  if(n)store("pp_name",n);
+  greetNow(n);
+});
+function changeNameDialog(){
+  ask("What should I call you?",'<label class="field"><span>Your first name (kept on this phone only)</span><input id="chname" type="text" maxlength="30" value="'+esc(savedName())+'" autocomplete="given-name"></label>',[["Save","namesave","btn"],["Cancel","","btn alt"]]);
+}
+
 function enterApp(){
   state.phase="app";
   var h=(location.hash||"").slice(1);
   render();
+  showWelcome();
   loadSession().then(function(){if(h)go(h,false);else if(state.me&&state.me.store_owner)go("store",false)});
 }
 
@@ -2419,6 +2522,8 @@ document.addEventListener("click",function(e){
     case "export":return exportDialog();
     case "clear":return clearSession();
     case "upgrade":return upgrade();
+    case "changename":return changeNameDialog();
+    case "togglevoice":store("pp_voice",voiceOn()?"off":"on");say("Greeting voice "+(voiceOn()?"on":"off")+".");return renderMain();
     case "refresh":return void refreshMe().then(function(m){say(m.plan==="paid"?"Your TrolleyUp plan is active.":"Not paid yet.")});
     case "cancelplan":return ask("Cancel your plan?",'<p>No more payments will be taken. You can keep sending to TrolleyUp until the end of the month you have paid for, then you go back to the free plan.</p>',[["Cancel my plan","docancel","btn"],["Keep my plan","","btn alt"]]);
     case "delete":return ask("Delete your PricePulse data?",'<p>This removes your age check, your sessions and your list from PricePulse. It does not delete your sign-in, which you also use for TrolleyUp.</p>',[["Delete my data","dodelete","btn"],["Keep it","","btn alt"]]);
