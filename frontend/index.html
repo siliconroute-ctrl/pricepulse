@@ -55,7 +55,10 @@ header .search-row{margin-top:.6rem}
 .find-row select{flex:1 1 auto;width:auto;max-width:14rem;background:var(--card);color:var(--ink);border:2px solid var(--muted);border-radius:.5rem;padding:.3rem .4rem;min-height:2.75rem;font-weight:600}
 .locbtn{flex:none;min-height:2.75rem;min-width:2.75rem;border-radius:.5rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center}
 .locbtn svg{width:1.3rem;height:1.3rem;stroke:currentColor;fill:none;stroke-width:2}
-.search{flex:1;min-width:0}
+.search{flex:1;min-width:0;position:relative}
+.search input#q{padding-right:3.4rem}
+.photobtn{position:absolute;right:.25rem;top:50%;transform:translateY(-50%);width:2.75rem;height:2.75rem;border:0;border-radius:50%;background:transparent;color:#15222e;display:flex;align-items:center;justify-content:center}
+.photobtn svg{width:1.6rem;height:1.6rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .search input{width:100%;min-height:2.75rem;padding:.5rem .7rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.06rem}
 .banner{border-radius:.6rem;padding:.3rem .6rem;margin:.4rem 0;border:2px solid var(--line);background:var(--card);line-height:1.3}
 .banner.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--ink)}
@@ -505,7 +508,7 @@ body.front .promo h2{font-size:1.2rem}
     </button>
   </div>
   <div class="row search-row">
-    <div class="search"><input id="q" type="search" placeholder="Search for a product (e.g. milk, rice, TV, dog food)" aria-label="Search products, for example milk" autocomplete="off" enterkeyhint="search"></div>
+    <div class="search"><input id="q" type="search" placeholder="Search for a product (e.g. milk, rice, TV, dog food)" aria-label="Search products, for example milk" autocomplete="off" enterkeyhint="search"><button class="photobtn" id="photobtn" type="button" aria-label="Search by photo: take a picture of the barcode or the label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.500-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.500" r="3.500"/></svg></button><input id="photofile" type="file" accept="image/*" capture="environment" hidden></div>
   </div>
   </div>
 </header>
@@ -541,7 +544,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 46;
+var APP_VERSION = 47;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -793,6 +796,82 @@ function viewIdCheck(){
   h+='<div class="btns"><button class="linkbtn" type="button" data-act="signout">Sign out</button></div>';
   return h+legalLinks();
 }
+
+
+/* ---------- Search by photo (the phone reads the photo itself: it is never uploaded) ---------- */
+var PHOTO={items:[],busy:false,libs:{}};
+function loadLib(src){
+  if(PHOTO.libs[src])return PHOTO.libs[src];
+  PHOTO.libs[src]=new Promise(function(ok,bad){var el=document.createElement("script");el.src=src;el.onload=ok;el.onerror=function(){delete PHOTO.libs[src];bad(new Error("Could not load the photo reader. Check your connection."))};document.head.appendChild(el)});
+  return PHOTO.libs[src];
+}
+function photoCanvas(file,maxSide,rotate){
+  return new Promise(function(ok,bad){
+    var url=URL.createObjectURL(file),img=new Image();
+    img.onload=function(){
+      var k=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.round(img.naturalWidth*k),h=Math.round(img.naturalHeight*k),c=document.createElement("canvas");
+      c.width=rotate?h:w;c.height=rotate?w:h;var g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);
+      if(rotate){g.translate(c.width,0);g.rotate(Math.PI/2)}
+      g.drawImage(img,0,0,w,h);URL.revokeObjectURL(url);ok(c);
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);bad(new Error("That file is not a photo this phone can read."))};
+    img.src=url;
+  });
+}
+function readBarcode(file){
+  /* the phone's own barcode reader when it has one, else the bundled one */
+  var tries=[[1600,false],[1600,true],[900,false]];
+  function nativeTry(c){
+    return new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]}).detect(c).then(function(r){return r.length?r[0].rawValue:""});
+  }
+  function zxingTry(c){
+    var Z=window.ZXing,hints=new Map();
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS,[Z.BarcodeFormat.EAN_13,Z.BarcodeFormat.EAN_8,Z.BarcodeFormat.UPC_A,Z.BarcodeFormat.UPC_E]);
+    hints.set(Z.DecodeHintType.TRY_HARDER,true);
+    var reader=new Z.MultiFormatReader();reader.setHints(hints);
+    try{return Promise.resolve(reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(c)))).getText())}catch(e){return Promise.resolve("")}
+  }
+  var useNative=typeof window.BarcodeDetector==="function";
+  return (useNative?Promise.resolve():loadLib("vendor/zxing.min.js")).then(function(){
+    var i=0;
+    function next(){
+      if(i>=tries.length)return "";
+      var t=tries[i++];
+      return photoCanvas(file,t[0],t[1]).then(function(c){return (useNative?nativeTry(c).catch(function(){return zxingTry(c)}):zxingTry(c))}).then(function(code){return code||next()});
+    }
+    return next();
+  });
+}
+function readLabel(file){
+  return loadLib("vendor/tesseract/tesseract.min.js").then(function(){
+    return Tesseract.createWorker("eng",1,{workerPath:"vendor/tesseract/worker.min.js",corePath:"vendor/tesseract/",langPath:"vendor/tesseract/",workerBlobURL:false});
+  }).then(function(w){
+    return photoCanvas(file,1600,false).then(function(c){return w.recognize(c)}).then(function(r){return w.terminate().then(function(){return r.data.text||""})});
+  });
+}
+function photoAnswer(r){
+  PHOTO.items=r.items||[];
+  if(r.status==="found"){
+    var rows=PHOTO.items.map(function(it,n){return '<div class="card" style="margin:.4rem 0"><b>'+esc(it.name)+'</b> <span class="size">'+esc(it.size)+'</span><div class="sub" style="margin:.1rem 0 .3rem">'+esc(it.category)+(it.store_count?' · at '+plural(it.store_count,"store"):'')+'</div><button class="btn" type="button" data-dlg="photopick:'+n+'">Search for this</button></div>'}).join("");
+    ask("Is this what you scanned?",'<p>'+esc(r.message)+'</p>'+rows+(r.left_today!=null?'<p class="sub">'+r.left_today+' photo searches left today.</p>':''),[["Not it","","btn alt"]]);
+  }else ask(r.status==="refused"?"Groceries only":"Photo search",'<p>'+esc(r.message)+'</p>',[["OK","","btn"]]);
+}
+function photoSearch(file){
+  if(!file||PHOTO.busy)return;
+  if(state.offline)return ask("Photo search",'<p>Photo search needs a connection.</p>',[["OK","","btn"]]);
+  PHOTO.busy=true;
+  ask("Reading the photo…",'<p aria-busy="true">Looking for a barcode, then the label words. This happens on your phone; the photo is not uploaded.</p>',[]);
+  var fail=function(e){PHOTO.busy=false;if(handleAuthError(e))return;ask("Photo search",'<p>'+esc(e.message||"Could not read that photo.")+'</p>',[["OK","","btn"]])};
+  readBarcode(file).then(function(code){
+    if(code)return api("GET","/photo-search?"+qs({code:code,region:state.region}));
+    return readLabel(file).then(function(text){
+      if(!text||text.replace(/[^a-z0-9]/gi,"").length<6)return {status:"unreadable",message:"I could not find a barcode or readable label words. Try a clearer, closer photo of the barcode or the front of the pack.",items:[]};
+      return api("GET","/photo-search?"+qs({text:text.slice(0,300),region:state.region}));
+    });
+  }).then(function(r){PHOTO.busy=false;photoAnswer(r)}).catch(fail);
+}
+document.getElementById("photobtn").addEventListener("click",function(){var f=document.getElementById("photofile");f.value="";f.click()});
+document.getElementById("photofile").addEventListener("change",function(e){photoSearch(e.target.files&&e.target.files[0])});
 
 /* ---------- Find: search products, then look up prices ---------- */
 var findTimer=null;
@@ -1358,6 +1437,7 @@ document.getElementById("dlg").addEventListener("click",function(e){
   if(a==="lsload")return lsDoLoad(b,d);
   if(a.indexOf("lsapprove:")===0){var ad=(document.getElementById("lsappdate")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(10)+"/approve",{paid_until:ad}).then(function(){d.close();say("Store approved.");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lsapperr");if(el)el.textContent=e.message})}
   if(a.indexOf("lsreject:")===0){var rs=(document.getElementById("lsrejtext")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(9)+"/reject",{reason:rs}).then(function(){d.close();say("Store rejected.");ADM.loading=null;admLoad()}).catch(function(){b.disabled=false})}
+  if(a.indexOf("photopick:")===0){var pit=PHOTO.items[+a.slice(10)];d.close();if(pit){var qi=document.getElementById("q");if(qi)qi.value=pit.name;state.q=pit.name;state.cat="All";state.flt="";state.sub="";state.cond="";state.found=null;go("find",false);runFind(true)}return}
   if(a==="soremovesel"){b.disabled=true;return api("POST","/store/items/remove",{ids:Object.keys(SO.sel).map(Number)}).then(function(r){SO.sel={};d.close();say(r.removed+" items removed.");soReload()}).catch(function(e){d.close();ask("Could not remove",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])})}
   if(a==="soremoveall"){b.disabled=true;return api("POST","/store/items/remove-all").then(function(r){SO.sel={};SO.offset=0;d.close();say("All items removed ("+r.removed+").");soReload()}).catch(function(e){d.close();ask("Could not remove",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])})}
   if(a.indexOf("lsdel:")===0){var nm=(document.getElementById("lsdelname")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(6)+"/delete",{confirm:nm}).then(function(r){d.close();say("Deleted "+r.deleted+".");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lsdelerr");if(el)el.textContent=e.message})}

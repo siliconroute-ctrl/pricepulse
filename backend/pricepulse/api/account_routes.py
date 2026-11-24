@@ -11,7 +11,7 @@ from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy import case, exists, func, or_, select
 from sqlalchemy.orm import Session
 
-from .. import abuse, accounts, discovery, payfast, trolleyup
+from .. import abuse, accounts, discovery, payfast, photosearch, trolleyup
 from ..auth import AuthError, Identity, make_verifier
 from ..categories import SUBCATEGORIES
 from ..db import (
@@ -540,6 +540,57 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
     def search_out(j: SearchJob) -> S.SearchOut:
         return S.SearchOut(
             id=j.id, term=j.term, category=j.category, status=j.status, found=j.found, note=j.note
+        )
+
+    @app.get(v1 + "/photo-search", response_model=S.PhotoSearchOut, tags=["lookup"])
+    def photo_search(
+        code: str = Query("", max_length=20, description="Barcode number the phone read from the photo"),
+        text: str = Query("", max_length=300, description="Label words the phone read from the photo"),
+        region: str = Query(ctx.default_region),
+        user: AppUser = Depends(user_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """The phone reads the photo itself (the photo is never uploaded) and sends only a barcode number
+        or label words. We check them against our products and keep to groceries, fresh food and
+        (for adults) liquor. 20 a day per account."""
+        region = ctx.scope(s, ctx.check_region(region))
+        user = s.merge(user)
+        try:
+            abuse.guard(s, user, "search")
+            if not code.strip() and not text.strip():
+                raise accounts.RuleError("empty", "Nothing was read from the photo.", 422)
+            left = photosearch.check_daily(s, user)
+        except accounts.RuleError as exc:
+            s.rollback()
+            raise fail(exc) from None
+        adult = accounts.is_adult(user, accounts.sa_today())
+        status, message, prods = photosearch.lookup(s, region, adult, code=code, text=text)
+        s.commit()
+        counts = {}
+        if prods:
+            from ..db import Listing as _L
+
+            for pid, n in s.execute(
+                select(_L.product_id, func.count(func.distinct(_L.store_id)))
+                .where(_L.product_id.in_([p.id for p in prods]), _L.active.is_(True))
+                .group_by(_L.product_id)
+            ):
+                counts[pid] = n
+        return S.PhotoSearchOut(
+            status=status,
+            message=message,
+            left_today=None if accounts.is_tester(user) else left,
+            items=[
+                S.PhotoItem(
+                    id=p.id,
+                    name=p.name,
+                    size=p.size_text or "",
+                    category=p.category or "",
+                    brand=p.brand or "",
+                    store_count=counts.get(p.id, 0),
+                )
+                for p in prods
+            ],
         )
 
     @app.get(v1 + "/searches", response_model=S.SearchesOut, tags=["lookup"])

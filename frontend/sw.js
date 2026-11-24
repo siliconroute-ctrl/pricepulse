@@ -1,7 +1,7 @@
 /* Service worker: keeps the app shell available offline.
    Prices are NOT cached here; the app saves the last prices itself and shows
    "Showing saved prices from ..." when offline. Bump VERSION (and APP_VERSION in index.html, same number) on each release. */
-var VERSION = "pp-shell-v46";
+var VERSION = "pp-shell-v47";
 var SHELL = ["./", "index.html", "config.js", "manifest.webmanifest", "icons/icon.svg",
              "icons/icon-192.png", "icons/icon-512.png", "icons/icon-180.png", "promo-bag.webp", "terms.html", "privacy.html"];
 
@@ -21,6 +21,8 @@ self.addEventListener("fetch", function (e) {
   if (req.method !== "GET" || url.pathname.indexOf("/api/") !== -1 || url.origin !== location.origin) return;
   // Never answer sw.js itself: "App update" asks the server for the newest version number.
   if (/\/sw\.js$/.test(url.pathname)) return;
+  // The photo-search readers are large (about 11 MB): load them from the network only, never copy them here.
+  if (url.pathname.indexOf("/vendor/") !== -1) return;
   // Network first for the app shell (so updates arrive), cache when offline.
   e.respondWith(fetch(req).then(function (res) {
     if (res.ok) { var copy = res.clone(); caches.open(VERSION).then(function (c) { c.put(req, copy); }); }

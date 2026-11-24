@@ -212,6 +212,22 @@ class CatalogueItem(_Model):
     detail: str = ""  # the local store's spec text for the item
 
 
+class PhotoItem(_Model):
+    id: int
+    name: str
+    size: str = ""
+    category: str = ""
+    brand: str = ""
+    store_count: int = 0
+
+
+class PhotoSearchOut(_Model):
+    status: str  # found, refused, not_found or unreadable
+    message: str
+    items: list[PhotoItem] = []
+    left_today: int | None = None
+
+
 class SubCount(_Model):
     name: str
     count: int
