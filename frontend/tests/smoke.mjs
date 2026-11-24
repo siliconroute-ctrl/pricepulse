@@ -635,6 +635,19 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await adm.click('[data-adm="tab"][data-tab="settings"]');
   await adm.waitForSelector(".admtable code");
   check(/PP_FREE_SESSIONS/.test(await adm.textContent("#main")), "Admin settings tab lists the settings");
+  // New items in the last 24 hours (admin only).
+  await adm.click('[data-adm="tab"][data-tab="overview"]');
+  await adm.waitForSelector('[data-adm="new24"]');
+  const newBtn = await adm.textContent('[data-adm="new24"]');
+  check(/New items in the last 24 hours: \d+/.test(newBtn), "Admin Overview has a button with the number of new items in the last 24 hours: " + newBtn.trim());
+  await adm.click('[data-adm="new24"]');
+  await adm.waitForSelector("#admadded");
+  check((await adm.inputValue("#admadded")) === "24h", "the button opens the Items list filtered to the last 24 hours");
+  await adm.waitForSelector(".admtable th:has-text('Added')");
+  check(true, "the list has an Added column when filtered to the last 24 hours");
+  await adm.selectOption("#admadded", "");
+  await adm.waitForFunction(() => !/Added<\/th>/.test(document.querySelector("#main").innerHTML));
+  check(true, "choosing Any time brings the full list back");
   // 11. Store-owner portal: an owner runs one store (items by hand and by CSV); shoppers find the store.
   const py = process.env.PP_PYTHON || "python3", cwd = process.env.PP_SMOKE_BACKEND;
   const created = await adm.evaluate(() => api("POST", "/admin/localstores", { name: "Paarl Refurb PCs", town_slug: "paarl", address: "12 Main Road, Paarl", contact_name: "", phone: "082 123 4567", email: "", notes: "", store_type: "IT & Electronics", max_items: 200, active: true, category: "Electronics", whatsapp: "", paid_until: "" }));

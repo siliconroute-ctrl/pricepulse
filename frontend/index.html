@@ -541,7 +541,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 45;
+var APP_VERSION = 46;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -1861,10 +1861,10 @@ function shopClick(t){
 }
 
 /* ---------- Admin area (admins only: the server refuses everyone else) ---------- */
-var ADM={tab:"overview",f:{store:"",category:"",shown:"",q:""},data:{},err:"",timer:null,loading:null};
+var ADM={tab:"overview",f:{store:"",category:"",shown:"",added:"",q:""},data:{},err:"",timer:null,loading:null};
 var ADM_TABS=[["overview","Overview"],["items","Items"],["localstores","Local stores"],["essentials","Essentials"],["users","Accounts"],["requests","Requests"],["settings","Settings"]];
 function admPath(tab){
-  if(tab==="items")return "/admin/items?"+qs({store:ADM.f.store,category:ADM.f.category,shown:ADM.f.shown||"",q:ADM.f.q.trim(),region:state.region});
+  if(tab==="items")return "/admin/items?"+qs({store:ADM.f.store,category:ADM.f.category,shown:ADM.f.shown||"",added:ADM.f.added||"",q:ADM.f.q.trim(),region:state.region});
   if(tab==="requests")return "/admin/requests?status="+encodeURIComponent(ADM.reqStatus||"open");
   return "/admin/"+tab;
 }
@@ -1899,21 +1899,23 @@ function viewAdmin(){
   if(!d)return h;
   if(tab==="overview"){
     var st=function(n,l){return '<div class="stat"><b>'+esc(n)+'</b>'+esc(l)+'</div>'};
+    h+='<div class="admbar noprint"><button class="admbtn go" type="button" data-adm="new24">New items in the last 24 hours: '+(d.new_24h||0)+'. Show the list</button></div>';
     h+='<div class="admgrid">'+st(d.accounts,"accounts")+st(d.age_checked,"age checked")+st(d.under_18,"under 18")+st(d.paying,"paying")+st(d.sessions_today,"lookup sessions today")+st(d.products,"products")+st(d.products_shown,"shown to shoppers")+st(d.listings,"store listings")+st(d.sold_by_2plus_stores,"sold by 2+ stores")+st(d.needs_review,"waiting for review")+st(d.open_requests,"open item requests")+'</div>';
     h+='<h3 class="h2" style="font-size:1.25rem">Stores</h3><div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th class="num">Listings</th><th>Last good scrape</th></tr></thead><tbody>'+
       admRows(d.stores.map(function(r){return '<tr><td>'+esc(r.store)+'</td><td class="num">'+r.listings+'</td><td>'+esc(r.last_success?fmtDate(r.last_success):"never")+'</td></tr>'}),"No stores yet.")+'</tbody></table></div>';
   }else if(tab==="items"){
     var rows=d.items,opt=function(list,cur,all){return '<option value="">'+all+'</option>'+list.map(function(x){return '<option'+(x===cur?' selected':'')+'>'+esc(x)+'</option>'}).join("")};
-    var title='PricePulse items'+(ADM.f.store?' · '+ADM.f.store:' · all stores')+(ADM.f.category?' · '+ADM.f.category:' · all types')+(ADM.f.q?' · "'+ADM.f.q+'"':'')+' · '+rows.length+' items · '+fmtDate(new Date());
+    var title='PricePulse items'+(ADM.f.store?' · '+ADM.f.store:' · all stores')+(ADM.f.category?' · '+ADM.f.category:' · all types')+(ADM.f.q?' · "'+ADM.f.q+'"':'')+(ADM.f.added==="24h"?' · new in the last 24 hours':'')+' · '+rows.length+' items · '+fmtDate(new Date());
     h+='<div class="admbar noprint"><div><label for="admstore">Store</label><select id="admstore" data-admf="store">'+opt(d.stores,ADM.f.store,"All stores")+'</select></div>'+
       '<div><label for="admcat">Type</label><select id="admcat" data-admf="category">'+opt(d.categories,ADM.f.category,"All types")+'</select></div>'+
       '<div><label for="admshown">Shoppers see</label><select id="admshown" data-admf="shown"><option value=""'+(ADM.f.shown===""?" selected":"")+'>All items</option><option value="yes"'+(ADM.f.shown==="yes"?" selected":"")+'>Shown items</option><option value="no"'+(ADM.f.shown==="no"?" selected":"")+'>Hidden items</option></select></div>'+
+      '<div><label for="admadded">Added</label><select id="admadded" data-admf="added"><option value=""'+(ADM.f.added===""?" selected":"")+'>Any time</option><option value="24h"'+(ADM.f.added==="24h"?" selected":"")+'>New in the last 24 hours</option></select></div>'+
       '<div class="admfull"><label for="admq">Search name or barcode</label><input id="admq" type="search" data-admf="q" value="'+esc(ADM.f.q)+'" autocomplete="off"></div>'+
       '<button class="admbtn go" type="button" data-adm="preview">Print this list</button></div>'+
       '<p class="sub noprint" role="status">'+rows.length+' items'+(d.truncated?' (the list was cut short: choose a store or type)':'')+'. Prices are for '+esc(regionName(state.region))+'.</p>'+
       '<h2 class="printonly" style="font-size:12pt">'+esc(title)+'</h2>'+
       '<p class="sub noprint">Shoppers see only each store\u2019s best match for each essential item. Hidden items stay in the system: tap <b>Show</b> to show one, or <b>Hide</b> to hide one.</p>'+
-      '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th><th class="noprint">Card #</th><th class="noprint">Shoppers</th></tr></thead><tbody>'+admItemRows(rows,true)+'</tbody></table></div>';
+      '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th>'+(ADM.f.added==="24h"?'<th>Added</th>':'')+'<th class="noprint">Card #</th><th class="noprint">Shoppers</th></tr></thead><tbody>'+admItemRows(rows,true)+'</tbody></table></div>';
   }else if(tab==="localstores"){
     h+='<p class="sub">Local stores send us a list of the items they sell most, with the selling price the buyer pays (VAT and any other tax included), once a week. Their prices show next to the big chains in their own town only. Each new file <b>replaces</b> the store\u2019s list: items missing from the new file are hidden. A store\u2019s prices are marked old after 8 days.</p>'+
       '<div class="admbar noprint"><button class="admbtn go" type="button" data-adm="lsnew">Add a local store</button>'+
@@ -1975,7 +1977,7 @@ function admItemRows(rows,buttons){
       who='<td class="noprint">'+(hid?'Hidden':'Shown')+(r.visibility!=="auto"?' <span class="sub2">(by hand)</span>':(r.hit_rank?' <span class="sub2">(match '+r.hit_rank+')</span>':''))+
         ' <button class="admbtn" type="button" data-adm="vis" data-pid="'+r.product_id+'" data-state="'+(hid?'show':'hide')+'" aria-label="'+(hid?'Show ':'Hide ')+esc(r.name)+(hid?' to shoppers':' from shoppers')+'">'+(hid?'Show':'Hide')+'</button></td>';
     }
-    return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td>'+(buttons?'<td class="noprint num" title="Lines with the same number are on the same shopper card">'+r.product_id+'</td>':'')+who+'</tr>'}),"No items match.");
+    return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td>'+(ADM.f.added==="24h"?'<td>'+esc(r.added?fmtDate(r.added):"")+'</td>':'')+(buttons?'<td class="noprint num" title="Lines with the same number are on the same shopper card">'+r.product_id+'</td>':'')+who+'</tr>'}),"No items match.");
 }
 function admPreview(d){
   var rows=d.items,title='PricePulse items'+(ADM.f.store?' \u00b7 '+ADM.f.store:' \u00b7 all stores')+(ADM.f.category?' \u00b7 '+ADM.f.category:' \u00b7 all types')+(ADM.f.q?' \u00b7 "'+ADM.f.q+'"':'')+' \u00b7 '+rows.length+' items \u00b7 '+fmtDate(new Date());
@@ -2103,6 +2105,7 @@ function lsHistory(id,name){
 function admClick(t){
   var d=t.dataset;
   if(d.adm==="unlock")return api("POST","/admin/users/"+encodeURIComponent(d.uid)+"/unlock").then(function(){say("Account unlocked.");ADM.loading=null;admLoad()}).catch(function(e){say(e.message)});
+  if(d.adm==="new24"){ADM.f={store:"",category:"",shown:"",added:"24h",q:""};ADM.tab="items";ADM.loading=null;renderMain();return admLoad()}
   if(d.adm==="lsdelete")return ask("Delete "+d.name+"?",'<p><b>This cannot be undone.</b> It removes the store, all its items and prices, its photos and the owner link. (The backup from pp deploy is the only way back.)</p><label class="field"><span>Type the store name to confirm</span><input id="lsdelname" type="text" maxlength="80" autocomplete="off"></label><p class="err" id="lsdelerr" role="alert"></p>',[["Delete the store","lsdel:"+d.id,"btn"],["Cancel","","btn alt"]]);
   if(d.adm==="lsapprove"){var dt=new Date(Date.now()+31*864e5).toISOString().slice(0,10);return ask("Approve "+d.name+"?",'<p>Shoppers will see the store until the date below (plus 3 grace days). Set it after you have invoiced the R149.</p><label class="field"><span>Paid until (YYYY-MM-DD)</span><input id="lsappdate" type="text" value="'+dt+'" maxlength="10" inputmode="numeric"></label><p class="err" id="lsapperr" role="alert"></p>',[["Approve","lsapprove:"+d.id,"btn"],["Cancel","","btn alt"]])}
   if(d.adm==="lsreject")return ask("Reject "+d.name+"?",'<p>The owner is told the reason you type here.</p><label class="field"><span>Reason</span><input id="lsrejtext" type="text" maxlength="200"></label>',[["Reject","lsreject:"+d.id,"btn"],["Cancel","","btn alt"]]);
