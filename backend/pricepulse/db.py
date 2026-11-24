@@ -98,6 +98,9 @@ class Store(Base):
     licence_no: Mapped[str] = mapped_column(String(40), default="", server_default="")  # liquor licence
     reject_reason: Mapped[str] = mapped_column(String(200), default="", server_default="")
     applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    mode: Mapped[str] = mapped_column(
+        String(8), default="physical", server_default="physical"
+    )  # physical, online or both: online-only stores show their town but no address or opening hours
 
 
 class AbuseLock(Base):
@@ -603,6 +606,13 @@ def _m16_abuse_lock(conn: Connection) -> None:
     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_abuse_lock_uid ON abuse_lock (uid)"))
 
 
+def _m17_store_mode(conn: Connection) -> None:
+    """A store is a physical shop, online only, or both (adds a column only)."""
+    cols = {c["name"] for c in inspect(conn).get_columns("store")}
+    if "mode" not in cols:
+        conn.execute(text("ALTER TABLE store ADD COLUMN mode VARCHAR(8) NOT NULL DEFAULT 'physical'"))
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
@@ -620,6 +630,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (14, "store sign-up: store id, approval, map point", _m14_store_signup),
     (15, "regions are provinces", _m15_provinces),
     (16, "accounts paused for automated use", _m16_abuse_lock),
+    (17, "store operating mode", _m17_store_mode),
 ]
 
 

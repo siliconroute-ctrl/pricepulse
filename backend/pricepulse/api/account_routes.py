@@ -101,7 +101,10 @@ def local_extras(s: Session, product_ids: list[int], region: str, store_id: int 
 
 
 def directions_link(st: Store) -> str:
-    """A Google Maps search for the store's address (no key needed); empty without an address."""
+    """A Google Maps search for the store's address (no key needed); empty without an address or for
+    an online-only store."""
+    if (st.mode or "physical") == "online":
+        return ""
     place = ", ".join(x for x in (st.address, st.town) if x)
     return "https://www.google.com/maps/search/?api=1&query=" + quote(place) if st.address else ""
 
@@ -412,14 +415,15 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             id=st.id,
             name=st.name,
             town=st.town,
-            address=st.address,
+            address="" if (st.mode or "physical") == "online" else st.address,
             phone=pretty_phone(normalise_phone(st.phone) or st.phone),
             whatsapp=normalise_phone(st.whatsapp or st.phone),
             store_type=st.store_type,
             category=st.category,
             items=items or 0,
             subs=sub_counts(s, region, st.category or None, st.id),
-            hours=open_status(st.hours, st.hours_note),
+            hours={} if (st.mode or "physical") == "online" else open_status(st.hours, st.hours_note),
+            mode=st.mode or "physical",
             photos=photo_urls(st),
             directions=directions_link(st),
         )
@@ -462,10 +466,11 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
                 "id": st.id,
                 "name": st.name,
                 "town": st.town,
-                "address": st.address,
+                "address": "" if (st.mode or "physical") == "online" else st.address,
                 "phone": pretty_phone(normalise_phone(st.phone) or st.phone),
                 "whatsapp": normalise_phone(st.whatsapp or st.phone),
-                "hours": open_status(st.hours, st.hours_note),
+                "hours": {} if (st.mode or "physical") == "online" else open_status(st.hours, st.hours_note),
+                "mode": st.mode or "physical",
                 "photos": photo_urls(st),
                 "directions": directions_link(st),
             },

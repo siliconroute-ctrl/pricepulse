@@ -240,7 +240,8 @@ class StoreOut(_Model):
     category: str
     items: int
     subs: list[SubCount]
-    hours: dict = {}  # open_status(): state, text, today, week, note
+    hours: dict = {}  # open_status(): state, text, today, week, note (empty for an online-only store)
+    mode: str = "physical"  # physical, online or both
     photos: list[str] = []
     directions: str = ""
 

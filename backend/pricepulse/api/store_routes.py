@@ -54,8 +54,16 @@ class ImportIn(BaseModel):
     dry_run: bool = False
 
 
+MODES = ("physical", "online", "both")
+
+
+class RemoveIn(BaseModel):
+    ids: list[int] = Field(default_factory=list, max_length=5000)
+
+
 class ApplyIn(BaseModel):
     name: str = Field(min_length=2, max_length=80)
+    mode: str = Field(default="physical", max_length=8)
     category: str = Field(max_length=40)
     town: str = Field(max_length=40)  # a slug from towns.yaml
     address: str = Field(default="", max_length=160)
@@ -68,6 +76,7 @@ class ApplyIn(BaseModel):
 
 
 class DetailsIn(BaseModel):
+    mode: str | None = Field(default=None, max_length=8)
     address: str = Field(default="", max_length=160)
     phone: str = Field(default="", max_length=30)
     whatsapp: str = Field(default="", max_length=30)
@@ -195,6 +204,10 @@ def register_store_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
                 refuse("bad_details", f"The {label} must not contain a web address.")
         if body.category not in SIGNUP_CATEGORIES:
             refuse("bad_category", "Please choose one category for your store.")
+        if body.mode not in MODES:
+            refuse("bad_mode", "Please say if your store is a physical shop, online only, or both.")
+        if body.mode != "online" and not body.address.strip():
+            refuse("address", "A physical shop needs a street address. Choose Online only if you have none.")
         town = load_towns(str(settings.towns_file)).get(body.town)
         if town is None:
             refuse("bad_town", "Please choose your town from the list.")
@@ -241,6 +254,7 @@ def register_store_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             active=False,
             status="pending",
             category=body.category,
+            mode=body.mode,
             store_type=body.category,
             max_items=200,
             lat=town.lat,
@@ -269,6 +283,7 @@ def register_store_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         return {
             "id": store.id,
             "store_number": store.store_number or "",
+            "mode": store.mode or "physical",
             "reject_reason": store.reject_reason,
             "licence_no": store.licence_no,
             "name": store.name,
@@ -303,10 +318,11 @@ def register_store_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
     def items(
         q: str = Query("", max_length=60),
         offset: int = Query(0, ge=0, le=100000),
+        limit: int = Query(25, ge=1, le=100),
         store: Store = Depends(owner_store),  # noqa: B008
         s: Session = Depends(ctx.db),  # noqa: B008
     ):
-        total, rows = localstores.store_items(s, store, q, offset, 100)
+        total, rows = localstores.store_items(s, store, q, offset, limit)
         return {"total": total, "items": rows}
 
     @app.post(base + "/items", tags=["store"])
@@ -324,6 +340,31 @@ def register_store_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             raise fail(exc) from None
         s.commit()
         return {"id": lst.id, "active": lst.active, "items": localstores.active_count(s, store)}
+
+    @app.post(base + "/items/remove", tags=["store"])
+    def remove_some(
+        body: RemoveIn,
+        store: Store = Depends(owner_store),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """Hide the ticked items from shoppers (history kept; they can be added again)."""
+        can_edit(store)
+        if not body.ids:
+            raise HTTPException(422, {"code": "nothing", "message": "Tick the items to remove first."})
+        n = localstores.remove_items(s, store, body.ids)
+        s.commit()
+        return {"removed": n, "items": localstores.active_count(s, store)}
+
+    @app.post(base + "/items/remove-all", tags=["store"])
+    def remove_all(
+        store: Store = Depends(owner_store),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """Take every item of the store off the shopper screens."""
+        can_edit(store)
+        n = localstores.remove_items(s, store, None)
+        s.commit()
+        return {"removed": n, "items": 0}
 
     @app.post(base + "/items/{item_id}", tags=["store"])
     def change_item(
@@ -549,6 +590,17 @@ def register_store_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             raise HTTPException(
                 422, {"code": "bad_email", "message": "That email address does not look right."}
             )
+        if body.mode is not None:
+            if body.mode not in MODES:
+                raise HTTPException(
+                    422, {"code": "bad_mode", "message": "Choose physical shop, online only, or both."}
+                )
+            if body.mode != "online" and not re.sub(r"\s+", " ", body.address).strip():
+                raise HTTPException(
+                    422,
+                    {"code": "address", "message": "A physical shop needs a street address."},
+                )
+            store.mode = body.mode
         store.address = re.sub(r"\s+", " ", body.address).strip()
         store.phone = phone
         store.whatsapp = whatsapp

@@ -7,11 +7,13 @@ stored) or secrets. Accounts are shown by their sign-in ID only.
 
 from __future__ import annotations
 
+import shutil
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from .. import abuse, essentials, localstores
@@ -27,6 +29,7 @@ from ..db import (
     Product,
     SchemaVersion,
     ScrapeRun,
+    SessionItem,
     Store,
     StoreOwner,
     StoreSubmission,
@@ -65,6 +68,10 @@ class LocalStoreIn(BaseModel):
     category: str | None = Field(default=None, max_length=40)
     whatsapp: str | None = Field(default=None, max_length=30)
     paid_until: str | None = Field(default=None, max_length=10)
+
+
+class StoreDeleteIn(BaseModel):
+    confirm: str = Field(max_length=80)  # the store's name, typed to confirm
 
 
 class StoreApproveIn(BaseModel):
@@ -495,6 +502,52 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         localstores.ensure_store_number(s, st)
         s.commit()
         return store_row(st, s)
+
+    @app.post(base + "/localstores/{store_id}/delete", tags=["admin"])
+    def localstore_delete(
+        store_id: int,
+        body: StoreDeleteIn,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """Delete a local store with all its items, prices, photos and owner link. Cannot be undone (the
+        backup from `pp deploy` is the safety net). The store's name must be typed, and a store that is
+        paid up (a paid-until date in the future) must have that date cleared first."""
+        st = s.get(Store, store_id)
+        if st is None or st.kind != "local":
+            raise HTTPException(404, {"code": "not_found", "message": "No such local store."})
+        if clean_text(body.confirm).lower() != st.name.lower():
+            raise HTTPException(
+                422, {"code": "confirm", "message": "Type the store's name exactly to confirm."}
+            )
+        if st.paid_until is not None and st.paid_until > utcnow():
+            raise HTTPException(
+                409,
+                {
+                    "code": "paid",
+                    "message": "This store is paid up. Clear its paid-until date first (Edit store).",
+                },
+            )
+        listing_ids = select(Listing.id).where(Listing.store_id == st.id)
+        product_ids = [
+            pid for (pid,) in s.execute(select(Listing.product_id).where(Listing.store_id == st.id)) if pid
+        ]
+        s.execute(delete(Price).where(Price.listing_id.in_(listing_ids)))
+        s.execute(delete(Listing).where(Listing.store_id == st.id))
+        # products that no other store sells disappear too (with any looked-up copies of them)
+        for pid in set(product_ids):
+            if s.scalar(select(func.count()).select_from(Listing).where(Listing.product_id == pid)) == 0:
+                s.execute(delete(SessionItem).where(SessionItem.product_id == pid))
+                prod = s.get(Product, pid)
+                if prod is not None:
+                    s.delete(prod)
+        s.execute(delete(StoreSubmission).where(StoreSubmission.store_id == st.id))
+        s.execute(delete(StoreOwner).where(StoreOwner.store_id == st.id))
+        name = st.name
+        s.delete(st)
+        s.commit()
+        shutil.rmtree(Path(settings.data_dir) / "uploads" / "stores" / str(store_id), ignore_errors=True)
+        return {"deleted": name}
 
     @app.post(base + "/localstores/{store_id}/approve", tags=["admin"])
     def localstore_approve(
