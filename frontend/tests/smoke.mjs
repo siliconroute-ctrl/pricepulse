@@ -635,6 +635,20 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   await adm.click('[data-adm="tab"][data-tab="settings"]');
   await adm.waitForSelector(".admtable code");
   check(/PP_FREE_SESSIONS/.test(await adm.textContent("#main")), "Admin settings tab lists the settings");
+  // New items in the last 24 hours (admin only).
+  await adm.click('[data-adm="tab"][data-tab="overview"]');
+  await adm.waitForSelector('[data-adm="new24"]');
+  const newBtn = await adm.textContent('[data-adm="new24"]');
+  check(/New items in the last 24 hours: \d+/.test(newBtn), "Admin Overview has a button with the number of new items in the last 24 hours: " + newBtn.trim());
+  await adm.click('[data-adm="new24"]');
+  await adm.waitForSelector("#admadded");
+  check((await adm.inputValue("#admadded")) === "24h", "the button opens the Items list filtered to the last 24 hours");
+  await adm.waitForSelector(".admtable th:has-text('Added')");
+  check(true, "the list has an Added column when filtered to the last 24 hours");
+  await adm.waitForFunction(() => ADM.loading === null && !!ADM.data.items);  // the filtered list has arrived and the screen is stable
+  await adm.selectOption("#admadded", "");
+  await adm.waitForFunction(() => !/Added<\/th>/.test(document.querySelector("#main").innerHTML));
+  check(true, "choosing Any time brings the full list back");
   // 11. Store-owner portal: an owner runs one store (items by hand and by CSV); shoppers find the store.
   const py = process.env.PP_PYTHON || "python3", cwd = process.env.PP_SMOKE_BACKEND;
   const created = await adm.evaluate(() => api("POST", "/admin/localstores", { name: "Paarl Refurb PCs", town_slug: "paarl", address: "12 Main Road, Paarl", contact_name: "", phone: "082 123 4567", email: "", notes: "", store_type: "IT & Electronics", max_items: 200, active: true, category: "Electronics", whatsapp: "", paid_until: "" }));
@@ -898,6 +912,85 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   check(await pv.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "no sideways scroll with the longer place list");
   check(pvErrors.length === 0, "no JavaScript errors in the province chooser" + (pvErrors.length ? ": " + pvErrors.join("; ") : ""));
   check(nsErrors.length === 0, "no JavaScript errors on the store sign-up screens" + (nsErrors.length ? ": " + nsErrors.join("; ") : ""));
+  // 14. Search by photo: barcode, label words, groceries only.
+  const ean13 = (d12) => { const sum = [...d12].reduce((t, c, k) => t + +c * (k % 2 ? 3 : 1), 0); return d12 + String((10 - (sum % 10)) % 10); };
+  const L = ["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
+  const G = ["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"];
+  const R = ["1110010","1100110","1101100","1000010","1011100","1001110","1010000","1000100","1001000","1110100"];
+  const PAR = ["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG","LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"];
+  const eanBits = (code) => { const d = [...code].map(Number); let b = "101"; for (let k = 0; k < 6; k++) b += (PAR[d[0]][k] === "L" ? L : G)[d[k + 1]]; b += "01010"; for (let k = 7; k < 13; k++) b += R[d[k]]; return b + "101"; };
+  const code1 = ean13("600123456789"), code2 = ean13("600555000111");
+  const pyset = (name, code) => execFileSync(py, ["-c", `from pricepulse.config import get_settings;from pricepulse.db import session_factory,Listing;from sqlalchemy import select\nwith session_factory(get_settings().database_url).begin() as s:\n  for l in s.scalars(select(Listing).where(Listing.name.like('${name}%'))): l.barcode='${code}'`], { cwd, env: process.env });
+  pyset("Clover", code1);
+  pyset("Dell OptiPlex", code2);
+  const barcodePng = (b) => sh.evaluate((bits) => { const m = 4, quiet = 14, c = document.createElement("canvas"); c.width = (bits.length + quiet * 2) * m; c.height = 220; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.fillStyle = "#000"; [...bits].forEach((v, k) => { if (v === "1") g.fillRect((quiet + k) * m, 20, m, 170); }); return c.toDataURL("image/png").split(",")[1]; }, eanBits(b));
+  const sendPhoto = async (b64) => { const [fc] = await Promise.all([sh.waitForEvent("filechooser"), sh.click("#photobtn")]); await fc.setFiles({ name: "photo.png", mimeType: "image/png", buffer: Buffer.from(b64, "base64") }); };
+  await sh.goto(base + "/");
+  await sh.waitForSelector(".cats8");
+  check(await sh.isVisible("#photobtn") && /Search by photo/.test(await sh.getAttribute("#photobtn", "aria-label")), "the search bar has a camera button labelled Search by photo");
+  await sendPhoto(await barcodePng(code1));
+  await sh.waitForSelector('#dlg h2:has-text("Is this what you scanned")', { timeout: 60000 });
+  check(/Clover/.test(await sh.textContent("#dlg")), "a photo of a barcode finds the grocery item (read on the phone)");
+  await sh.click('#dlg [data-dlg^="photopick"]');
+  await sh.waitForSelector("#main .grid article");
+  check(/Clover/i.test(await sh.inputValue("#q")), "'Search for this' puts the item in the search bar and lists it");
+  await sendPhoto(await barcodePng(code2));
+  await sh.waitForSelector('#dlg h2:has-text("Groceries only")', { timeout: 60000 });
+  check(/not a grocery item/.test(await sh.textContent("#dlg")), "a photo of a non-grocery item (electronics) is refused");
+  await sh.click('#dlg [data-dlg=""]');
+  const labelPng = await sh.evaluate(() => { const c = document.createElement("canvas"); c.width = 1400; c.height = 500; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, 1400, 500); g.fillStyle = "#000"; g.font = "bold 110px Arial, sans-serif"; g.fillText("CLOVER FULL CREAM", 60, 190); g.fillText("MILK 2L", 60, 360); return c.toDataURL("image/png").split(",")[1]; });
+  await sendPhoto(labelPng);
+  await sh.waitForSelector('#dlg h2:has-text("Is this what you scanned")', { timeout: 120000 });
+  check(/Clover/.test(await sh.textContent("#dlg")), "with no barcode, the label words are read on the phone and found");
+  await sh.click('#dlg [data-dlg=""]');
+  const blank = await sh.evaluate(() => { const c = document.createElement("canvas"); c.width = 400; c.height = 300; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, 400, 300); return c.toDataURL("image/png").split(",")[1]; });
+  await sendPhoto(blank);
+  await sh.waitForSelector('#dlg h2:has-text("Photo search")', { timeout: 120000 });
+  check(/could not find a barcode/.test(await sh.textContent("#dlg")), "a photo with nothing readable is explained in plain words");
+  await sh.click('#dlg [data-dlg=""]');
+  // 15. Welcome splash: asks for a name once, greets by name, speaks after a tap, remembers on the phone.
+  const wCtx = await browser.newContext({ viewport: { width: 412, height: 915 } });
+  await wCtx.addInitScript(() => {
+    window.__spoken = [];
+    Object.defineProperty(window, "speechSynthesis", { configurable: true, value: { speak: (u) => { window.__spoken.push(u.text); setTimeout(() => u.onend && u.onend(), 30); }, cancel() {}, getVoices() { return []; } } });
+    window.SpeechSynthesisUtterance = function (t) { this.text = t; };
+    try { localStorage.setItem("pp_force_splash", '"1"'); } catch (e) {}
+  });
+  const wp = await wCtx.newPage();
+  const wErrors = [];
+  wp.on("pageerror", (e) => wErrors.push(e.message));
+  await signIn(wp, "joao", makeId("560606"));
+  await wp.waitForSelector("#welcome:not([hidden]) #nameform");
+  check(/What should I call you/.test(await wp.textContent("#welcome")) && /stays on this phone/.test(await wp.textContent("#welcome")), "the first open asks 'What should I call you?' and says the name stays on the phone");
+  await wp.fill("#wname", "joao");
+  await wp.click('#nameform button[type="submit"]');
+  await wp.waitForSelector("#welcome #wtitle");
+  const greet = await wp.textContent("#wtitle");
+  check(/^Good (morning|afternoon|evening) Joao, /.test(greet), "the splash greets by name: " + greet);
+  await shot(wp, "welcome-splash");
+  await wp.click('[data-w="hear"]');
+  await wp.waitForFunction(() => document.getElementById("welcome").hidden);
+  const said = await wp.evaluate(() => window.__spoken);
+  check(said.length === 1 && said[0] === greet, "the greeting is read aloud after a tap: " + JSON.stringify(said));
+  await wp.reload();
+  await wp.waitForSelector(".cats8");
+  check(await wp.evaluate(() => document.getElementById("welcome").hidden), "the splash shows once per visit, not on every reload");
+  await wp.goto(base + "/#account");
+  await wp.waitForSelector(".plan");
+  check(/I call you Joao/.test(await wp.textContent("#main")), "My account shows the name the phone keeps");
+  await wp.click('[data-act="changename"]');
+  await wp.fill("#chname", "mamphela");
+  await wp.click('[data-dlg="namesave"]');
+  await wp.waitForFunction(() => /I call you Mamphela/.test(document.getElementById("main").textContent));
+  await wp.click('[data-act="togglevoice"]');
+  check(/Voice: off/.test(await wp.textContent("#main")), "the greeting voice can be turned off in My account");
+  const wp2 = await wCtx.newPage();  // a new visit (new tab) on the same phone
+  await wp2.goto(base + "/");
+  await wp2.waitForSelector("#welcome:not([hidden]) #wtitle");
+  check(/Mamphela/.test(await wp2.textContent("#wtitle")) && (await wp2.locator('[data-w="hear"]').count()) === 0, "the next visit greets the new name and, with the voice off, offers no sound");
+  await wp2.click('[data-w="go"]');
+  await wp2.waitForFunction(() => document.getElementById("welcome").hidden);
+  check(wErrors.length === 0, "no JavaScript errors in the welcome splash" + (wErrors.length ? ": " + wErrors.join("; ") : ""));
   check(buyErrors.length === 0, "no JavaScript errors on the shopper screens" + (buyErrors.length ? ": " + buyErrors.join("; ") : ""));
   // A lapsed store disappears; the owner is told.
   execFileSync(py, ["admin.py", "store-paid", String(created.id), "2020-01-01"], { cwd, env: process.env });

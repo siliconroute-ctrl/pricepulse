@@ -130,3 +130,52 @@ def test_admin_role_command(api, app_settings, capsys):
     assert admin_main(["admin-role", "dev-alice", "off"]) == 0
     assert api.get("/api/v1/admin/overview", headers=auth("alice")).status_code == 404
     assert admin_main(["admin-role", "nobody", "on"]) == 1
+
+
+def test_admin_lists_the_items_added_in_the_last_24_hours(api, app_settings):
+    from datetime import timedelta
+
+    from pricepulse.db import Listing, utcnow
+
+    make_admin(app_settings)
+    with session_factory(app_settings.database_url).begin() as s:
+        rows = s.scalars(select(Listing).order_by(Listing.id)).all()
+        for lst in rows:
+            lst.created_at = utcnow() - timedelta(days=5)  # everything is old ...
+        rows[0].created_at = utcnow() - timedelta(hours=2)  # ... except two items
+        rows[1].created_at = utcnow() - timedelta(hours=30)  # (30 hours is too old)
+        fresh_name = rows[0].name
+    body = api.get("/api/v1/admin/items", params={"added": "24h"}, headers=auth("boss")).json()
+    assert [i["name"] for i in body["items"]] == [fresh_name]
+    assert body["items"][0]["added"]
+    everything = api.get("/api/v1/admin/items", headers=auth("boss")).json()["items"]
+    assert len(everything) > 1
+    assert api.get("/api/v1/admin/overview", headers=auth("boss")).json()["new_24h"] == 1
+    assert api.get("/api/v1/admin/items", params={"added": "24h"}, headers=auth("alice")).status_code == 404
+    assert api.get("/api/v1/admin/items", params={"added": "bad"}, headers=auth("boss")).status_code == 422
+
+
+def test_migration_18_dates_old_items_by_their_first_price(tmp_path):
+    import sqlite3
+
+    from sqlalchemy import text
+
+    from pricepulse.db import MIGRATIONS, Base, Listing, Price, Product, Store, make_engine, utcnow
+
+    engine = make_engine(f"sqlite:///{tmp_path / 'old.db'}")
+    Base.metadata.create_all(engine)
+    with session_factory(f"sqlite:///{tmp_path / 'old.db'}").begin() as s:
+        st = Store(name="Checkers", kind="chain")
+        s.add(st)
+        s.flush()
+        prod = Product(name="Milk 2L")
+        s.add(prod)
+        s.flush()
+        lst = Listing(store_id=st.id, product_id=prod.id, ident="a", name="Milk 2L")
+        s.add(lst)
+        s.flush()
+        s.add(Price(listing_id=lst.id, region="paarl", price_cents=100, scraped_at=utcnow(), slot="a"))
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE listing SET created_at = NULL"))
+        [m for m in MIGRATIONS if m[0] == 18][0][2](conn)  # column already exists: nothing breaks
+    assert sqlite3.connect(tmp_path / "old.db").execute("SELECT count(*) FROM listing").fetchone()[0] == 1

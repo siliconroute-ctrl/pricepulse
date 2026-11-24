@@ -72,7 +72,7 @@ class Settings:
     abuse_searches_per_min: int = field(default_factory=lambda: int(_float("PP_ABUSE_SEARCHES", 90)))
     abuse_rhythm_calls: int = field(default_factory=lambda: int(_float("PP_ABUSE_RHYTHM", 50)))  # 0 = off
     price_cents: int = field(default_factory=lambda: int(_float("PP_PRICE_CENTS", 3900)))
-    terms_version: int = 7
+    terms_version: int = 9
     public_url: str = field(
         default_factory=lambda: os.environ.get("PP_PUBLIC_URL", "http://localhost:8000").rstrip("/")
     )

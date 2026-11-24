@@ -55,7 +55,10 @@ header .search-row{margin-top:.6rem}
 .find-row select{flex:1 1 auto;width:auto;max-width:14rem;background:var(--card);color:var(--ink);border:2px solid var(--muted);border-radius:.5rem;padding:.3rem .4rem;min-height:2.75rem;font-weight:600}
 .locbtn{flex:none;min-height:2.75rem;min-width:2.75rem;border-radius:.5rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center}
 .locbtn svg{width:1.3rem;height:1.3rem;stroke:currentColor;fill:none;stroke-width:2}
-.search{flex:1;min-width:0}
+.search{flex:1;min-width:0;position:relative}
+.search input#q{padding-right:3.4rem}
+.photobtn{position:absolute;right:.25rem;top:50%;transform:translateY(-50%);width:2.75rem;height:2.75rem;border:0;border-radius:50%;background:transparent;color:#15222e;display:flex;align-items:center;justify-content:center}
+.photobtn svg{width:1.6rem;height:1.6rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .search input{width:100%;min-height:2.75rem;padding:.5rem .7rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.06rem}
 .banner{border-radius:.6rem;padding:.3rem .6rem;margin:.4rem 0;border:2px solid var(--line);background:var(--card);line-height:1.3}
 .banner.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--ink)}
@@ -484,9 +487,21 @@ body.front .promo h2{font-size:1.2rem}
 .sellbox ul.points{margin:.3rem 0 .6rem}
 .storeidcard{border:2px solid var(--accent)}
 .sellcta{width:100%;margin-top:.85rem}
+/* Welcome splash: a greeting by name that the phone can read aloud (after a tap) */
+#welcome{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:1.5rem;text-align:center}
+#welcome[hidden]{display:none}
+#welcome .wlogo{width:6.5rem;height:6.5rem;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center}
+#welcome .wlogo svg{width:3.6rem;height:3.6rem;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion:no-preference){#welcome .wlogo{animation:ppulse 1.6s ease-in-out infinite}@keyframes ppulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(7,94,84,.35)}50%{transform:scale(1.06);box-shadow:0 0 0 18px rgba(7,94,84,0)}}}
+#welcome h2{font-family:var(--font-display);font-size:1.6rem;margin:0;max-width:22rem;line-height:1.25}
+#welcome p{margin:0;color:var(--muted);max-width:22rem}
+#welcome .wbtns{display:flex;flex-direction:column;gap:.6rem;width:min(100%,20rem)}
+#welcome input{width:100%;min-height:2.75rem;padding:.5rem .8rem;border-radius:.6rem;border:2px solid var(--muted);background:var(--card);color:var(--ink);font-size:1.06rem;text-align:center}
+#welcome .wsmall{font-size:.9rem}
 </style>
 </head>
 <body class="plainhead">
+<div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wtitle" hidden></div>
 <a class="skip" href="#main">Skip to content</a>
 <div class="wrap">
 <header>
@@ -505,7 +520,7 @@ body.front .promo h2{font-size:1.2rem}
     </button>
   </div>
   <div class="row search-row">
-    <div class="search"><input id="q" type="search" placeholder="Search for a product (e.g. milk, rice, TV, dog food)" aria-label="Search products, for example milk" autocomplete="off" enterkeyhint="search"></div>
+    <div class="search"><input id="q" type="search" placeholder="Search for a product (e.g. milk, rice, TV, dog food)" aria-label="Search products, for example milk" autocomplete="off" enterkeyhint="search"><button class="photobtn" id="photobtn" type="button" aria-label="Search by photo: take a picture of the barcode or the label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.500-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.500" r="3.500"/></svg></button><input id="photofile" type="file" accept="image/*" capture="environment" hidden></div>
   </div>
   </div>
 </header>
@@ -541,7 +556,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 45;
+var APP_VERSION = 48;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -793,6 +808,82 @@ function viewIdCheck(){
   h+='<div class="btns"><button class="linkbtn" type="button" data-act="signout">Sign out</button></div>';
   return h+legalLinks();
 }
+
+
+/* ---------- Search by photo (the phone reads the photo itself: it is never uploaded) ---------- */
+var PHOTO={items:[],busy:false,libs:{}};
+function loadLib(src){
+  if(PHOTO.libs[src])return PHOTO.libs[src];
+  PHOTO.libs[src]=new Promise(function(ok,bad){var el=document.createElement("script");el.src=src;el.onload=ok;el.onerror=function(){delete PHOTO.libs[src];bad(new Error("Could not load the photo reader. Check your connection."))};document.head.appendChild(el)});
+  return PHOTO.libs[src];
+}
+function photoCanvas(file,maxSide,rotate){
+  return new Promise(function(ok,bad){
+    var url=URL.createObjectURL(file),img=new Image();
+    img.onload=function(){
+      var k=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.round(img.naturalWidth*k),h=Math.round(img.naturalHeight*k),c=document.createElement("canvas");
+      c.width=rotate?h:w;c.height=rotate?w:h;var g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);
+      if(rotate){g.translate(c.width,0);g.rotate(Math.PI/2)}
+      g.drawImage(img,0,0,w,h);URL.revokeObjectURL(url);ok(c);
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);bad(new Error("That file is not a photo this phone can read."))};
+    img.src=url;
+  });
+}
+function readBarcode(file){
+  /* the phone's own barcode reader when it has one, else the bundled one */
+  var tries=[[1600,false],[1600,true],[900,false]];
+  function nativeTry(c){
+    return new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]}).detect(c).then(function(r){return r.length?r[0].rawValue:""});
+  }
+  function zxingTry(c){
+    var Z=window.ZXing,hints=new Map();
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS,[Z.BarcodeFormat.EAN_13,Z.BarcodeFormat.EAN_8,Z.BarcodeFormat.UPC_A,Z.BarcodeFormat.UPC_E]);
+    hints.set(Z.DecodeHintType.TRY_HARDER,true);
+    var reader=new Z.MultiFormatReader();reader.setHints(hints);
+    try{return Promise.resolve(reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(c)))).getText())}catch(e){return Promise.resolve("")}
+  }
+  var useNative=typeof window.BarcodeDetector==="function";
+  return (useNative?Promise.resolve():loadLib("vendor/zxing.min.js")).then(function(){
+    var i=0;
+    function next(){
+      if(i>=tries.length)return "";
+      var t=tries[i++];
+      return photoCanvas(file,t[0],t[1]).then(function(c){return (useNative?nativeTry(c).catch(function(){return zxingTry(c)}):zxingTry(c))}).then(function(code){return code||next()});
+    }
+    return next();
+  });
+}
+function readLabel(file){
+  return loadLib("vendor/tesseract/tesseract.min.js").then(function(){
+    return Tesseract.createWorker("eng",1,{workerPath:"vendor/tesseract/worker.min.js",corePath:"vendor/tesseract/",langPath:"vendor/tesseract/",workerBlobURL:false});
+  }).then(function(w){
+    return photoCanvas(file,1600,false).then(function(c){return w.recognize(c)}).then(function(r){return w.terminate().then(function(){return r.data.text||""})});
+  });
+}
+function photoAnswer(r){
+  PHOTO.items=r.items||[];
+  if(r.status==="found"){
+    var rows=PHOTO.items.map(function(it,n){return '<div class="card" style="margin:.4rem 0"><b>'+esc(it.name)+'</b> <span class="size">'+esc(it.size)+'</span><div class="sub" style="margin:.1rem 0 .3rem">'+esc(it.category)+(it.store_count?' · at '+plural(it.store_count,"store"):'')+'</div><button class="btn" type="button" data-dlg="photopick:'+n+'">Search for this</button></div>'}).join("");
+    ask("Is this what you scanned?",'<p>'+esc(r.message)+'</p>'+rows+(r.left_today!=null?'<p class="sub">'+r.left_today+' photo searches left today.</p>':''),[["Not it","","btn alt"]]);
+  }else ask(r.status==="refused"?"Groceries only":"Photo search",'<p>'+esc(r.message)+'</p>',[["OK","","btn"]]);
+}
+function photoSearch(file){
+  if(!file||PHOTO.busy)return;
+  if(state.offline)return ask("Photo search",'<p>Photo search needs a connection.</p>',[["OK","","btn"]]);
+  PHOTO.busy=true;
+  ask("Reading the photo…",'<p aria-busy="true">Looking for a barcode, then the label words. This happens on your phone; the photo is not uploaded.</p>',[]);
+  var fail=function(e){PHOTO.busy=false;if(handleAuthError(e))return;ask("Photo search",'<p>'+esc(e.message||"Could not read that photo.")+'</p>',[["OK","","btn"]])};
+  readBarcode(file).then(function(code){
+    if(code)return api("GET","/photo-search?"+qs({code:code,region:state.region}));
+    return readLabel(file).then(function(text){
+      if(!text||text.replace(/[^a-z0-9]/gi,"").length<6)return {status:"unreadable",message:"I could not find a barcode or readable label words. Try a clearer, closer photo of the barcode or the front of the pack.",items:[]};
+      return api("GET","/photo-search?"+qs({text:text.slice(0,300),region:state.region}));
+    });
+  }).then(function(r){PHOTO.busy=false;photoAnswer(r)}).catch(fail);
+}
+document.getElementById("photobtn").addEventListener("click",function(){var f=document.getElementById("photofile");f.value="";f.click()});
+document.getElementById("photofile").addEventListener("change",function(e){photoSearch(e.target.files&&e.target.files[0])});
 
 /* ---------- Find: search products, then look up prices ---------- */
 var findTimer=null;
@@ -1302,6 +1393,7 @@ function doExport(){
 function viewAccount(){
   var m=state.me||{},h=banners()+'<h2 class="h2">My account</h2>';
   h+='<div class="card"><p style="margin:0"><b>Signed in as</b> '+esc(Auth.email()||"your account")+'</p><p class="size" style="margin:.3rem 0 0">Age check done: '+(m.adult?'18 or older.':'under 18. Liquor is hidden.')+'</p></div>';
+  h+='<div class="card"><p style="margin:0"><b>Greeting</b></p><p class="size" style="margin:.3rem 0 0">'+(savedName()?'I call you <b>'+esc(savedName())+'</b>.':'I do not know your name yet.')+' The name stays on this phone. Voice: <b>'+(voiceOn()?'on':'off')+'</b>.</p><div class="btns" style="margin-bottom:0"><button class="btn alt" type="button" data-act="changename">'+(savedName()?'Change my name':'Tell PricePulse my name')+'</button><button class="btn alt" type="button" data-act="togglevoice">'+(voiceOn()?'Turn the greeting voice off':'Turn the greeting voice on')+'</button></div></div>';
   h+='<h2 class="h2" style="font-size:1.35rem">My plan</h2>';
   var lim=m.sessions_per_day==null?'Tester account: no limits.':'<b>Your limits.</b> '+m.sessions_per_day+' lookup sessions a day, '+m.session.items_max+' items each. Used today: '+m.sessions_used_today+' of '+m.sessions_per_day+'.';
   h+='<div class="card"><p style="margin:0">'+lim+'</p><p class="size" style="margin:.3rem 0 0">Prices are for people looking things up. Bots, scripts and scraping are not allowed on any plan.</p></div>';
@@ -1358,9 +1450,11 @@ document.getElementById("dlg").addEventListener("click",function(e){
   if(a==="lsload")return lsDoLoad(b,d);
   if(a.indexOf("lsapprove:")===0){var ad=(document.getElementById("lsappdate")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(10)+"/approve",{paid_until:ad}).then(function(){d.close();say("Store approved.");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lsapperr");if(el)el.textContent=e.message})}
   if(a.indexOf("lsreject:")===0){var rs=(document.getElementById("lsrejtext")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(9)+"/reject",{reason:rs}).then(function(){d.close();say("Store rejected.");ADM.loading=null;admLoad()}).catch(function(){b.disabled=false})}
+  if(a.indexOf("photopick:")===0){var pit=PHOTO.items[+a.slice(10)];d.close();if(pit){var qi=document.getElementById("q");if(qi)qi.value=pit.name;state.q=pit.name;state.cat="All";state.flt="";state.sub="";state.cond="";state.found=null;go("find",false);runFind(true)}return}
   if(a==="soremovesel"){b.disabled=true;return api("POST","/store/items/remove",{ids:Object.keys(SO.sel).map(Number)}).then(function(r){SO.sel={};d.close();say(r.removed+" items removed.");soReload()}).catch(function(e){d.close();ask("Could not remove",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])})}
   if(a==="soremoveall"){b.disabled=true;return api("POST","/store/items/remove-all").then(function(r){SO.sel={};SO.offset=0;d.close();say("All items removed ("+r.removed+").");soReload()}).catch(function(e){d.close();ask("Could not remove",'<p>'+esc(e.message)+'</p>',[["OK","","btn"]])})}
   if(a.indexOf("lsdel:")===0){var nm=(document.getElementById("lsdelname")||{}).value||"";b.disabled=true;return api("POST","/admin/localstores/"+a.slice(6)+"/delete",{confirm:nm}).then(function(r){d.close();say("Deleted "+r.deleted+".");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lsdelerr");if(el)el.textContent=e.message})}
+  if(a==="namesave"){var nn=cleanName((document.getElementById("chname")||{}).value);if(nn){store("pp_name",nn);store("pp_name_asked","1")}else{drop("pp_name")}d.close();say(nn?"Saved. I will call you "+nn+".":"Name removed.");return render()}
   if(a==="sellgo"){d.close();return enterApp()}
   if(a==="soload")return soDoLoad(b,d);
   if(a.indexOf("sosave:")===0)return soSave(b,d,a.slice(7));
@@ -1861,10 +1955,10 @@ function shopClick(t){
 }
 
 /* ---------- Admin area (admins only: the server refuses everyone else) ---------- */
-var ADM={tab:"overview",f:{store:"",category:"",shown:"",q:""},data:{},err:"",timer:null,loading:null};
+var ADM={tab:"overview",f:{store:"",category:"",shown:"",added:"",q:""},data:{},err:"",timer:null,loading:null};
 var ADM_TABS=[["overview","Overview"],["items","Items"],["localstores","Local stores"],["essentials","Essentials"],["users","Accounts"],["requests","Requests"],["settings","Settings"]];
 function admPath(tab){
-  if(tab==="items")return "/admin/items?"+qs({store:ADM.f.store,category:ADM.f.category,shown:ADM.f.shown||"",q:ADM.f.q.trim(),region:state.region});
+  if(tab==="items")return "/admin/items?"+qs({store:ADM.f.store,category:ADM.f.category,shown:ADM.f.shown||"",added:ADM.f.added||"",q:ADM.f.q.trim(),region:state.region});
   if(tab==="requests")return "/admin/requests?status="+encodeURIComponent(ADM.reqStatus||"open");
   return "/admin/"+tab;
 }
@@ -1899,21 +1993,23 @@ function viewAdmin(){
   if(!d)return h;
   if(tab==="overview"){
     var st=function(n,l){return '<div class="stat"><b>'+esc(n)+'</b>'+esc(l)+'</div>'};
+    h+='<div class="admbar noprint"><button class="admbtn go" type="button" data-adm="new24">New items in the last 24 hours: '+(d.new_24h||0)+'. Show the list</button></div>';
     h+='<div class="admgrid">'+st(d.accounts,"accounts")+st(d.age_checked,"age checked")+st(d.under_18,"under 18")+st(d.paying,"paying")+st(d.sessions_today,"lookup sessions today")+st(d.products,"products")+st(d.products_shown,"shown to shoppers")+st(d.listings,"store listings")+st(d.sold_by_2plus_stores,"sold by 2+ stores")+st(d.needs_review,"waiting for review")+st(d.open_requests,"open item requests")+'</div>';
     h+='<h3 class="h2" style="font-size:1.25rem">Stores</h3><div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th class="num">Listings</th><th>Last good scrape</th></tr></thead><tbody>'+
       admRows(d.stores.map(function(r){return '<tr><td>'+esc(r.store)+'</td><td class="num">'+r.listings+'</td><td>'+esc(r.last_success?fmtDate(r.last_success):"never")+'</td></tr>'}),"No stores yet.")+'</tbody></table></div>';
   }else if(tab==="items"){
     var rows=d.items,opt=function(list,cur,all){return '<option value="">'+all+'</option>'+list.map(function(x){return '<option'+(x===cur?' selected':'')+'>'+esc(x)+'</option>'}).join("")};
-    var title='PricePulse items'+(ADM.f.store?' · '+ADM.f.store:' · all stores')+(ADM.f.category?' · '+ADM.f.category:' · all types')+(ADM.f.q?' · "'+ADM.f.q+'"':'')+' · '+rows.length+' items · '+fmtDate(new Date());
+    var title='PricePulse items'+(ADM.f.store?' · '+ADM.f.store:' · all stores')+(ADM.f.category?' · '+ADM.f.category:' · all types')+(ADM.f.q?' · "'+ADM.f.q+'"':'')+(ADM.f.added==="24h"?' · new in the last 24 hours':'')+' · '+rows.length+' items · '+fmtDate(new Date());
     h+='<div class="admbar noprint"><div><label for="admstore">Store</label><select id="admstore" data-admf="store">'+opt(d.stores,ADM.f.store,"All stores")+'</select></div>'+
       '<div><label for="admcat">Type</label><select id="admcat" data-admf="category">'+opt(d.categories,ADM.f.category,"All types")+'</select></div>'+
       '<div><label for="admshown">Shoppers see</label><select id="admshown" data-admf="shown"><option value=""'+(ADM.f.shown===""?" selected":"")+'>All items</option><option value="yes"'+(ADM.f.shown==="yes"?" selected":"")+'>Shown items</option><option value="no"'+(ADM.f.shown==="no"?" selected":"")+'>Hidden items</option></select></div>'+
+      '<div><label for="admadded">Added</label><select id="admadded" data-admf="added"><option value=""'+(ADM.f.added===""?" selected":"")+'>Any time</option><option value="24h"'+(ADM.f.added==="24h"?" selected":"")+'>New in the last 24 hours</option></select></div>'+
       '<div class="admfull"><label for="admq">Search name or barcode</label><input id="admq" type="search" data-admf="q" value="'+esc(ADM.f.q)+'" autocomplete="off"></div>'+
       '<button class="admbtn go" type="button" data-adm="preview">Print this list</button></div>'+
       '<p class="sub noprint" role="status">'+rows.length+' items'+(d.truncated?' (the list was cut short: choose a store or type)':'')+'. Prices are for '+esc(regionName(state.region))+'.</p>'+
       '<h2 class="printonly" style="font-size:12pt">'+esc(title)+'</h2>'+
       '<p class="sub noprint">Shoppers see only each store\u2019s best match for each essential item. Hidden items stay in the system: tap <b>Show</b> to show one, or <b>Hide</b> to hide one.</p>'+
-      '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th><th class="noprint">Card #</th><th class="noprint">Shoppers</th></tr></thead><tbody>'+admItemRows(rows,true)+'</tbody></table></div>';
+      '<div class="admwrap"><table class="admtable"><thead><tr><th>Store</th><th>Item</th><th>Type</th><th class="num">Price</th><th>Barcode</th>'+(ADM.f.added==="24h"?'<th>Added</th>':'')+'<th class="noprint">Card #</th><th class="noprint">Shoppers</th></tr></thead><tbody>'+admItemRows(rows,true)+'</tbody></table></div>';
   }else if(tab==="localstores"){
     h+='<p class="sub">Local stores send us a list of the items they sell most, with the selling price the buyer pays (VAT and any other tax included), once a week. Their prices show next to the big chains in their own town only. Each new file <b>replaces</b> the store\u2019s list: items missing from the new file are hidden. A store\u2019s prices are marked old after 8 days.</p>'+
       '<div class="admbar noprint"><button class="admbtn go" type="button" data-adm="lsnew">Add a local store</button>'+
@@ -1975,7 +2071,7 @@ function admItemRows(rows,buttons){
       who='<td class="noprint">'+(hid?'Hidden':'Shown')+(r.visibility!=="auto"?' <span class="sub2">(by hand)</span>':(r.hit_rank?' <span class="sub2">(match '+r.hit_rank+')</span>':''))+
         ' <button class="admbtn" type="button" data-adm="vis" data-pid="'+r.product_id+'" data-state="'+(hid?'show':'hide')+'" aria-label="'+(hid?'Show ':'Hide ')+esc(r.name)+(hid?' to shoppers':' from shoppers')+'">'+(hid?'Show':'Hide')+'</button></td>';
     }
-    return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td>'+(buttons?'<td class="noprint num" title="Lines with the same number are on the same shopper card">'+r.product_id+'</td>':'')+who+'</tr>'}),"No items match.");
+    return '<tr><td>'+esc(r.store)+'</td><td>'+esc(r.name)+(r.size?' <span class="sub2">'+esc(r.size)+'</span>':'')+'</td><td>'+esc(r.category)+'</td><td class="num">'+price+'</td><td><code>'+esc(r.barcode)+'</code></td>'+(ADM.f.added==="24h"?'<td>'+esc(r.added?fmtDate(r.added):"")+'</td>':'')+(buttons?'<td class="noprint num" title="Lines with the same number are on the same shopper card">'+r.product_id+'</td>':'')+who+'</tr>'}),"No items match.");
 }
 function admPreview(d){
   var rows=d.items,title='PricePulse items'+(ADM.f.store?' \u00b7 '+ADM.f.store:' \u00b7 all stores')+(ADM.f.category?' \u00b7 '+ADM.f.category:' \u00b7 all types')+(ADM.f.q?' \u00b7 "'+ADM.f.q+'"':'')+' \u00b7 '+rows.length+' items \u00b7 '+fmtDate(new Date());
@@ -2103,6 +2199,7 @@ function lsHistory(id,name){
 function admClick(t){
   var d=t.dataset;
   if(d.adm==="unlock")return api("POST","/admin/users/"+encodeURIComponent(d.uid)+"/unlock").then(function(){say("Account unlocked.");ADM.loading=null;admLoad()}).catch(function(e){say(e.message)});
+  if(d.adm==="new24"){ADM.f={store:"",category:"",shown:"",added:"24h",q:""};ADM.tab="items";ADM.loading=null;renderMain();return admLoad()}
   if(d.adm==="lsdelete")return ask("Delete "+d.name+"?",'<p><b>This cannot be undone.</b> It removes the store, all its items and prices, its photos and the owner link. (The backup from pp deploy is the only way back.)</p><label class="field"><span>Type the store name to confirm</span><input id="lsdelname" type="text" maxlength="80" autocomplete="off"></label><p class="err" id="lsdelerr" role="alert"></p>',[["Delete the store","lsdel:"+d.id,"btn"],["Cancel","","btn alt"]]);
   if(d.adm==="lsapprove"){var dt=new Date(Date.now()+31*864e5).toISOString().slice(0,10);return ask("Approve "+d.name+"?",'<p>Shoppers will see the store until the date below (plus 3 grace days). Set it after you have invoiced the R149.</p><label class="field"><span>Paid until (YYYY-MM-DD)</span><input id="lsappdate" type="text" value="'+dt+'" maxlength="10" inputmode="numeric"></label><p class="err" id="lsapperr" role="alert"></p>',[["Approve","lsapprove:"+d.id,"btn"],["Cancel","","btn alt"]])}
   if(d.adm==="lsreject")return ask("Reject "+d.name+"?",'<p>The owner is told the reason you type here.</p><label class="field"><span>Reason</span><input id="lsrejtext" type="text" maxlength="200"></label>',[["Reject","lsreject:"+d.id,"btn"],["Cancel","","btn alt"]]);
@@ -2278,10 +2375,99 @@ function onAuth(signedIn){
     state.phase="signin";state.authErr=e.message+" Please try again when you have a connection.";render();
   });
 }
+
+/* ---------- Welcome splash: greeting by name, spoken after a tap (the name stays on the phone) ---------- */
+var WELCOME={timer:null,spoken:false};
+var WELCOME_LINES=["what prices are pulsating today?","ready to find today’s best prices?","let’s see who has it for less.","what are we shopping for today?"];
+function savedName(){return load("pp_name")||""}
+function cleanName(v){
+  v=String(v||"").replace(/[^\p{L}\p{M}' \-]/gu,"").replace(/\s+/g," ").trim().slice(0,30);
+  return v?v.charAt(0).toLocaleUpperCase()+v.slice(1):"";
+}
+function voiceOn(){return load("pp_voice")!=="off"}
+function greetingText(name){
+  var h=new Date().getHours(),g=h<12?"Good morning":h<18?"Good afternoon":"Good evening";
+  var line=WELCOME_LINES[new Date().getDate()%WELCOME_LINES.length];
+  if(WELCOME.line)line=WELCOME.line;else WELCOME.line=line;
+  return g+(name?" "+name:"")+", "+line;
+}
+function speak(text,done){
+  var ss=window.speechSynthesis;
+  if(!ss||typeof SpeechSynthesisUtterance==="undefined"||!voiceOn()){if(done)done();return false}
+  try{
+    ss.cancel();
+    var u=new SpeechSynthesisUtterance(text);u.lang="en-ZA";u.rate=0.95;
+    var voices=ss.getVoices?ss.getVoices():[];
+    var v=voices.filter(function(x){return /^en[-_]ZA/i.test(x.lang)})[0]||voices.filter(function(x){return /^en/i.test(x.lang)})[0];
+    if(v)u.voice=v;
+    u.onend=u.onerror=function(){if(done)done()};
+    ss.speak(u);return true;
+  }catch(e){if(done)done();return false}
+}
+function closeWelcome(){
+  clearTimeout(WELCOME.timer);
+  try{window.speechSynthesis&&window.speechSynthesis.cancel()}catch(e){}
+  var w=document.getElementById("welcome");w.hidden=true;w.innerHTML="";
+  try{sessionStorage.setItem("pp_welcomed","1")}catch(e){}
+  var m=document.getElementById("main");if(m)m.focus({preventScroll:true});
+}
+function showWelcome(){
+  var w=document.getElementById("welcome");
+  try{if(sessionStorage.getItem("pp_welcomed")==="1")return}catch(e){}
+  if(Auth.mode==="dev"&&load("pp_force_splash")!=="1")return;  /* the test sign-in has no splash unless a test asks for it */
+  WELCOME.spoken=false;WELCOME.line="";
+  var logo='<div class="wlogo" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M2 4h4l3 13h12l3-9H8"/><circle cx="11" cy="23" r="1.8"/><circle cx="20" cy="23" r="1.8"/><path d="M10 12l2-3 2 5 2-3 2 1"/></svg></div>';
+  var name=savedName();
+  w.hidden=false;
+  if(!name&&load("pp_name_asked")!=="1"){
+    w.innerHTML=logo+'<h2 id="wtitle">Welcome to PricePulse</h2><p>What should I call you?</p><form id="nameform" class="wbtns"><label class="vh" for="wname">Your first name</label><input id="wname" type="text" maxlength="30" autocomplete="given-name" placeholder="Your first name"><button class="btn" type="submit">Continue</button><button class="linkbtn" type="button" data-w="skipname">Skip</button></form><p class="wsmall">Only used to greet you. It stays on this phone.</p>';
+    setTimeout(function(){var i=document.getElementById("wname");if(i)i.focus()},50);
+    return;
+  }
+  greetNow(name);
+}
+function greetNow(name){
+  var w=document.getElementById("welcome"),text=greetingText(name);
+  var logo='<div class="wlogo" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M2 4h4l3 13h12l3-9H8"/><circle cx="11" cy="23" r="1.8"/><circle cx="20" cy="23" r="1.8"/><path d="M10 12l2-3 2 5 2-3 2 1"/></svg></div>';
+  w.hidden=false;
+  w.innerHTML=logo+'<h2 id="wtitle">'+esc(text)+'</h2>'+
+    '<div class="wbtns"><button class="btn" type="button" data-w="go">Continue</button>'+
+    (window.speechSynthesis&&voiceOn()?'<button class="btn alt" type="button" data-w="hear" aria-label="Hear the greeting read aloud">🔊 Hear it</button>':'')+
+    '<button class="linkbtn wsmall" type="button" data-w="voice">'+(voiceOn()?'Turn the voice off':'Turn the voice on')+'</button></div>';
+  /* the first tap anywhere speaks the greeting (phones only allow sound after a tap); it closes by itself otherwise */
+  clearTimeout(WELCOME.timer);
+  WELCOME.timer=setTimeout(function(){if(!WELCOME.spoken)closeWelcome()},7000);
+}
+document.getElementById("welcome").addEventListener("click",function(e){
+  var t=e.target.closest("[data-w]"),act=t&&t.dataset.w;
+  if(act==="skipname"){store("pp_name_asked","1");return greetNow("")}
+  if(act==="voice"){store("pp_voice",voiceOn()?"off":"on");try{window.speechSynthesis&&window.speechSynthesis.cancel()}catch(x){}return greetNow(savedName())}
+  if(act==="go")return closeWelcome();
+  if(act==="hear"||(!act&&!e.target.closest("form")&&document.getElementById("nameform")===null)){
+    if(WELCOME.spoken)return;
+    WELCOME.spoken=true;clearTimeout(WELCOME.timer);
+    var txt=(document.getElementById("wtitle")||{}).textContent||"";
+    var ok=speak(txt,function(){setTimeout(closeWelcome,500)});
+    if(!ok)setTimeout(closeWelcome,1200);
+    else WELCOME.timer=setTimeout(closeWelcome,9000);
+  }
+});
+document.getElementById("welcome").addEventListener("submit",function(e){
+  e.preventDefault();
+  var n=cleanName(document.getElementById("wname").value);
+  store("pp_name_asked","1");
+  if(n)store("pp_name",n);
+  greetNow(n);
+});
+function changeNameDialog(){
+  ask("What should I call you?",'<label class="field"><span>Your first name (kept on this phone only)</span><input id="chname" type="text" maxlength="30" value="'+esc(savedName())+'" autocomplete="given-name"></label>',[["Save","namesave","btn"],["Cancel","","btn alt"]]);
+}
+
 function enterApp(){
   state.phase="app";
   var h=(location.hash||"").slice(1);
   render();
+  showWelcome();
   loadSession().then(function(){if(h)go(h,false);else if(state.me&&state.me.store_owner)go("store",false)});
 }
 
@@ -2336,6 +2522,8 @@ document.addEventListener("click",function(e){
     case "export":return exportDialog();
     case "clear":return clearSession();
     case "upgrade":return upgrade();
+    case "changename":return changeNameDialog();
+    case "togglevoice":store("pp_voice",voiceOn()?"off":"on");say("Greeting voice "+(voiceOn()?"on":"off")+".");return renderMain();
     case "refresh":return void refreshMe().then(function(m){say(m.plan==="paid"?"Your TrolleyUp plan is active.":"Not paid yet.")});
     case "cancelplan":return ask("Cancel your plan?",'<p>No more payments will be taken. You can keep sending to TrolleyUp until the end of the month you have paid for, then you go back to the free plan.</p>',[["Cancel my plan","docancel","btn"],["Keep my plan","","btn alt"]]);
     case "delete":return ask("Delete your PricePulse data?",'<p>This removes your age check, your sessions and your list from PricePulse. It does not delete your sign-in, which you also use for TrolleyUp.</p>',[["Delete my data","dodelete","btn"],["Keep it","","btn alt"]]);

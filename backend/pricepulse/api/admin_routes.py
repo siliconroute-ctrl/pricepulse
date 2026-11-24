@@ -150,6 +150,11 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             "under_18": sum(1 for u in users if u.id_fingerprint and not u.adult),
             "paying": sum(1 for u in users if is_paid(s, u) and u.plan_override not in ("paid", TESTER)),
             "admins": sum(1 for u in users if u.is_admin),
+            "new_24h": s.scalar(
+                select(func.count())
+                .select_from(Listing)
+                .where(Listing.created_at > utcnow() - timedelta(hours=24), Listing.active.is_(True))
+            ),
             "locked": s.scalar(
                 select(func.count(func.distinct(AbuseLock.uid))).where(
                     AbuseLock.released.is_(False), AbuseLock.locked_until > utcnow()
@@ -178,12 +183,14 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         q: str = Query("", max_length=80),
         region: str = Query(ctx.default_region),
         shown: str = Query("", pattern="^(|yes|no)$"),
+        added: str = Query("", pattern="^(|24h)$"),
         admin: AppUser = Depends(admin_dep),  # noqa: B008
         s: Session = Depends(ctx.db),  # noqa: B008
     ):
         """Every listing, one line each, with its latest price. For the on-screen list and printing.
 
         ``shown`` limits it to what shoppers can see ("yes") or what is hidden from them ("no").
+        ``added=24h`` lists only the items that first appeared in the last 24 hours, newest first.
         """
         ctx.check_region(region)
         latest = (
@@ -205,6 +212,9 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             )
             .order_by(Store.name, Listing.name)
         )
+        if added == "24h":
+            stmt = stmt.where(Listing.created_at > utcnow() - timedelta(hours=24)).order_by(None)
+            stmt = stmt.order_by(Listing.created_at.desc(), Store.name, Listing.name)
         if store:
             stmt = stmt.where(Store.name == store)
         if category:
@@ -240,6 +250,7 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
                     "visibility": product.visibility,
                     "hit_rank": lst.hit_rank,
                     "term": lst.term,
+                    "added": lst.created_at.isoformat() + "Z" if lst.created_at else None,
                 }
             )
         return {

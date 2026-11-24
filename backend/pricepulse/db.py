@@ -115,6 +115,17 @@ class AbuseLock(Base):
     released: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
 
+class PhotoUse(Base):
+    """How many photo searches an account made on one South African day (the limit is per day)."""
+
+    __tablename__ = "photo_use"
+    __table_args__ = (UniqueConstraint("uid", "day", name="uq_photo_use_uid_day"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uid: Mapped[str] = mapped_column(String(128), index=True)
+    day: Mapped[str] = mapped_column(String(10))
+    count: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class Product(Base):
     """One canonical product, e.g. "Clover Full Cream Milk 2L"."""
 
@@ -189,6 +200,9 @@ class Listing(Base):
     suggestion_id: Mapped[int | None] = mapped_column(ForeignKey("product.id"))
     first_seen: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     last_seen: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=utcnow, nullable=True
+    )  # when the item first appeared (the admin's "new in the last 24 hours" list)
     store: Mapped[Store] = relationship()
     product: Mapped[Product | None] = relationship(back_populates="listings", foreign_keys=[product_id])
     suggestion: Mapped[Product | None] = relationship(foreign_keys=[suggestion_id])
@@ -613,6 +627,32 @@ def _m17_store_mode(conn: Connection) -> None:
         conn.execute(text("ALTER TABLE store ADD COLUMN mode VARCHAR(8) NOT NULL DEFAULT 'physical'"))
 
 
+def _m18_listing_created(conn: Connection) -> None:
+    """When an item first appeared. Items already there get the date of their first price, so they do
+    not all look new (adds a column only)."""
+    cols = {c["name"] for c in inspect(conn).get_columns("listing")}
+    if "created_at" not in cols:
+        conn.execute(text("ALTER TABLE listing ADD COLUMN created_at DATETIME"))
+        conn.execute(
+            text(
+                "UPDATE listing SET created_at = COALESCE((SELECT MIN(scraped_at) FROM price "
+                "WHERE price.listing_id = listing.id), last_seen)"
+            )
+        )
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_listing_created_at ON listing (created_at)"))
+
+
+def _m19_photo_use(conn: Connection) -> None:
+    """Daily count of photo searches per account (adds a table only)."""
+    conn.execute(
+        text(
+            "CREATE TABLE IF NOT EXISTS photo_use (id INTEGER PRIMARY KEY, uid VARCHAR(128) NOT NULL, "
+            "day VARCHAR(10) NOT NULL, count INTEGER NOT NULL DEFAULT 0, UNIQUE (uid, day))"
+        )
+    )
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_photo_use_uid ON photo_use (uid)"))
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
@@ -631,6 +671,8 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (15, "regions are provinces", _m15_provinces),
     (16, "accounts paused for automated use", _m16_abuse_lock),
     (17, "store operating mode", _m17_store_mode),
+    (18, "when an item first appeared", _m18_listing_created),
+    (19, "daily photo-search count", _m19_photo_use),
 ]
 
 
