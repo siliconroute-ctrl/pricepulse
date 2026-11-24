@@ -676,17 +676,23 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
 ]
 
 
+BUSY_SECONDS = 60
+
+
 def make_engine(url: str) -> Engine:
     """Create an engine. SQLite gets foreign keys and WAL for safe concurrent reads."""
     if url.startswith("sqlite:///"):
         Path(url.removeprefix("sqlite:///")).parent.mkdir(parents=True, exist_ok=True)
-        engine = create_engine(url, connect_args={"check_same_thread": False})
+        # A writer waits up to a minute for another writer (a big price upload) instead of failing at once
+        # with "database is locked" after the default 5 seconds.
+        engine = create_engine(url, connect_args={"check_same_thread": False, "timeout": BUSY_SECONDS})
 
         @event.listens_for(engine, "connect")
         def _pragmas(dbapi_conn, _record):  # noqa: ANN001
             cur = dbapi_conn.cursor()
             cur.execute("PRAGMA foreign_keys=ON")
             cur.execute("PRAGMA journal_mode=WAL")
+            cur.execute(f"PRAGMA busy_timeout={BUSY_SECONDS * 1000}")
             cur.close()
 
         return engine

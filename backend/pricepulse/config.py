@@ -67,6 +67,7 @@ class Settings:
     id_secret: str = field(default_factory=lambda: os.environ.get("PP_ID_SECRET", ""))
     session_items_max: int = field(default_factory=lambda: int(_float("PP_SESSION_ITEMS", 45)))
     free_sessions_per_day: int = field(default_factory=lambda: int(_float("PP_FREE_SESSIONS", 29)))
+    rematch_min_gap_s: float = field(default_factory=lambda: _float("PP_REMATCH_GAP", 600))  # seconds
     abuse_lookups_per_min: int = field(default_factory=lambda: int(_float("PP_ABUSE_LOOKUPS", 20)))
     abuse_searches_per_min: int = field(default_factory=lambda: int(_float("PP_ABUSE_SEARCHES", 90)))
     abuse_rhythm_calls: int = field(default_factory=lambda: int(_float("PP_ABUSE_RHYTHM", 50)))  # 0 = off
