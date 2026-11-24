@@ -645,6 +645,7 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   check((await adm.inputValue("#admadded")) === "24h", "the button opens the Items list filtered to the last 24 hours");
   await adm.waitForSelector(".admtable th:has-text('Added')");
   check(true, "the list has an Added column when filtered to the last 24 hours");
+  await adm.waitForFunction(() => ADM.loading === null && !!ADM.data.items);  // the filtered list has arrived and the screen is stable
   await adm.selectOption("#admadded", "");
   await adm.waitForFunction(() => !/Added<\/th>/.test(document.querySelector("#main").innerHTML));
   check(true, "choosing Any time brings the full list back");
