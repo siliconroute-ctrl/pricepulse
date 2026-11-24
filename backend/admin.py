@@ -159,6 +159,11 @@ def main(argv: list[str] | None = None) -> int:
     p_paid = sub.add_parser("store-paid", help="set a local store's paid-until date (YYYY-MM-DD, or none)")
     p_paid.add_argument("store_id", type=int)
     p_paid.add_argument("date")
+    p_ap = sub.add_parser(
+        "store-approve", help="approve a store that signed up: shown to shoppers until the date"
+    )
+    p_ap.add_argument("store", help="the store's number (id) or its 13-digit Store ID")
+    p_ap.add_argument("date", help="paid until, YYYY-MM-DD")
     sub.add_parser("stores", help="list the local stores: plan, paid until, owners, items")
     p_role = sub.add_parser(
         "admin-role", help="make an account an admin of the PricePulse admin area (or not)"
@@ -341,6 +346,25 @@ def main(argv: list[str] | None = None) -> int:
                     print("Type the date like 2026-12-31.")
                     return 1
                 print(f"{store.name} is paid until {args.date} (hidden from shoppers 3 days after that).")
+        elif args.cmd == "store-approve":
+            from datetime import datetime, timedelta
+
+            from pricepulse.db import Store
+
+            key = str(args.store)
+            store = s.scalar(select(Store).where(Store.store_number == key)) if len(key) == 13 else None
+            if store is None and key.isdigit() and len(key) < 13:
+                store = s.get(Store, int(key))
+            if store is None or store.kind != "local":
+                print(f"No local store {key}. List them with: admin.py stores")
+                return 1
+            try:
+                until = datetime.strptime(args.date, "%Y-%m-%d") + timedelta(hours=23, minutes=59)
+            except ValueError:
+                print("Type the date like 2027-01-31.")
+                return 1
+            store.status, store.active, store.paid_until, store.reject_reason = "approved", True, until, ""
+            print(f"{store.name} is approved and visible until {args.date} (plus 3 grace days).")
         elif args.cmd == "stores":
             from pricepulse.db import Store, StoreOwner
             from pricepulse.localstores import active_count
@@ -351,7 +375,8 @@ def main(argv: list[str] | None = None) -> int:
                 ]
                 paid = st.paid_until.date().isoformat() if st.paid_until else "no expiry"
                 print(
-                    f"{st.id} | {st.name} | {st.town or st.region} | {st.category or '-'} | "
+                    f"{st.id} | {st.store_number or '-'} | {st.status} | {st.name} | "
+                    f"{st.town or st.region} | {st.category or '-'} | "
                     f"{active_count(s, st)}/{st.max_items} items | paid until {paid} | "
                     f"{'ON' if st.active else 'OFF'} | owners: {', '.join(owners) or 'none'}"
                 )

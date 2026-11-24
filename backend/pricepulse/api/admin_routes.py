@@ -62,6 +62,14 @@ class LocalStoreIn(BaseModel):
     paid_until: str | None = Field(default=None, max_length=10)
 
 
+class StoreApproveIn(BaseModel):
+    paid_until: str = Field(max_length=10)
+
+
+class StoreRejectIn(BaseModel):
+    reason: str = Field(default="", max_length=200)
+
+
 class StoreOwnerIn(BaseModel):
     uid: str = Field(min_length=1, max_length=128)
 
@@ -344,6 +352,11 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         region = ctx.regions.regions.get(st.region)
         return {
             "id": st.id,
+            "store_number": st.store_number or "",
+            "status_flag": st.status,
+            "licence_no": st.licence_no,
+            "reject_reason": st.reject_reason,
+            "applied_at": st.applied_at.isoformat() + "Z" if st.applied_at else None,
             "name": st.name,
             "region": st.region,
             "region_name": region.name if region else st.region,
@@ -435,6 +448,43 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         data = validate_store(body, s)
         st = Store(kind="local", **data)
         s.add(st)
+        s.flush()
+        localstores.ensure_store_number(s, st)
+        s.commit()
+        return store_row(st, s)
+
+    @app.post(base + "/localstores/{store_id}/approve", tags=["admin"])
+    def localstore_approve(
+        store_id: int,
+        body: StoreApproveIn,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        """Switch a pending store on for shoppers and set the date it is paid until."""
+        st = s.get(Store, store_id)
+        if st is None or st.kind != "local":
+            raise HTTPException(404, {"code": "not_found", "message": "No such local store."})
+        try:
+            until = datetime.strptime(body.paid_until, "%Y-%m-%d") + timedelta(hours=23, minutes=59)
+        except ValueError:
+            raise HTTPException(
+                422, {"code": "bad_date", "message": "Type the paid-until date like 2027-01-31."}
+            ) from None
+        st.status, st.active, st.paid_until, st.reject_reason = "approved", True, until, ""
+        s.commit()
+        return store_row(st, s)
+
+    @app.post(base + "/localstores/{store_id}/reject", tags=["admin"])
+    def localstore_reject(
+        store_id: int,
+        body: StoreRejectIn,
+        admin: AppUser = Depends(admin_dep),  # noqa: B008
+        s: Session = Depends(ctx.db),  # noqa: B008
+    ):
+        st = s.get(Store, store_id)
+        if st is None or st.kind != "local":
+            raise HTTPException(404, {"code": "not_found", "message": "No such local store."})
+        st.status, st.active, st.reject_reason = "rejected", False, clean_text(body.reason)[:200]
         s.commit()
         return store_row(st, s)
 

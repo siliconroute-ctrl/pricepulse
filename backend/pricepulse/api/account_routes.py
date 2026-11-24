@@ -384,7 +384,14 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         with ``store_id``). A chain, a switched-off or lapsed store, or another town's store: 404."""
         ctx.check_region(region)
         st = s.scalar(select(Store).where(Store.id == store_id, Store.kind == "local", store_live()))
-        if st is None or st.region != region:
+        from ..regions import load_regions
+        from ..towns import price_regions
+
+        in_range = st is not None and region in price_regions(
+            st, load_regions(str(ctx.settings.regions_file)), ctx.settings.local_radius_km
+        )
+        adult = accounts.is_adult(user, accounts.sa_today())
+        if st is None or not in_range or (st.category == accounts.LIQUOR and not adult):
             raise HTTPException(404, {"code": "not_found", "message": "That store is not available."})
         items = s.scalar(
             select(func.count(func.distinct(Listing.product_id)))

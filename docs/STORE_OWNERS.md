@@ -55,3 +55,12 @@ In **My store → Store details** the owner now sets:
 - A **Description** on each item (up to 500 characters), shown on the item's View page.
 
 Shoppers reach the store page by tapping the store name on an item, and the **Enter Store** button lists that store's items by type. Photos live in `/data/uploads/stores/<store id>/` and are included in the backup (`pricepulse-uploads-DATE.tar.gz`, see docs/DEPLOY.md).
+
+## Store owners sign up by themselves (app v42)
+1. On the sign-in screen the owner taps **I run a store: list my items**, signs in or creates an account (Google or email), and fills in one form: store name, **one category** (Electronics, Stationery, Pets, Health & Beauty, Fresh, Liquor, Groceries), town (from `backend/towns.yaml`), address, phone, optional WhatsApp, contact, email, and a liquor licence number for Liquor. A signed-in person who is not yet a store owner also finds **List my store** in the three-dot menu.
+2. They get a **13-digit Store ID** (12 digits plus a check digit). It is the reference for the store everywhere (admin list, `pp admin stores`, invoices). Their password stays their Google or email password; PricePulse never stores it.
+3. The store is **Waiting for approval**: hidden from shoppers, but the owner can add items, upload a CSV, set hours and photos.
+4. You see it under **Admin, Local stores, Waiting for approval** (and `pp admin stores`). **Approve** asks for the paid-until date (set it after you invoice R149); **Reject** takes a reason the owner sees. Same from the desktop: `pp admin store-approve <store number or 13-digit ID> 2027-01-31`.
+5. After approval the store is shown to shoppers whose town is within **100 km** (`PP_LOCAL_RADIUS_KM`) of the store's town. Prices are written once for every shopper town in range (`pricepulse/towns.py`).
+6. **Check `backend/towns.yaml`**: the coordinates are approximate town centres written from memory; correct them before go-live and add any town you need.
+7. Rules: a Liquor store needs a licence number and an owner who passed the age check, and is shown to adults only; Health & Beauty stores may not list prescription medicines (Store terms). Terms and Privacy are Version 6 (attorney review).

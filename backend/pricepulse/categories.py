@@ -102,3 +102,7 @@ def clean_subcategory(category: str, text: str) -> tuple[str, bool]:
         if hit:
             return hit, True
     return t, False
+
+
+# The categories a local store owner can choose at sign-up (one per store, fixed afterwards).
+SIGNUP_CATEGORIES = ["Electronics", "Stationery", "Pets", "Health & Beauty", "Fresh", "Liquor", "Groceries"]
