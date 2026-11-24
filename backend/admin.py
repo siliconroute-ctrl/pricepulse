@@ -1,7 +1,7 @@
 """Admin tasks for PricePulse ZA, in plain language.
 
 python admin.py init-db                 create or upgrade the database
-python admin.py ingest data/latest_paarl.json
+python admin.py ingest data/latest_western-cape.json
 python admin.py report                  match rate and review queue size
 python admin.py review                  go through uncertain matches one by one
 python admin.py merge 12 34             move all listings of product 34 into 12

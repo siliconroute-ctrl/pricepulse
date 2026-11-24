@@ -282,7 +282,7 @@ cd C:\Users\joao\pricepulse
 git pull
 .\scripts\upload_prices.ps1
 ```
-It checks the files first (all seven towns present, not older than 36 hours, not example data,
+It checks the files first (all nine province files present, not older than 36 hours, not example data,
 prices per store shown) and stops with a plain message if anything is wrong. It asks for `y`
 before sending. On the server it loads the files, shows how many example prices exist, and
 deletes the uploaded files. Add `-RemoveExamples` once you are happy with the real prices:
@@ -348,12 +348,12 @@ nohup python scheduler.py > scheduler.log 2>&1 &
 Or use cron instead of `scheduler.py`, staggering stores (`crontab -e`):
 
 ```
-17 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Checkers
-29 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store "Pick n Pay"
-41 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Woolworths
-53 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store "Ultra Liquors"
-5 1-23/6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Liquorland
-23 1-23/6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region paarl --store Dis-Chem
+17 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region western-cape --store Checkers
+29 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region western-cape --store "Pick n Pay"
+41 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region western-cape --store Woolworths
+53 */6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region western-cape --store "Ultra Liquors"
+5 1-23/6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region western-cape --store Liquorland
+23 1-23/6 * * * cd /root/pricepulse/backend && .venv/bin/python run_scrapers.py --region western-cape --store Dis-Chem
 ```
 
 ## Moving to Postgres later
@@ -361,3 +361,10 @@ Or use cron instead of `scheduler.py`, staggering stores (`crontab -e`):
 Set `PP_DATABASE_URL=postgresql+psycopg://user:pass@host/pricepulse` and
 `pip install "psycopg[binary]"`. Tables are created on first start. Copying existing
 SQLite data across is a separate step; ask before doing it, as it is easy to get wrong.
+
+## Moving to nine provinces (app v43, migration 15)
+`regions.yaml` now holds the nine provinces and `towns.yaml` the towns inside them. Do this in order:
+1. `cd ~/pricepulse && git pull` on the Linux desktop, then **check `backend/towns.yaml`** (coordinates are approximate).
+2. `pp deploy` (backup first). Migration 15 renames the seven old Western Cape town regions to `western-cape`, keeping one price row per item and the full history. Accounts, lookup lists and review answers are untouched.
+3. Run the nightly scrape once so the other eight provinces get prices: `systemctl --user start --no-block pricepulse-nightly.service` (it now writes and uploads nine files, `latest_<province>.json`). Until it finishes, only the Western Cape has prices.
+4. On the phone: tap **App update**. Old saved towns (for example Paarl) become Western Cape with that town chosen.

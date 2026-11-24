@@ -16,7 +16,7 @@ git pull
 Run one store, 3 products, and keep the pages it sees:
 
 ```
-python run_scrapers.py --region paarl --store Checkers --limit 3 --debug --no-db --save-fixtures
+python run_scrapers.py --region western-cape --store Checkers --limit 3 --debug --no-db --save-fixtures
 explorer debug\checkers
 ```
 
@@ -42,7 +42,7 @@ What went wrong first time, so you can recognise it:
 Run just that store, with details:
 
 ```bash
-python run_scrapers.py --region paarl --store "Pick n Pay" --limit 3 --debug --no-db
+python run_scrapers.py --region western-cape --store "Pick n Pay" --limit 3 --debug --no-db
 ```
 
 You will see one of these:
@@ -138,7 +138,7 @@ proxy farms). The scraper already backs off and gives up politely after 3 refusa
 So the fix stays fixed:
 
 ```bash
-python run_scrapers.py --region paarl --store "Pick n Pay" --limit 1 --save-fixtures --no-db
+python run_scrapers.py --region western-cape --store "Pick n Pay" --limit 1 --save-fixtures --no-db
 ```
 
 This saves the real page in `tests/fixtures/live/pick-n-pay/`. Copy it over the

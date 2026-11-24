@@ -1,0 +1,9 @@
+towns:
+  paarl: {name: "Paarl", province: paarl, lat: -33.7342, lon: 18.9621}
+  wellington: {name: "Wellington", province: wellington, lat: -33.6393, lon: 19.0112}
+  franschhoek: {name: "Franschhoek", province: franschhoek, lat: -33.9133, lon: 19.1169}
+  stellenbosch: {name: "Stellenbosch", province: stellenbosch, lat: -33.9321, lon: 18.8602}
+  cape-town: {name: "Cape Town", province: cape-town, lat: -33.9249, lon: 18.4241}
+  worcester: {name: "Worcester", province: worcester, lat: -33.6461, lon: 19.4485}
+  hermanus: {name: "Hermanus", province: hermanus, lat: -34.4187, lon: 19.2345}
+  johannesburg: {name: "Johannesburg", province: gauteng, lat: -26.2041, lon: 28.0473}

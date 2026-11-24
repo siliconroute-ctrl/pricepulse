@@ -63,10 +63,10 @@ def test_token_comes_from_the_environment_or_a_private_file(tmp_path):
     assert push_prices.read_token({}, tmp_path / "missing") == ""
 
 
-def test_all_seven_towns_are_uploaded_with_the_token(files, server, monkeypatch, capsys):
+def test_every_region_is_uploaded_with_the_token(files, server, monkeypatch, capsys):
     monkeypatch.setenv("PP_UPLOAD_TOKEN", TOKEN)
     assert push_prices.main(["--url", server]) == 0
-    assert len(Fake.seen) == 7 and all(p == "/api/v1/ingest/prices" for p, _, _ in Fake.seen)
+    assert len(Fake.seen) == 8 and all(p == "/api/v1/ingest/prices" for p, _, _ in Fake.seen)
     assert {a for _, a, _ in Fake.seen} == {f"Bearer {TOKEN}"}
     out = capsys.readouterr().out
     assert "All towns loaded." in out and TOKEN not in out

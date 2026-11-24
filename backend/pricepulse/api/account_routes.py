@@ -29,7 +29,15 @@ from ..db import (
 from ..hours import open_status
 from ..money import from_cents
 from ..phones import normalise_phone, pretty_phone
-from ..queries import ProductPrices, latest_prices, product_images, store_live, visible_clause
+from ..queries import (
+    ProductPrices,
+    latest_prices,
+    product_images,
+    scope_price,
+    scope_rows,
+    store_live,
+    visible_clause,
+)
 from . import schemas as S
 from .store_routes import photo_urls
 
@@ -48,7 +56,7 @@ def local_extras(s: Session, product_ids: list[int], region: str, store_id: int 
         .join(Price, Price.listing_id == Listing.id)
         .where(
             Listing.product_id.in_(product_ids),
-            Price.region == region,
+            scope_rows(region),
             Listing.active.is_(True),
             store_live(),
             Store.kind == "local",
@@ -65,7 +73,7 @@ def local_extras(s: Session, product_ids: list[int], region: str, store_id: int 
     if ids:
         newest = (
             select(Price.listing_id, func.max(Price.scraped_at).label("at"))
-            .where(Price.region == region, Price.listing_id.in_(ids))
+            .where(scope_price(region), Price.listing_id.in_(ids))
             .group_by(Price.listing_id)
             .subquery()
         )
@@ -106,7 +114,7 @@ def sub_counts(s: Session, region: str, category: str | None, store_id: int | No
         .join(Price, Price.listing_id == Listing.id)
         .join(Product, Product.id == Listing.product_id)
         .where(
-            Price.region == region,
+            scope_rows(region),
             Listing.active.is_(True),
             store_live(),
             Store.kind == "local",
@@ -171,6 +179,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         )
 
     def session_out(s: Session, user: AppUser, region: str) -> S.SessionOut:
+        region = ctx.scope(s, region)
         sess = accounts.current_session(s, user.uid)
         rows = list(sess.items) if sess else []
         adult = accounts.is_adult(user, accounts.sa_today())
@@ -238,7 +247,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
 
     @app.get(v1 + "/catalogue", response_model=S.CatalogueOut, tags=["lookup"])
     def catalogue(
-        region: str = Query("paarl"),
+        region: str = Query(ctx.default_region),
         q: str | None = Query(None, max_length=80),
         category: str | None = Query(None, max_length=40),
         special: bool = Query(False, description="Only products with a special price at some store"),
@@ -252,7 +261,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
         s: Session = Depends(ctx.db),  # noqa: B008
     ):
         """Search products. Prices are shown only after an item is looked up in a session."""
-        ctx.check_region(region)
+        region = ctx.scope(s, ctx.check_region(region))
         adult = accounts.is_adult(user, accounts.sa_today())
         stores = (
             select(
@@ -263,7 +272,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             )
             .join(Price, Price.listing_id == Listing.id)
             .join(Store, Store.id == Listing.store_id)
-            .where(Price.region == region, Listing.active.is_(True), store_live())
+            .where(scope_rows(region), Listing.active.is_(True), store_live())
             .group_by(Listing.product_id)
             .subquery()
         )
@@ -290,7 +299,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
                 .join(Price, Price.listing_id == Listing.id)
                 .where(
                     Listing.product_id == Product.id,
-                    Price.region == region,
+                    scope_rows(region),
                     Listing.active.is_(True),
                     store_live(),
                     *conds,
@@ -335,9 +344,9 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             .select_from(Listing)
             .join(Price, Price.listing_id == Listing.id)
             .join(Store, Store.id == Listing.store_id)
-            .where(Price.region == region, Listing.active.is_(True), store_live())
+            .where(scope_rows(region), Listing.active.is_(True), store_live())
         )
-        newest = s.scalar(select(func.max(Price.scraped_at)).where(Price.region == region))
+        newest = s.scalar(select(func.max(Price.scraped_at)).where(scope_price(region)))
         new_since = utcnow() - timedelta(days=discovery.NEW_DAYS)
         return S.CatalogueOut(
             region=region,
@@ -376,20 +385,15 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
     @app.get(v1 + "/stores/{store_id}", response_model=S.StoreOut, tags=["lookup"])
     def store_page(
         store_id: int,
-        region: str = Query("paarl"),
+        region: str = Query(ctx.default_region),
         user: AppUser = Depends(user_dep),  # noqa: B008
         s: Session = Depends(ctx.db),  # noqa: B008
     ):
         """A local store's public details and its sub-categories (its items come from the catalogue
         with ``store_id``). A chain, a switched-off or lapsed store, or another town's store: 404."""
-        ctx.check_region(region)
+        region = ctx.scope(s, ctx.check_region(region))
         st = s.scalar(select(Store).where(Store.id == store_id, Store.kind == "local", store_live()))
-        from ..regions import load_regions
-        from ..towns import price_regions
-
-        in_range = st is not None and region in price_regions(
-            st, load_regions(str(ctx.settings.regions_file)), ctx.settings.local_radius_km
-        )
+        in_range = st is not None and st.id in region.near
         adult = accounts.is_adult(user, accounts.sa_today())
         if st is None or not in_range or (st.category == accounts.LIQUOR and not adult):
             raise HTTPException(404, {"code": "not_found", "message": "That store is not available."})
@@ -397,7 +401,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
             select(func.count(func.distinct(Listing.product_id)))
             .select_from(Listing)
             .join(Price, Price.listing_id == Listing.id)
-            .where(Listing.store_id == st.id, Price.region == region, Listing.active.is_(True))
+            .where(Listing.store_id == st.id, Listing.active.is_(True))
         )
         return S.StoreOut(
             id=st.id,
@@ -418,13 +422,13 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
     @app.get(v1 + "/local-items/{product_id}", tags=["lookup"])
     def local_item(
         product_id: int,
-        region: str = Query("paarl"),
+        region: str = Query(ctx.default_region),
         user: AppUser = Depends(user_dep),  # noqa: B008
         s: Session = Depends(ctx.db),  # noqa: B008
     ):
         """The expanded view of an item sold by a live local store in this town. Local prices show
         openly and this does not use a lookup. A chain's product, or a hidden or other-town item: 404."""
-        ctx.check_region(region)
+        region = ctx.scope(s, ctx.check_region(region))
         extras = local_extras(s, [product_id], region, None)
         info = extras.get(product_id)
         prod = s.get(Product, product_id)
@@ -466,7 +470,9 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
 
     @app.get(v1 + "/session", response_model=S.SessionOut, tags=["lookup"])
     def get_session(
-        region: str = Query("paarl"), user: AppUser = Depends(user_dep), s: Session = Depends(ctx.db)
+        region: str = Query(ctx.default_region),
+        user: AppUser = Depends(user_dep),
+        s: Session = Depends(ctx.db),
     ):  # noqa: B008
         ctx.check_region(region)
         return session_out(s, s.merge(user), region)
@@ -571,7 +577,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
     @app.get(v1 + "/session/items/{product_id}", response_model=S.ProductDetail, tags=["lookup"])
     def item_detail(
         product_id: int,
-        region: str = Query("paarl"),
+        region: str = Query(ctx.default_region),
         user: AppUser = Depends(user_dep),
         s: Session = Depends(ctx.db),
     ):  # noqa: B008
@@ -585,7 +591,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
 
     @app.get(v1 + "/session/towns", response_model=S.TownsOut, tags=["lookup"])
     def session_towns(
-        region: str = Query("paarl"),
+        region: str = Query(ctx.default_region),
         radius_km: float = Query(50, gt=0, le=500),
         user: AppUser = Depends(user_dep),
         s: Session = Depends(ctx.db),
@@ -596,7 +602,7 @@ def register_account_routes(app: FastAPI, ctx) -> None:  # noqa: ANN001, C901
 
     @app.get(v1 + "/session/export/trolleyup", tags=["lookup"])
     def export_trolleyup(
-        region: str = Query("paarl"),
+        region: str = Query(ctx.default_region),
         mode: str = Query("split", pattern="^(split|single)$"),
         ids: str = Query("", max_length=2000),
         user: AppUser = Depends(user_dep),  # noqa: B008

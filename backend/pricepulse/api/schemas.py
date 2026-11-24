@@ -106,7 +106,8 @@ class HealthOut(_Model):
 
 
 class TownOut(_Model):
-    region: str
+    region: str  # the province
+    town: str = ""
     name: str
     distance_km: float
     total: float | None

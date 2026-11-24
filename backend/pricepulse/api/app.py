@@ -6,6 +6,7 @@ Versioned endpoints live under /api/v1. The original /api/health, /api/regions a
 
 from __future__ import annotations
 
+import contextvars
 import json
 import logging
 import time
@@ -28,13 +29,16 @@ from ..db import Listing, Price, Product, Store, session_factory, utcnow
 from ..money import from_cents
 from ..queries import (
     ProductPrices,
+    Scope,
     first_image,
     last_success_per_store,
     latest_prices,
     regions_with_data,
+    scope_rows,
 )
 from ..regions import haversine_km, load_regions, valid_region
 from ..scrapers.stores import ACTIVE_SCRAPERS, ALL_SCRAPERS
+from ..towns import load_towns, near_store_ids, shopper_point
 from . import schemas as S
 from .account_routes import register_account_routes
 from .ingest_routes import register_ingest_routes
@@ -103,6 +107,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     _setup_logging()
     Session = session_factory(settings.database_url)
     regions = load_regions(str(settings.regions_file))
+    default_region = "western-cape" if "western-cape" in regions.regions else next(iter(regions.regions))
     limiter = RateLimiter(settings.rate_limit_per_min)
     verified = {c.name: c.verified for c in ALL_SCRAPERS}
 
@@ -114,12 +119,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         "Always check at the till.",
         docs_url="/docs",
     )
+    shopper_town: contextvars.ContextVar[str] = contextvars.ContextVar("pp_town", default="")
+
+    @app.middleware("http")
+    async def remember_town(request: Request, call_next):  # noqa: ANN001, ANN202
+        """The app sends the shopper's chosen town in a header; queries use it for the 100 km rule."""
+        token = shopper_town.set((request.headers.get("x-pp-town") or "")[:40])
+        try:
+            return await call_next(request)
+        finally:
+            shopper_town.reset(token)
+
     app.add_middleware(GZipMiddleware, minimum_size=500)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
         allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=["Content-Type", "Authorization", "X-PP-Town"],
         max_age=3600,
     )
 
@@ -177,9 +193,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(422, "Region names use only a-z, 0-9, - and _ (up to 40 characters).")
         if region not in regions.regions:
             raise HTTPException(
-                404, f"We don't know the town '{region}'. Try one of: " + ", ".join(regions.regions) + "."
+                404, f"We don't know the province '{region}'. Try one of: " + ", ".join(regions.regions) + "."
             )
         return region
+
+    towns = load_towns(str(settings.towns_file))
+
+    def scope(s: Session, region: str) -> Scope:
+        """The shopper's province plus the local stores within the radius of their town (or of the
+        province capital when no town is chosen). Idempotent."""
+        if isinstance(region, Scope):
+            return region
+        lat, lon, _slug = shopper_point(regions, towns, region, shopper_town.get())
+        stores = s.scalars(
+            select(Store).where(Store.kind == "local", Store.active.is_(True), Store.status == "approved")
+        ).all()
+        return Scope(region, near_store_ids(stores, lat, lon, region, settings.local_radius_km))
 
     def open_only() -> None:
         """Whole-catalogue price endpoints are for local testing (PP_OPEN_PRICES=1).
@@ -291,9 +320,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             for r in regions.regions.values()
         ]
 
+    @app.get(v1 + "/places", tags=["lookup"])
+    def places():
+        """Provinces with their towns (for the app's place chooser)."""
+        return {
+            "provinces": [
+                {
+                    "slug": r.slug,
+                    "name": r.name,
+                    "capital": r.capital,
+                    "lat": r.lat,
+                    "lon": r.lon,
+                    "towns": [
+                        {"slug": t.slug, "name": t.name, "lat": t.lat, "lon": t.lon}
+                        for t in sorted(towns.values(), key=lambda x: x.name)
+                        if t.province == r.slug
+                    ],
+                }
+                for r in regions.regions.values()
+            ]
+        }
+
     @app.get(v1 + "/products", response_model=S.ProductList, tags=["testing"], dependencies=open_dep)
     def products(
-        region: str = Query("paarl", description="Town, e.g. paarl"),
+        region: str = Query(default_region, description="Province, e.g. western-cape"),
         q: str | None = Query(None, max_length=80, description="Search words"),
         category: str | None = Query(None, max_length=40),
         limit: int = Query(50, ge=1, le=100),
@@ -327,6 +377,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
     def history_for(s: Session, product_id: int, region: str) -> S.ProductDetail:
+        region = scope(s, region)
         product = s.get(Product, product_id)
         if product is None:
             raise HTTPException(404, "That product was not found. It may have been merged with another.")
@@ -338,7 +389,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             select(Store.name, Price.scraped_at, Price.price_cents, Price.promo_cents)
             .join(Listing, Listing.id == Price.listing_id)
             .join(Store, Store.id == Listing.store_id)
-            .where(Listing.product_id == product_id, Price.region == region, Price.scraped_at >= cutoff)
+            .where(Listing.product_id == product_id, scope_rows(region), Price.scraped_at >= cutoff)
             .order_by(Price.scraped_at)
         ).all()
         per_store: dict[str, dict[str, float]] = {}
@@ -356,13 +407,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get(
         v1 + "/products/{product_id}", response_model=S.ProductDetail, tags=["testing"], dependencies=open_dep
     )
-    def product_detail(product_id: int, region: str = Query("paarl"), s: Session = Depends(db)):  # noqa: B008
+    def product_detail(
+        product_id: int, region: str = Query(default_region), s: Session = Depends(db)
+    ):  # noqa: B008
         check_region(region)
         return history_for(s, product_id, region)
 
     @app.get(v1 + "/towns/compare", response_model=S.TownsOut, tags=["testing"], dependencies=open_dep)
     def towns_compare(
-        region: str = Query("paarl"),
+        region: str = Query(default_region),
         radius_km: float = Query(50, gt=0, le=500),
         product_ids: str | None = Query(
             None, max_length=2000, description="Comma-separated ids; empty = all"
@@ -381,19 +434,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return towns_for(s, region, radius_km, ids)
 
     def towns_for(s: Session, region: str, radius_km: float, ids: list[int]) -> S.TownsOut:
-        home = regions.regions[region]
-        towns = []
-        for r in regions.regions.values():
-            km = haversine_km(home.lat, home.lon, r.lat, r.lon)
-            if km > radius_km:
-                continue
-            grouped = latest_prices(s, r.slug, product_ids=ids) if ids else {}
+        """The list's total in each town near the shopper (chain prices of that province plus the
+        local stores near that town)."""
+        home_lat, home_lon, _slug = shopper_point(regions, towns, region, shopper_town.get())
+        stores = s.scalars(
+            select(Store).where(Store.kind == "local", Store.active.is_(True), Store.status == "approved")
+        ).all()
+        near_towns = sorted(
+            (haversine_km(home_lat, home_lon, t.lat, t.lon), t)
+            for t in towns.values()
+            if t.province in regions.regions
+        )
+        near_towns = [(km, t) for km, t in near_towns if km <= radius_km][:30]
+        out_towns = []
+        for km, t in near_towns:
+            sc = Scope(t.province, near_store_ids(stores, t.lat, t.lon, t.province, settings.local_radius_km))
+            grouped = latest_prices(s, sc, product_ids=ids) if ids else {}
             total = sum(pp.best.effective_cents for pp in grouped.values() if pp.best)
             newest = max((sp.scraped_at for pp in grouped.values() for sp in pp.prices), default=None)
-            towns.append(
+            out_towns.append(
                 S.TownOut(
-                    region=r.slug,
-                    name=r.name,
+                    region=t.province,
+                    town=t.slug,
+                    name=t.name,
                     distance_km=round(km, 1),
                     total=from_cents(total) if grouped else None,
                     items_priced=len(grouped),
@@ -401,8 +464,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     scraped_at=newest,
                 )
             )
-        towns.sort(key=lambda t: (t.total is None, t.items_missing, t.total or 0, t.distance_km))
-        with_data = [t for t in towns if t.total is not None]
+        towns_list = out_towns
+        towns_list.sort(key=lambda t: (t.total is None, t.items_missing, t.total or 0, t.distance_km))
+        with_data = [t for t in towns_list if t.total is not None]
         note = ""
         if not ids:
             note = "No products to compare yet."
@@ -414,7 +478,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         elif any(t.items_missing for t in with_data):
             note = "Some towns are missing some items; those totals are lower because of that."
-        return S.TownsOut(region=region, radius_km=radius_km, product_count=len(ids), note=note, towns=towns)
+        return S.TownsOut(
+            region=region, radius_km=radius_km, product_count=len(ids), note=note, towns=towns_list
+        )
 
     @app.post(v1 + "/basket/optimise", response_model=S.BasketOut, tags=["testing"], dependencies=open_dep)
     def basket(body: S.BasketIn, s: Session = Depends(db)):  # noqa: B008
@@ -425,6 +491,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return basket_for(s, body.region, qty)
 
     def basket_for(s: Session, region: str, qty: dict[int, int]) -> S.BasketOut:
+        region = scope(s, region)
         grouped = latest_prices(s, region, product_ids=list(qty)) if qty else {}
         prices = {pid: {sp.store: sp.effective_cents for sp in pp.prices} for pid, pp in grouped.items()}
         res = optimise(qty, prices)
@@ -473,7 +540,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return json.loads(path.read_text(encoding="utf-8"))
 
     @app.get(v1 + "/prices", tags=["testing"], dependencies=open_dep)
-    def prices_v1(region: str = Query("paarl")):
+    def prices_v1(region: str = Query(default_region)):
         """The raw latest_{region}.json scraper file (backward-compatible contract)."""
         return prices_file(region)
 
@@ -488,7 +555,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return sorted(p.stem.removeprefix("latest_") for p in settings.data_dir.glob("latest_*.json"))
 
     @app.get("/api/prices", include_in_schema=False, dependencies=open_dep)
-    def legacy_prices(region: str = Query("paarl")):
+    def legacy_prices(region: str = Query(default_region)):
         return prices_file(region)
 
     register_account_routes(
@@ -498,6 +565,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             db=db,
             regions=regions,
             check_region=check_region,
+            scope=scope,
+            default_region=default_region,
+            towns=towns,
             product_out=product_out,
             history_for=history_for,
             towns_for=towns_for,

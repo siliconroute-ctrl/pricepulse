@@ -525,6 +525,60 @@ def _m14_store_signup(conn: Connection) -> None:
         )
 
 
+OLD_TOWN_REGIONS = (
+    "paarl",
+    "wellington",
+    "franschhoek",
+    "stellenbosch",
+    "cape-town",
+    "worcester",
+    "hermanus",
+)
+
+
+def _m15_provinces(conn: Connection) -> None:
+    """Regions become the nine provinces. The seven old Western Cape towns become 'western-cape':
+    one price row is kept per listing and slot (chain prices were the same in every town), history is
+    kept, other tables are only renamed. Local stores get their town's map point. Idempotent."""
+    old = ", ".join(f"'{r}'" for r in OLD_TOWN_REGIONS)
+    # local stores: map point from the old town before the region is renamed
+    try:
+        import yaml
+
+        from .config import BACKEND_DIR
+
+        raw = yaml.safe_load((BACKEND_DIR / "towns.yaml").read_text(encoding="utf-8")) or {}
+        towns = raw.get("towns") or {}
+    except Exception:  # noqa: BLE001 - a missing towns file only means no map points
+        towns = {}
+    for slug in OLD_TOWN_REGIONS:
+        t = towns.get(slug)
+        if t:
+            conn.execute(
+                text(
+                    "UPDATE store SET lat = :lat, lon = :lon, town = CASE WHEN town = '' THEN :name "
+                    "ELSE town END WHERE kind = 'local' AND region = :r AND lat IS NULL"
+                ),
+                {"lat": float(t["lat"]), "lon": float(t["lon"]), "name": t["name"], "r": slug},
+            )
+    conn.execute(text("UPDATE price SET region = 'western-cape' WHERE region = 'paarl'"))
+    conn.execute(
+        text(
+            f"DELETE FROM price WHERE region IN ({old}) AND EXISTS (SELECT 1 FROM price p2 "
+            "WHERE p2.listing_id = price.listing_id AND p2.slot = price.slot AND p2.region = 'western-cape')"
+        )
+    )
+    conn.execute(
+        text(
+            f"UPDATE price SET region = 'western-cape' WHERE id IN (SELECT MIN(id) FROM price "
+            f"WHERE region IN ({old}) GROUP BY listing_id, slot)"
+        )
+    )
+    conn.execute(text(f"DELETE FROM price WHERE region IN ({old})"))
+    conn.execute(text(f"UPDATE scrape_run SET region = 'western-cape' WHERE region IN ({old})"))
+    conn.execute(text(f"UPDATE store SET region = 'western-cape' WHERE region IN ({old})"))
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "initial tables", _m1_initial),
     (2, "accounts, subscriptions and lookup sessions", _m2_accounts),
@@ -540,6 +594,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (12, "store-owner portal", _m12_store_portal),
     (13, "store pages: hours, photos, item descriptions", _m13_store_pages),
     (14, "store sign-up: store id, approval, map point", _m14_store_signup),
+    (15, "regions are provinces", _m15_provinces),
 ]
 
 

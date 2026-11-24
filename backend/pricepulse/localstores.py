@@ -215,12 +215,9 @@ def in_stock(value: str) -> bool:
 
 
 def _regions_for(store: Store, settings: Settings) -> list[str]:
-    """Shopper towns this store's prices are written for (100 km rule; see towns.py)."""
-    from .regions import load_regions
-    from .towns import price_regions
-
-    got = price_regions(store, load_regions(str(settings.regions_file)))
-    return got or ([store.region] if store.region else [])
+    """A local store's prices are written once, under its own province; shoppers within the radius
+    of the store's town see them (queries.Scope)."""
+    return [store.region] if store.region else []
 
 
 def ensure_store_number(s: Session, store: Store) -> str:

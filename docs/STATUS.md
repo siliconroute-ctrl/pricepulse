@@ -33,7 +33,7 @@ for items they look up. `python run_local.py` gives a test copy with example pri
 | `--debug`: first 5 rows; screenshot + page saved to `debug/{store}/` on zero results | Done, and checked with a real browser against a local test site |
 | Health report per store (found, not found, errors, suspect prices, BLOCKED) | Done |
 | Backoff on 403/429/CAPTCHA, stop after 3 refusals, other stores continue | Done, checked with a real browser |
-| `regions.yaml` (7 towns) | Done. Per-store branch/postcode settings **not filled in**: every store is `unknown` (treated as national) until checked |
+| `regions.yaml` (9 provinces, since 24 Nov 2026) | Done. Per-store branch/postcode settings **not filled in**: every store is `unknown` (treated as national) until checked |
 | `products.txt` with `# category:` headers, 79 terms | Done |
 | Promo vs regular price, reject bad rows, idempotent slots | Done, tested |
 | Acceptance: `run_scrapers.py --region paarl` gives 15+ products from 4+ stores | **Not met here.** Live run result: all 6 stores "could not open the website (this network does not allow the website)". Needs a run from a machine with internet access |

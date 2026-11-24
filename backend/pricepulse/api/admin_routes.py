@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from .. import essentials, localstores
@@ -45,7 +45,10 @@ class PlanIn(BaseModel):
 
 class LocalStoreIn(BaseModel):
     name: str = Field(min_length=2, max_length=80)
-    region: str = Field(min_length=1, max_length=40)
+    region: str = Field(default="", max_length=40)  # the province; set from the town when one is chosen
+    town_slug: str | None = Field(
+        default=None, max_length=40
+    )  # a town from towns.yaml (sets province and map point)
     town: str = Field(default="", max_length=60)
     address: str = Field(default="", max_length=160)
     contact_name: str = Field(default="", max_length=80)
@@ -159,7 +162,7 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         store: str = Query(""),
         category: str = Query(""),
         q: str = Query("", max_length=80),
-        region: str = Query("paarl"),
+        region: str = Query(ctx.default_region),
         shown: str = Query("", pattern="^(|yes|no)$"),
         admin: AppUser = Depends(admin_dep),  # noqa: B008
         s: Session = Depends(ctx.db),  # noqa: B008
@@ -359,6 +362,9 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
             "applied_at": st.applied_at.isoformat() + "Z" if st.applied_at else None,
             "name": st.name,
             "region": st.region,
+            "town_slug": next(
+                (t.slug for t in ctx.towns.values() if t.name == st.town and t.province == st.region), ""
+            ),
             "region_name": region.name if region else st.region,
             "town": st.town,
             "address": st.address,
@@ -384,7 +390,13 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
 
     @app.get(base + "/regions", tags=["admin"])
     def regions_list(admin: AppUser = Depends(admin_dep)):  # noqa: B008
-        return {"regions": [{"slug": k, "name": r.name} for k, r in ctx.regions.regions.items()]}
+        return {
+            "regions": [{"slug": k, "name": r.name} for k, r in ctx.regions.regions.items()],
+            "towns": [
+                {"slug": t.slug, "name": t.name, "province": t.province}
+                for t in sorted(ctx.towns.values(), key=lambda x: (x.province, x.name))
+            ],
+        }
 
     @app.get(base + "/localstores", tags=["admin"])
     def localstores_list(admin: AppUser = Depends(admin_dep), s: Session = Depends(ctx.db)):  # noqa: B008
@@ -397,8 +409,14 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
 
     def validate_store(body: LocalStoreIn, s: Session, current: Store | None = None) -> dict:
         data = {k: clean_text(v) if isinstance(v, str) else v for k, v in body.model_dump().items()}
-        if body.region not in ctx.regions.regions:
-            raise HTTPException(422, {"code": "bad_region", "message": "Choose one of the listed regions."})
+        slug = data.pop("town_slug", None)
+        if slug:
+            t = ctx.towns.get(slug)
+            if t is None:
+                raise HTTPException(422, {"code": "bad_town", "message": "Choose a town from the list."})
+            data.update(region=t.province, town=t.name, lat=t.lat, lon=t.lon)
+        if data["region"] not in ctx.regions.regions:
+            raise HTTPException(422, {"code": "bad_region", "message": "Choose a town from the list."})
         if data["store_type"] not in localstores.STORE_TYPES:
             raise HTTPException(422, {"code": "bad_type", "message": "Choose one of the listed store types."})
         if "@" in data["email"] and "." not in data["email"].split("@")[-1]:
@@ -540,8 +558,12 @@ def register_admin_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         st = s.get(Store, store_id)
         if st is None or st.kind != "local":
             raise HTTPException(404, {"code": "not_found", "message": "No such local store."})
+        old_region = st.region
         for k, v in validate_store(body, s, st).items():
             setattr(st, k, v)
+        if st.region != old_region:  # the store moved province: its prices follow it
+            lids = select(Listing.id).where(Listing.store_id == st.id)
+            s.execute(update(Price).where(Price.listing_id.in_(lids)).values(region=st.region))
         s.commit()
         return store_row(st, s)
 

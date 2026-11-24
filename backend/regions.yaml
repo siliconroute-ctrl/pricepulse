@@ -2,7 +2,7 @@
 #
 # STATUS: the per-store settings below are NOT VERIFIED against the live sites yet.
 # The build environment could not reach the retailer websites. Before trusting
-# regional prices, run:  python run_scrapers.py --region paarl --store "Pick n Pay" --debug
+# regional prices, run:  python run_scrapers.py --region western-cape --store "Pick n Pay" --debug
 # and follow docs/FIX_A_SCRAPER.md.
 #
 # regional_pricing per store:
@@ -12,7 +12,7 @@
 #   unknown   - not checked yet; treated as national until someone checks.
 
 # DECISION (owner, 13 Nov 2026): scrape each store ONCE and share those prices across all the
-# towns below. Each store's default (anonymous) prices are used: Checkers' default store,
+# regions below. From 24 Nov 2026 a region is a PROVINCE (nine of them); towns live in towns.yaml. Each store's default (anonymous) prices are used: Checkers' default store,
 # Pick n Pay store WC21, Woolworths price column p30. Per-town prices are a later question.
 stores:
   Checkers:
@@ -31,45 +31,66 @@ stores:
     regional_pricing: national
 
 regions:
-  paarl:
-    name: Paarl
-    lat: -33.7342
-    lon: 18.9621
-    postal_code: "7646"
-    stores: {}          # e.g. {"Pick n Pay": {store_code: "XXXX"}} once verified
-  wellington:
-    name: Wellington
-    lat: -33.6393
-    lon: 19.0112
-    postal_code: "7655"
+  eastern-cape:
+    name: Eastern Cape
+    capital: Bhisho
+    lat: -32.847
+    lon: 27.442
+    postal_code: "5605"
     stores: {}
-  franschhoek:
-    name: Franschhoek
-    lat: -33.9133
-    lon: 19.1169
-    postal_code: "7690"
+  free-state:
+    name: Free State
+    capital: Bloemfontein
+    lat: -29.0852
+    lon: 26.1596
+    postal_code: "9301"
     stores: {}
-  stellenbosch:
-    name: Stellenbosch
-    lat: -33.9321
-    lon: 18.8602
-    postal_code: "7600"
+  gauteng:
+    name: Gauteng
+    capital: Johannesburg
+    lat: -26.2041
+    lon: 28.0473
+    postal_code: "2000"
     stores: {}
-  cape-town:
-    name: Cape Town
+  kwazulu-natal:
+    name: KwaZulu-Natal
+    capital: Pietermaritzburg
+    lat: -29.6006
+    lon: 30.3794
+    postal_code: "3201"
+    stores: {}
+  limpopo:
+    name: Limpopo
+    capital: Polokwane
+    lat: -23.9045
+    lon: 29.4689
+    postal_code: "0700"
+    stores: {}
+  mpumalanga:
+    name: Mpumalanga
+    capital: Mbombela
+    lat: -25.4753
+    lon: 30.9694
+    postal_code: "1200"
+    stores: {}
+  north-west:
+    name: North West
+    capital: Mahikeng
+    lat: -25.856
+    lon: 25.6403
+    postal_code: "2745"
+    stores: {}
+  northern-cape:
+    name: Northern Cape
+    capital: Kimberley
+    lat: -28.7282
+    lon: 24.7499
+    postal_code: "8300"
+    stores: {}
+  western-cape:
+    name: Western Cape
+    capital: Cape Town
     lat: -33.9249
     lon: 18.4241
     postal_code: "8001"
-    stores: {}
-  worcester:
-    name: Worcester
-    lat: -33.6461
-    lon: 19.4485
-    postal_code: "6850"
-    stores: {}
-  hermanus:
-    name: Hermanus
-    lat: -34.4187
-    lon: 19.2345
-    postal_code: "7200"
     stores: {}

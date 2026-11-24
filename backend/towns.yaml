@@ -1,45 +1,65 @@
-# Towns a local store owner can pick when signing up (the store is then shown to shoppers within
-# PP_LOCAL_RADIUS_KM, default 100 km, of this point). Coordinates are approximate town centres.
-# OWNER: please check them before go-live; add a town by copying a line (slug a-z, 0-9, hyphen).
+# Towns: where a local store is, and the optional town a shopper picks inside a province.
+# A local store is shown to shoppers within PP_LOCAL_RADIUS_KM (default 100 km) of their town.
+# Each province's default town is its capital (see regions.yaml: capital).
+# OWNER: coordinates are approximate town centres written from memory - please check them.
+# Add a town by copying a line (slug a-z, 0-9, hyphen; province must exist in regions.yaml).
 towns:
-  paarl: {name: Paarl, province: Western Cape, lat: -33.7342, lon: 18.9621}
-  wellington: {name: Wellington, province: Western Cape, lat: -33.6386, lon: 19.0116}
-  stellenbosch: {name: Stellenbosch, province: Western Cape, lat: -33.9321, lon: 18.8602}
-  franschhoek: {name: Franschhoek, province: Western Cape, lat: -33.9136, lon: 19.1186}
-  somerset-west: {name: Somerset West, province: Western Cape, lat: -34.0780, lon: 18.8430}
-  cape-town: {name: Cape Town, province: Western Cape, lat: -33.9249, lon: 18.4241}
-  bellville: {name: Bellville, province: Western Cape, lat: -33.9000, lon: 18.6300}
-  malmesbury: {name: Malmesbury, province: Western Cape, lat: -33.4614, lon: 18.7283}
-  tulbagh: {name: Tulbagh, province: Western Cape, lat: -33.2833, lon: 19.1333}
-  ceres: {name: Ceres, province: Western Cape, lat: -33.3680, lon: 19.3100}
-  worcester: {name: Worcester, province: Western Cape, lat: -33.6465, lon: 19.4485}
-  caledon: {name: Caledon, province: Western Cape, lat: -34.2300, lon: 19.4270}
-  hermanus: {name: Hermanus, province: Western Cape, lat: -34.4187, lon: 19.2345}
-  vredenburg: {name: Vredenburg, province: Western Cape, lat: -32.9050, lon: 17.9990}
-  george: {name: George, province: Western Cape, lat: -33.9630, lon: 22.4617}
-  mossel-bay: {name: Mossel Bay, province: Western Cape, lat: -34.1830, lon: 22.1460}
-  knysna: {name: Knysna, province: Western Cape, lat: -34.0360, lon: 23.0470}
-  oudtshoorn: {name: Oudtshoorn, province: Western Cape, lat: -33.5900, lon: 22.2020}
-  johannesburg: {name: Johannesburg, province: Gauteng, lat: -26.2041, lon: 28.0473}
-  sandton: {name: Sandton, province: Gauteng, lat: -26.1076, lon: 28.0567}
-  soweto: {name: Soweto, province: Gauteng, lat: -26.2678, lon: 27.8585}
-  pretoria: {name: Pretoria, province: Gauteng, lat: -25.7479, lon: 28.1881}
-  germiston: {name: Germiston, province: Gauteng, lat: -26.2171, lon: 28.1670}
-  benoni: {name: Benoni, province: Gauteng, lat: -26.1886, lon: 28.3208}
-  krugersdorp: {name: Krugersdorp, province: Gauteng, lat: -26.1000, lon: 27.7700}
-  vereeniging: {name: Vereeniging, province: Gauteng, lat: -26.6731, lon: 27.9261}
-  durban: {name: Durban, province: KwaZulu-Natal, lat: -29.8587, lon: 31.0218}
-  ballito: {name: Ballito, province: KwaZulu-Natal, lat: -29.5390, lon: 31.2140}
-  pietermaritzburg: {name: Pietermaritzburg, province: KwaZulu-Natal, lat: -29.6006, lon: 30.3794}
-  richards-bay: {name: Richards Bay, province: KwaZulu-Natal, lat: -28.7830, lon: 32.0377}
-  newcastle: {name: Newcastle, province: KwaZulu-Natal, lat: -27.7580, lon: 29.9318}
-  gqeberha: {name: Gqeberha (Port Elizabeth), province: Eastern Cape, lat: -33.9608, lon: 25.6022}
-  east-london: {name: East London, province: Eastern Cape, lat: -33.0153, lon: 27.9116}
-  mthatha: {name: Mthatha, province: Eastern Cape, lat: -31.5889, lon: 28.7844}
-  bloemfontein: {name: Bloemfontein, province: Free State, lat: -29.0852, lon: 26.1596}
-  welkom: {name: Welkom, province: Free State, lat: -27.9770, lon: 26.7350}
-  kroonstad: {name: Kroonstad, province: Free State, lat: -27.6500, lon: 27.2330}
-  rustenburg: {name: Rustenburg, province: North West, lat: -25.6676, lon: 27.2421}
-  mahikeng: {name: Mahikeng, province: North West, lat: -25.8560, lon: 25.6403}
-  potchefstroom: {name: Potchefstroom, province: North West, lat: -26.7145, lon: 27.0970}
-  klerksdorp: {name: Klerksdorp, province: North West, lat: -26.8521, lon: 26.6667}
+  bhisho: {name: "Bhisho", province: eastern-cape, lat: -32.847, lon: 27.442}
+  gqeberha: {name: "Gqeberha (Port Elizabeth)", province: eastern-cape, lat: -33.9608, lon: 25.6022}
+  east-london: {name: "East London (Buffalo City)", province: eastern-cape, lat: -33.0153, lon: 27.9116}
+  mthatha: {name: "Mthatha", province: eastern-cape, lat: -31.5889, lon: 28.7844}
+  makhanda: {name: "Makhanda (Grahamstown)", province: eastern-cape, lat: -33.31, lon: 26.52}
+  jeffreys-bay: {name: "Jeffreys Bay", province: eastern-cape, lat: -34.05, lon: 24.91}
+  bloemfontein: {name: "Bloemfontein (Mangaung)", province: free-state, lat: -29.0852, lon: 26.1596}
+  welkom: {name: "Welkom", province: free-state, lat: -27.977, lon: 26.735}
+  kroonstad: {name: "Kroonstad", province: free-state, lat: -27.65, lon: 27.233}
+  bethlehem: {name: "Bethlehem", province: free-state, lat: -28.23, lon: 28.307}
+  johannesburg: {name: "Johannesburg", province: gauteng, lat: -26.2041, lon: 28.0473}
+  sandton: {name: "Sandton", province: gauteng, lat: -26.1076, lon: 28.0567}
+  soweto: {name: "Soweto", province: gauteng, lat: -26.2678, lon: 27.8585}
+  pretoria: {name: "Pretoria (Tshwane)", province: gauteng, lat: -25.7479, lon: 28.1881}
+  ekurhuleni: {name: "Ekurhuleni (Germiston)", province: gauteng, lat: -26.2171, lon: 28.167}
+  benoni: {name: "Benoni", province: gauteng, lat: -26.1886, lon: 28.3208}
+  krugersdorp: {name: "Krugersdorp", province: gauteng, lat: -26.1, lon: 27.77}
+  vereeniging: {name: "Vereeniging", province: gauteng, lat: -26.6731, lon: 27.9261}
+  durban: {name: "Durban (eThekwini)", province: kwazulu-natal, lat: -29.8587, lon: 31.0218}
+  ballito: {name: "Ballito", province: kwazulu-natal, lat: -29.539, lon: 31.214}
+  pietermaritzburg: {name: "Pietermaritzburg", province: kwazulu-natal, lat: -29.6006, lon: 30.3794}
+  richards-bay: {name: "Richards Bay", province: kwazulu-natal, lat: -28.783, lon: 32.0377}
+  newcastle: {name: "Newcastle", province: kwazulu-natal, lat: -27.758, lon: 29.9318}
+  ladysmith: {name: "Ladysmith", province: kwazulu-natal, lat: -28.553, lon: 29.778}
+  polokwane: {name: "Polokwane", province: limpopo, lat: -23.9045, lon: 29.4689}
+  tzaneen: {name: "Tzaneen", province: limpopo, lat: -23.833, lon: 30.163}
+  thohoyandou: {name: "Thohoyandou", province: limpopo, lat: -22.9456, lon: 30.485}
+  mokopane: {name: "Mokopane", province: limpopo, lat: -24.194, lon: 29.009}
+  mbombela: {name: "Mbombela (Nelspruit)", province: mpumalanga, lat: -25.4753, lon: 30.9694}
+  emalahleni: {name: "eMalahleni (Witbank)", province: mpumalanga, lat: -25.871, lon: 29.233}
+  secunda: {name: "Secunda", province: mpumalanga, lat: -26.55, lon: 29.17}
+  middelburg: {name: "Middelburg", province: mpumalanga, lat: -25.775, lon: 29.464}
+  rustenburg: {name: "Rustenburg", province: north-west, lat: -25.6676, lon: 27.2421}
+  mahikeng: {name: "Mahikeng", province: north-west, lat: -25.856, lon: 25.6403}
+  klerksdorp: {name: "Klerksdorp", province: north-west, lat: -26.8521, lon: 26.6667}
+  potchefstroom: {name: "Potchefstroom", province: north-west, lat: -26.7145, lon: 27.097}
+  brits: {name: "Brits", province: north-west, lat: -25.635, lon: 27.78}
+  kimberley: {name: "Kimberley", province: northern-cape, lat: -28.7282, lon: 24.7499}
+  upington: {name: "Upington", province: northern-cape, lat: -28.4478, lon: 21.2561}
+  springbok: {name: "Springbok", province: northern-cape, lat: -29.664, lon: 17.886}
+  kuruman: {name: "Kuruman", province: northern-cape, lat: -27.452, lon: 23.432}
+  cape-town: {name: "Cape Town", province: western-cape, lat: -33.9249, lon: 18.4241}
+  bellville: {name: "Bellville", province: western-cape, lat: -33.9, lon: 18.63}
+  paarl: {name: "Paarl", province: western-cape, lat: -33.7342, lon: 18.9621}
+  wellington: {name: "Wellington", province: western-cape, lat: -33.6386, lon: 19.0116}
+  stellenbosch: {name: "Stellenbosch", province: western-cape, lat: -33.9321, lon: 18.8602}
+  franschhoek: {name: "Franschhoek", province: western-cape, lat: -33.9136, lon: 19.1186}
+  somerset-west: {name: "Somerset West", province: western-cape, lat: -34.078, lon: 18.843}
+  malmesbury: {name: "Malmesbury", province: western-cape, lat: -33.4614, lon: 18.7283}
+  tulbagh: {name: "Tulbagh", province: western-cape, lat: -33.2833, lon: 19.1333}
+  ceres: {name: "Ceres", province: western-cape, lat: -33.368, lon: 19.31}
+  worcester: {name: "Worcester", province: western-cape, lat: -33.6465, lon: 19.4485}
+  caledon: {name: "Caledon", province: western-cape, lat: -34.23, lon: 19.427}
+  hermanus: {name: "Hermanus", province: western-cape, lat: -34.4187, lon: 19.2345}
+  vredenburg: {name: "Vredenburg", province: western-cape, lat: -32.905, lon: 17.999}
+  george: {name: "George", province: western-cape, lat: -33.963, lon: 22.4617}
+  mossel-bay: {name: "Mossel Bay", province: western-cape, lat: -34.183, lon: 22.146}
+  knysna: {name: "Knysna", province: western-cape, lat: -34.036, lon: 23.047}
+  oudtshoorn: {name: "Oudtshoorn", province: western-cape, lat: -33.59, lon: 22.202}

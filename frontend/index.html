@@ -488,7 +488,7 @@ body.front .promo h2{font-size:1.2rem}
   </div></div>
   <div class="findbar">
   <div class="row find-row">
-    <label for="base" class="vh">Town</label>
+    <label for="base" class="vh">Province or town</label>
     <span class="chip"><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.500-6-6.500-11a6.500 6.500 0 0113 0c0 5-6.500 11-6.500 11z"/><circle cx="12" cy="10" r="2.400"/></svg><select id="base"></select></span>
     <button class="locbtn" id="locate" type="button" aria-label="Use my location to choose the nearest town">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
@@ -531,7 +531,7 @@ var API = String(CFG.apiBase || "").replace(/\/+$/, "") + "/api/v1";
 var SUPPORT = CFG.supportEmail || "admin@trolleyup.com";
 var TROLLEYUP_URL = "https://trolleyup.com";
 /* Raise APP_VERSION together with the number in sw.js ("pp-shell-vNN") on every release; a test checks they match. */
-var APP_VERSION = 42;
+var APP_VERSION = 43;
 var APP_URL = String(CFG.publicUrl || "https://pricepulse.trolleyup.com").replace(/\/+$/, "");
 var SHARE_TEXT = "Compare grocery, liquor and pharmacy prices across South African stores with PricePulse: ";
 var STALE_HOURS = 48;
@@ -543,14 +543,21 @@ var DASHES = ["", "6 4", "2 3", "10 3 2 3", "1 4", "12 6"];
 var CATS = ["All","Groceries","Fresh","Liquor","Health & Beauty","Pets","Stationery","Electronics"];
 /* Used until the server's list arrives. Location never leaves the phone. */
 var FALLBACK_REGIONS = [
-  {slug:"paarl",name:"Paarl",lat:-33.7342,lon:18.9621},{slug:"wellington",name:"Wellington",lat:-33.6393,lon:19.0112},
-  {slug:"franschhoek",name:"Franschhoek",lat:-33.9133,lon:19.1169},{slug:"stellenbosch",name:"Stellenbosch",lat:-33.9321,lon:18.8602},
-  {slug:"cape-town",name:"Cape Town",lat:-33.9249,lon:18.4241},{slug:"worcester",name:"Worcester",lat:-33.6461,lon:19.4485},
-  {slug:"hermanus",name:"Hermanus",lat:-34.4187,lon:19.2345}];
+  {slug:"eastern-cape",name:"Eastern Cape",lat:-32.847,lon:27.442,towns:[{slug:"gqeberha",name:"Gqeberha (Port Elizabeth)",lat:-33.9608,lon:25.6022}]},
+  {slug:"free-state",name:"Free State",lat:-29.0852,lon:26.1596,towns:[{slug:"bloemfontein",name:"Bloemfontein (Mangaung)",lat:-29.0852,lon:26.1596}]},
+  {slug:"gauteng",name:"Gauteng",lat:-26.2041,lon:28.0473,towns:[{slug:"johannesburg",name:"Johannesburg",lat:-26.2041,lon:28.0473}]},
+  {slug:"kwazulu-natal",name:"KwaZulu-Natal",lat:-29.6006,lon:30.3794,towns:[{slug:"durban",name:"Durban (eThekwini)",lat:-29.8587,lon:31.0218}]},
+  {slug:"limpopo",name:"Limpopo",lat:-23.9045,lon:29.4689,towns:[{slug:"polokwane",name:"Polokwane",lat:-23.9045,lon:29.4689}]},
+  {slug:"mpumalanga",name:"Mpumalanga",lat:-25.4753,lon:30.9694,towns:[{slug:"mbombela",name:"Mbombela (Nelspruit)",lat:-25.4753,lon:30.9694}]},
+  {slug:"north-west",name:"North West",lat:-25.856,lon:25.6403,towns:[{slug:"rustenburg",name:"Rustenburg",lat:-25.6676,lon:27.2421}]},
+  {slug:"northern-cape",name:"Northern Cape",lat:-28.7282,lon:24.7499,towns:[{slug:"kimberley",name:"Kimberley",lat:-28.7282,lon:24.7499}]},
+  {slug:"western-cape",name:"Western Cape",lat:-33.9249,lon:18.4241,towns:[{slug:"cape-town",name:"Cape Town",lat:-33.9249,lon:18.4241},{slug:"paarl",name:"Paarl",lat:-33.7342,lon:18.9621}]}];
+/* Before 24 Nov 2026 a "region" was one of seven Western Cape towns. Saved choices are moved to the province plus that town. */
+var OLD_TOWNS=["paarl","wellington","franschhoek","stellenbosch","cape-town","worcester","hermanus"];
 
 var state = {
   phase:"boot",            /* boot, signin, idcheck, app */
-  view:"find", productId:null, cat:"All", q:"", region:"paarl", regions:FALLBACK_REGIONS.slice(),
+  view:"find", productId:null, cat:"All", q:"", region:"western-cape", town:"", regions:FALLBACK_REGIONS.slice(),
   me:null, items:[], basket:null, stamp:null, isSample:false, savedAt:null, offline:false, error:"",
   found:null, finding:false, findErr:"", unitMode:false, radius:50, towns:null, detail:null, theme:"system",
   signMode:"in", authErr:"", busy:false, picked:{}, searches:[], searchesLoaded:false, seenDone:{}, sub:"", cond:"", subs:[], shopId:0
@@ -583,6 +590,12 @@ function storeBtn(s,r,cap,best){
 }
 function badge(s){return '<span class="badge" style="background:'+storeColor(s)+'">'+esc(s)+'</span>'}
 function regionName(slug){var r=state.regions.find(function(x){return x.slug===slug});return r?r.name:slug}
+/* The place the shopper chose: the town when there is one, else the province. */
+function placeName(){
+  var r=state.regions.find(function(x){return x.slug===state.region});
+  if(r&&state.town){var t=(r.towns||[]).find(function(x){return x.slug===state.town});if(t)return t.name}
+  return regionName(state.region);
+}
 function haversine(a,b,c,d){var R=6371,r=Math.PI/180,x=(c-a)*r,y=(d-b)*r;
   var h=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*r)*Math.cos(c*r)*Math.sin(y/2)*Math.sin(y/2);return 2*R*Math.asin(Math.sqrt(h))}
 function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -653,6 +666,7 @@ function api(method,path,body,timeoutMs){
     var opts={method:method,headers:{}};
     if(ctl)opts.signal=ctl.signal;
     if(tok)opts.headers.Authorization="Bearer "+tok;
+    if(state.town)opts.headers["X-PP-Town"]=state.town;
     if(body!==undefined){opts.headers["Content-Type"]="application/json";opts.body=JSON.stringify(body)}
     return fetch(API+path,opts).then(function(r){
       clearTimeout(timer);
@@ -700,8 +714,9 @@ function loadSession(){
   });
 }
 function loadRegions(){
-  return fetch(API+"/regions").then(function(r){return r.json()}).then(function(rs){
-    if(Array.isArray(rs)&&rs.length){state.regions=rs;store("pp_regions",rs);fillRegions()}
+  return fetch(API+"/places").then(function(r){return r.json()}).then(function(d){
+    var rs=d&&d.provinces;
+    if(Array.isArray(rs)&&rs.length){state.regions=rs;store("pp_places",rs);fillRegions()}
   }).catch(function(){});
 }
 function handleAuthError(e){
@@ -1142,8 +1157,8 @@ function legend(series){
 
 /* ---------- Towns ---------- */
 function viewTowns(){
-  var h=banners()+'<h2 class="h2">Town by town</h2><p class="sub">What your list costs in each town near '+esc(regionName(state.region))+', buying each item at that town’s cheapest store.</p>';
-  h+='<div class="seg" role="group" aria-label="Distance">'+[25,50,100].map(function(k){return '<button type="button" data-radius="'+k+'" aria-pressed="'+(state.radius===k)+'">'+k+' km</button>'}).join("")+'</div>';
+  var h=banners()+'<h2 class="h2">Compare towns near me</h2><p class="sub">What your list costs in each town near '+esc(placeName())+', buying each item at that town’s cheapest store, including local stores near it.</p>';
+  h+='<div class="seg" role="group" aria-label="Distance">'+[25,50,100,200].map(function(k){return '<button type="button" data-radius="'+k+'" aria-pressed="'+(state.radius===k)+'">'+k+' km</button>'}).join("")+'</div>';
   if(state.offline)return h+'<div class="empty">Comparing towns needs a connection.</div>'+disclaimer();
   if(!onList().length)return h+'<div class="empty">Your list is empty. Look up products on the Find tab first.</div>'+disclaimer();
   var t=state.towns,k=townsKey();
@@ -1161,7 +1176,7 @@ function viewTowns(){
   if(none.length)h+='<p class="sub" style="margin-top:.6rem">No prices yet for: '+esc(none.join(", "))+'.</p>';
   return h+disclaimer();
 }
-function townsKey(){return [state.region,state.radius,onList().map(function(i){return i.p.id+"x"+i.q}).join(",")].join("|")}
+function townsKey(){return [state.region,state.town,state.radius,onList().map(function(i){return i.p.id+"x"+i.q}).join(",")].join("|")}
 function loadTowns(){
   if(state.offline||!onList().length)return;
   var k=townsKey();if(state.towns&&state.towns.key===k)return;
@@ -1799,7 +1814,7 @@ function admRender(){
 }
 function admLoad(){
   var tab=ADM.tab,path=admPath(tab);
-  if(tab==="localstores"&&!ADM.regions)api("GET","/admin/regions").then(function(r){ADM.regions=r.regions;if(state.view==="admin"&&ADM.tab==="localstores")admRender()}).catch(function(){});
+  if(tab==="localstores"&&!ADM.regions)api("GET","/admin/regions").then(function(r){ADM.regions=r.regions;ADM.towns=r.towns;if(state.view==="admin"&&ADM.tab==="localstores")admRender()}).catch(function(){});
   if(ADM.loading===path)return;
   ADM.loading=path;ADM.err="";
   api("GET",path).then(function(r){
@@ -1965,10 +1980,12 @@ var LS_TYPES=["","Supermarket","Butchery","Stationery","IT & Electronics","Other
 var LS_TEMPLATE="item,price,size,barcode,sku,department,category,promo price,image\r\nClover Full Cream Milk,34.50,2L,,MILK2,Dairy,Groceries,,\r\nBoerewors,89.90,1kg,,BW1,Butchery,Fresh,79.90,\r\nBrown Bread,16.00,700g,6001234567890,BR7,Bakery,Groceries,,\r\n";
 function lsStore(id){var d=ADM.data.localstores;return d&&d.stores.filter(function(x){return String(x.id)===String(id)})[0]}
 function lsForm(st){
-  var r=st||{},opts=(ADM.regions||[]).map(function(x){return '<option value="'+esc(x.slug)+'"'+(x.slug===r.region?' selected':'')+'>'+esc(x.name)+'</option>'}).join("");
+  ADM.lsOldRegion=st?st.region:"";
+  var r=st||{},opts=(ADM.regions||[]).map(function(x){
+    return '<optgroup label="'+esc(x.name)+'">'+(ADM.towns||[]).filter(function(t){return t.province===x.slug}).map(function(t){return '<option value="'+esc(t.slug)+'"'+(t.slug===r.town_slug?' selected':'')+'>'+esc(t.name)+'</option>'}).join("")+'</optgroup>'}).join("");
   var f=function(id,label,val,max,cls){return '<label class="field'+(cls?' '+cls:'')+'"><span>'+label+'</span><input id="'+id+'" type="text" maxlength="'+max+'" value="'+esc(val||"")+'" autocomplete="off"></label>'};
   ask(st?"Edit local store":"Add a local store",'<div class="admform">'+f("lsname","Store name",r.name,80,"wide")+
-    '<label class="field"><span>Region (their shoppers see this store)</span><select id="lsregion">'+opts+'</select></label>'+f("lstown","Town or suburb",r.town,60)+
+    '<label class="field"><span>Town (shoppers within 100 km see this store)</span><select id="lsregion"><option value="">(choose)</option>'+opts+'</select></label>'+
     f("lsaddr","Address",r.address,160,"wide")+f("lscontact","Contact person",r.contact_name,80)+f("lsphone","Phone",r.phone,30)+f("lsemail","Email",r.email,120,"wide")+
     f("lsnotes","Notes (only you see these)",r.notes,300,"wide")+
     '<label class="field"><span>Type of store</span><select id="lstype">'+LS_TYPES.map(function(t){return '<option value="'+esc(t)+'"'+(t===(r.store_type||"")?' selected':'')+'>'+esc(t||"(not set)")+'</option>'}).join("")+'</select></label>'+
@@ -1980,7 +1997,7 @@ function lsForm(st){
 }
 function lsSave(b,dlg,id){
   var v=function(x){return (document.getElementById(x)||{}).value||""};
-  var body={name:v("lsname"),region:v("lsregion"),town:v("lstown"),address:v("lsaddr"),contact_name:v("lscontact"),phone:v("lsphone"),email:v("lsemail"),notes:v("lsnotes"),store_type:v("lstype"),max_items:parseInt(v("lsmax"),10)||1000,category:v("lscategory"),whatsapp:v("lswhatsapp"),paid_until:v("lspaid"),active:id==="new"?true:!!(document.getElementById("lsactive")||{}).checked};
+  var body={name:v("lsname"),region:(ADM.lsOldRegion||""),town_slug:v("lsregion")||null,address:v("lsaddr"),contact_name:v("lscontact"),phone:v("lsphone"),email:v("lsemail"),notes:v("lsnotes"),store_type:v("lstype"),max_items:parseInt(v("lsmax"),10)||1000,category:v("lscategory"),whatsapp:v("lswhatsapp"),paid_until:v("lspaid"),active:id==="new"?true:!!(document.getElementById("lsactive")||{}).checked};
   var owner=v("lsowner").trim();
   b.disabled=true;
   return api("POST","/admin/localstores"+(id==="new"?"":"/"+id),body).then(function(r){return owner&&id!=="new"?api("POST","/admin/localstores/"+id+"/owner",{uid:owner}):r}).then(function(){dlg.close();say("Store saved.");ADM.loading=null;admLoad()}).catch(function(e){b.disabled=false;var el=document.getElementById("lserr");if(el)el.textContent=e.message});
@@ -2139,7 +2156,7 @@ function go(v,focus){
   if(location.hash!==target){try{history.pushState(null,"",target)}catch(e){location.hash=target}}
   if(focus!==false)document.getElementById("main").focus({preventScroll:true});
 }
-function savePrefs(){store("pp_region",state.region);store("pp_unit",state.unitMode);store("pp_theme",state.theme)}
+function savePrefs(){store("pp_region",state.region);store("pp_town",state.town||"");store("pp_unit",state.unitMode);store("pp_theme",state.theme)}
 function applyTheme(){
   var root=document.documentElement;
   if(state.theme==="system")root.removeAttribute("data-theme");else root.setAttribute("data-theme",state.theme);
@@ -2148,14 +2165,19 @@ function applyTheme(){
 }
 function fillRegions(){
   var sel=document.getElementById("base");
-  sel.innerHTML=state.regions.map(function(r){return '<option value="'+esc(r.slug)+'">'+esc(r.name)+'</option>'}).join("");
+  sel.innerHTML=state.regions.map(function(r){
+    return '<optgroup label="'+esc(r.name)+'"><option value="'+esc(r.slug)+'|">'+esc(r.name)+(r.capital?' (whole province)':'')+'</option>'+
+      (r.towns||[]).map(function(t){return '<option value="'+esc(r.slug)+'|'+esc(t.slug)+'">'+esc(t.name)+'</option>'}).join("")+'</optgroup>'}).join("");
   if(!state.regions.some(function(r){return r.slug===state.region}))state.region=state.regions[0].slug;
-  sel.value=state.region;
+  var cur=state.regions.find(function(r){return r.slug===state.region});
+  if(state.town&&!((cur&&cur.towns)||[]).some(function(t){return t.slug===state.town}))state.town="";
+  sel.value=state.region+"|"+(state.town||"");
 }
-function setRegion(slug){
-  if(slug===state.region)return;
-  state.region=slug;state.detail=null;state.towns=null;state.found=null;savePrefs();
-  document.getElementById("base").value=slug;
+function setRegion(slug,town){
+  town=town||"";
+  if(slug===state.region&&town===(state.town||""))return;
+  state.region=slug;state.town=town;state.detail=null;state.towns=null;state.found=null;savePrefs();
+  document.getElementById("base").value=slug+"|"+town;
   render();loadSession();
 }
 function locate(){
@@ -2163,10 +2185,13 @@ function locate(){
   say("Finding the nearest town…");
   navigator.geolocation.getCurrentPosition(function(pos){
     var lat=pos.coords.latitude,lon=pos.coords.longitude,best=null;
-    state.regions.forEach(function(r){var d=haversine(lat,lon,r.lat,r.lon);if(!best||d<best.d)best={r:r,d:d}});
+    state.regions.forEach(function(r){
+      var pts=(r.towns&&r.towns.length?r.towns:[{slug:"",name:r.name,lat:r.lat,lon:r.lon}]);
+      pts.forEach(function(t){var d=haversine(lat,lon,t.lat,t.lon);if(!best||d<best.d)best={r:r,t:t,d:d}});
+    });
     if(!best)return;
-    setRegion(best.r.slug);
-    say("Nearest town: "+best.r.name+", about "+Math.round(best.d)+" km away."+(best.d>80?" That is far; you can choose another town from the list.":""));
+    setRegion(best.r.slug,best.t.slug);
+    say("Nearest town: "+best.t.name+", about "+Math.round(best.d)+" km away."+(best.d>80?" That is far; you can choose another place from the list.":""));
   },function(err){
     say(err.code===1?"Location is blocked for this app. Choose your town from the list instead.":"Could not find your location. Choose your town from the list instead.");
   },{enableHighAccuracy:false,timeout:10000,maximumAge:600000});
@@ -2282,7 +2307,7 @@ document.getElementById("q").addEventListener("input",function(e){
   if(state.view!=="find"){state.view="find";try{history.replaceState(null,"","#find")}catch(x){}renderNav()}
   runFind();
 });
-document.getElementById("base").addEventListener("change",function(e){setRegion(e.target.value)});
+document.getElementById("base").addEventListener("change",function(e){var v=String(e.target.value).split("|");setRegion(v[0],v[1]||"")});
 document.getElementById("locate").addEventListener("click",locate);
 window.addEventListener("popstate",function(){go((location.hash||"#find").slice(1),false)});
 window.addEventListener("online",function(){if(state.phase==="app"&&state.offline)loadSession()});
@@ -2290,8 +2315,10 @@ if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener
 
 /* ---------- Start ---------- */
 (function init(){
-  state.region=load("pp_region")||"paarl";state.unitMode=!!load("pp_unit");state.theme=load("pp_theme")||"system";
-  var rs=load("pp_regions");if(Array.isArray(rs)&&rs.length)state.regions=rs;
+  state.region=load("pp_region")||"western-cape";state.town=load("pp_town")||"";
+  if(OLD_TOWNS.indexOf(state.region)>=0){state.town=state.region;state.region="western-cape";store("pp_region",state.region);store("pp_town",state.town)}
+  state.unitMode=!!load("pp_unit");state.theme=load("pp_theme")||"system";
+  var rs=load("pp_places");if(Array.isArray(rs)&&rs.length)state.regions=rs;
   setupMenu();afterUpdateNote();
   fillRegions();render();loadRegions();
   Auth.start(onAuth).catch(function(){

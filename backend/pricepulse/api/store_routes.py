@@ -157,7 +157,7 @@ def register_store_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
         t = load_towns(str(settings.towns_file))
         return {
             "towns": [
-                {"slug": x.slug, "name": x.name, "province": x.province}
+                {"slug": x.slug, "name": x.name, "province": ctx.regions.regions[x.province].name}
                 for x in sorted(t.values(), key=lambda x: (x.province, x.name))
             ],
             "categories": SIGNUP_CATEGORIES,
@@ -178,8 +178,7 @@ def register_store_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
 
         from .. import accounts
         from ..alerts import send_email
-        from ..regions import load_regions
-        from ..towns import load_towns, regions_in_range
+        from ..towns import load_towns
 
         def refuse(code: str, message: str, status: int = 422):
             raise HTTPException(status, {"code": code, "message": message})
@@ -229,12 +228,10 @@ def register_store_routes(app: FastAPI, ctx, user_dep) -> None:  # noqa: ANN001,
                     "A store with that name already exists. Please add your town or suburb.",
                     409,
                 )
-        regions = load_regions(str(settings.regions_file))
-        near = regions_in_range(town.lat, town.lon, regions, settings.local_radius_km)
         st = Store(
             name=name,
             kind="local",
-            region=near[0] if near else town.slug,
+            region=town.province,
             town=town.name,
             address=body.address.strip(),
             contact_name=body.contact_name.strip(),
