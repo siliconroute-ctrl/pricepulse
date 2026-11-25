@@ -965,6 +965,8 @@ check(!(await page.evaluate(() => { const b = document.querySelector('#menupop [
   check(!/Greeting/.test(await hpage.textContent("#main")), "My account has no Greeting card");
   await hpage.goto(base + "/");
   await hpage.waitForSelector(".cats8");
+  await hpage.evaluate(() => document.getElementById("main").focus());
+  check(await hpage.evaluate(() => getComputedStyle(document.getElementById("main")).outlineStyle === "none"), "the page area shows no black frame when focused");
   check(await hpage.evaluate(() => { const h = document.querySelector("header").getBoundingClientRect(), n = document.querySelector("nav.tabs").getBoundingClientRect(); return h.left === 0 && h.right === innerWidth && n.left === 0 && n.right === innerWidth && document.documentElement.scrollWidth === innerWidth; }), "the front page spans the whole phone width: no side border or sideways scroll");
   check(buyErrors.length === 0, "no JavaScript errors on the shopper screens" + (buyErrors.length ? ": " + buyErrors.join("; ") : ""));
   // A lapsed store disappears; the owner is told.
